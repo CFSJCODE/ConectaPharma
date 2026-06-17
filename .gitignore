@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Variaveis e segredos locais
+.env
+.env.*
+!.env.example
+
+# Logs e arquivos temporarios
+*.log
+*.err
+tmp/
+temp/
+
+# Certificados e chaves privadas
+certs/
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+
+# IDE/Sistema operacional
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

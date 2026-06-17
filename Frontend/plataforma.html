@@ -1,0 +1,379 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma ConectaPharma</title>
+    <style>
+        :root {
+            --color-primary: #0A2254;
+            --color-sus-blue: #005DAA;
+            --color-accent: #10B981;
+            --color-bg: #F8FAFC;
+            --color-card: #FFFFFF;
+            --color-text: #1E293B;
+            --color-muted: #475569;
+            --transition-smooth: all 0.25s ease;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+        }
+        header {
+            background-color: var(--color-card);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title h1 { 
+            font-size: 1.75rem; 
+            color: var(--color-primary); 
+        }
+        .header-title p { 
+            color: var(--color-muted); 
+            margin-top: 0.35rem; 
+        }
+        .btn-logout { 
+            border: none; 
+            background: var(--color-sus-blue); 
+            color: white; 
+            padding: 0.9rem 1.4rem; 
+            border-radius: 999px; 
+            cursor: pointer; 
+            transition: var(--transition-smooth); 
+            font-weight: 700;
+        }
+        .btn-logout:hover { 
+            transform: translateY(-1px); 
+            background: #004a87; 
+        }
+        .page-body { 
+            max-width: 1200px; 
+            margin: 2rem auto; 
+            padding: 0 2rem; 
+            display: grid; 
+            grid-template-columns: 1.5fr 0.9fr; 
+            gap: 1.5rem; 
+        }
+        .card { 
+            background: var(--color-card); 
+            border-radius: 24px; 
+            padding: 1.8rem; 
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08); 
+        }
+        .welcome-box h2 { 
+            margin-bottom: 0.5rem; 
+        }
+        .user-infobox { 
+            margin-top: 1rem; 
+            color: var(--color-muted); 
+        }
+        .status-pill { 
+            display: inline-flex; 
+            padding: 0.45rem 0.85rem; 
+            border-radius: 999px; 
+            font-weight: 700; 
+            color: #166534; 
+            background: #DCFCE7; 
+            margin-top: 1rem; 
+        }
+        .grid-summary { 
+            display: grid; 
+            gap: 1rem; 
+            grid-template-columns: repeat(2, minmax(0, 1fr)); 
+            margin-top: 1.5rem; 
+        }
+        .summary-card { 
+            padding: 1.35rem; 
+            border-radius: 20px; 
+            background: #EEF2FF; 
+        }
+        .summary-card h3 { 
+            margin-bottom: 0.5rem; 
+            font-size: 0.95rem; 
+            color: var(--color-muted); 
+        }
+        .summary-card p { 
+            font-size: 1.75rem; 
+            font-weight: 800; 
+            color: var(--color-primary); 
+        }
+        .section-title { 
+            font-size: 1.4rem; 
+            margin-bottom: 1rem; 
+            color: var(--color-primary); 
+        }
+        .alert-list { 
+            display: grid; 
+            gap: 0.9rem; 
+        }
+        .alert-card { 
+            padding: 1rem; 
+            border-radius: 18px; 
+            background: #F8FAFC; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border: 1px solid rgba(15, 23, 42, 0.08); 
+        }
+        .alert-card strong { 
+            display: block; 
+            margin-bottom: 0.35rem; 
+        }
+        .badge { 
+            padding: 0.45rem 0.85rem; 
+            border-radius: 999px; 
+            font-size: 0.8rem; 
+            font-weight: 700; 
+        }
+        .badge.critico { 
+            background: #FEE2E2; 
+            color: #B91C1C; 
+        }
+        .badge.ok { 
+            background: #DCFCE7; 
+            color: #166534; 
+        }
+        .badge.atencao {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+        .loading-text {
+            color: var(--color-muted);
+            font-style: italic;
+        }
+        .fallback-badge {
+            display: inline-block;
+            padding: 0.4rem 0.7rem;
+            background: #FEF3C7;
+            color: #92400E;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 0.5rem;
+        }
+        @media (max-width: 900px) { 
+            .page-body { 
+                grid-template-columns: 1fr; 
+            } 
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1>Plataforma ConectaPharma</h1>
+            <p>Área restrita do usuário autenticado</p>
+        </div>
+        <button class="btn-logout" onclick="logout()">Sair</button>
+    </header>
+    <main class="page-body">
+        <section class="card welcome-box">
+            <h2>Seja bem-vindo(a), <span id="user-name">...</span></h2>
+            <p class="user-infobox">Você está conectado com sucesso ao backend de autenticação.</p>
+            <div class="status-pill" id="session-status">Carregando sessão...</div>
+            <div class="grid-summary">
+                <div class="summary-card">
+                    <h3>Alertas no backend</h3>
+                    <p id="alerta-count">0</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Farmácias retornadas</h3>
+                    <p id="farmacia-count">0</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Integração RNDS</h3>
+                    <p id="rnds-mode">...</p>
+                </div>
+            </div>
+        </section>
+        <section class="card">
+            <h2 class="section-title">Últimos alertas de consumo</h2>
+            <div id="alert-list" class="alert-list">
+                <p class="loading-text">Carregando dados...</p>
+            </div>
+        </section>
+    </main>
+    <script>
+        const API_BASE_URL = 'http://localhost:8000/api/v1';
+        const STORAGE_TOKEN_KEY = 'conectapharma_token';
+        const STORAGE_USER_KEY = 'conectapharma_user';
+
+        function logout() {
+            sessionStorage.removeItem(STORAGE_TOKEN_KEY);
+            sessionStorage.removeItem(STORAGE_USER_KEY);
+            localStorage.removeItem(STORAGE_TOKEN_KEY);
+            localStorage.removeItem(STORAGE_USER_KEY);
+            window.location.href = 'login.html';
+        }
+
+        function getToken() {
+            return sessionStorage.getItem(STORAGE_TOKEN_KEY);
+        }
+
+        function getSessionUser() {
+            const userJson = sessionStorage.getItem(STORAGE_USER_KEY);
+            if (!userJson) return null;
+            try {
+                return JSON.parse(userJson);
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function authHeaders(token) {
+            return { Authorization: `Bearer ${token}` };
+        }
+
+        function redirectToLogin() {
+            sessionStorage.removeItem(STORAGE_TOKEN_KEY);
+            sessionStorage.removeItem(STORAGE_USER_KEY);
+            localStorage.removeItem(STORAGE_TOKEN_KEY);
+            localStorage.removeItem(STORAGE_USER_KEY);
+            window.location.href = 'login.html';
+        }
+
+        /**
+         * Verifica se o usuário tem uma sessão válida
+         * Se não houver token ou usuário, redireciona para login
+         * Caso contrário, carrega os dados da plataforma
+         */
+        async function verifySession() {
+            const token = getToken();
+            const sessionUser = getSessionUser();
+
+            if (!token || !sessionUser) {
+                console.warn('Sessão inválida: redirecionando para login');
+                redirectToLogin();
+                return;
+            }
+
+            document.getElementById('user-name').innerText = sessionUser.name;
+
+            const statusPill = document.getElementById('session-status');
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: authHeaders(token),
+                    signal: AbortSignal.timeout(3000)
+                });
+
+                if (res.status === 401 || res.status === 403 || res.status === 404) {
+                    redirectToLogin();
+                    return;
+                }
+
+                if (!res.ok) {
+                    throw new Error(`Falha ao validar sessão: HTTP ${res.status}`);
+                }
+
+                const user = await res.json();
+                sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+                document.getElementById('user-name').innerText = user.name;
+                statusPill.innerText = '✓ Sessão ativa';
+                statusPill.style.background = '#DCFCE7';
+                statusPill.style.color = '#166534';
+                await loadDashboardData(token);
+            } catch (error) {
+                console.warn('API indisponível após sessão local:', error.message);
+                statusPill.innerHTML = 'Sessão local <span class="fallback-badge">API OFFLINE</span>';
+                statusPill.style.background = '#FEF3C7';
+                statusPill.style.color = '#92400E';
+                document.getElementById('alert-list').innerHTML = '<p class="loading-text">Não foi possível validar a API agora. Inicie o backend e recarregue a página.</p>';
+            }
+        }
+
+        /**
+         * Carrega os dados do dashboard
+         * usando o mesmo token validado em /auth/me.
+         */
+        async function loadDashboardData(token) {
+            try {
+                const [alertRes, farmRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/alertas`, {
+                        headers: authHeaders(token),
+                        signal: AbortSignal.timeout(5000)
+                    }),
+                    fetch(`${API_BASE_URL}/farmacias/mapa`, {
+                        headers: authHeaders(token),
+                        signal: AbortSignal.timeout(5000)
+                    })
+                ]);
+
+                if ([alertRes.status, farmRes.status].includes(401) || [alertRes.status, farmRes.status].includes(403)) {
+                    redirectToLogin();
+                    return;
+                }
+
+                if (!alertRes.ok || !farmRes.ok) {
+                    throw new Error('Falha ao carregar dados do dashboard.');
+                }
+
+                const alertas = await alertRes.json();
+                const farmacias = await farmRes.json();
+
+                document.getElementById('alerta-count').innerText = alertas.length;
+                document.getElementById('farmacia-count').innerText = farmacias.length;
+                renderAlertList(alertas);
+                await loadRndsStatus(token);
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('alert-list').innerHTML = '<p class="loading-text">Não foi possível carregar os dados. A API pode estar indisponível.</p>';
+            }
+        }
+
+        async function loadRndsStatus(token) {
+            const rndsMode = document.getElementById('rnds-mode');
+            try {
+                const response = await fetch(`${API_BASE_URL}/integracoes/rnds/status`, {
+                    headers: authHeaders(token),
+                    signal: AbortSignal.timeout(5000)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Falha ao consultar status RNDS: HTTP ${response.status}`);
+                }
+
+                const status = await response.json();
+                rndsMode.innerText = status.mode === 'real' ? 'Real' : 'Dry-run';
+                rndsMode.title = status.notes.join(' ');
+            } catch (error) {
+                console.warn('Não foi possível carregar status RNDS:', error.message);
+                rndsMode.innerText = 'Indisponível';
+            }
+        }
+
+        function renderAlertList(alertas) {
+            const container = document.getElementById('alert-list');
+            if (!alertas || alertas.length === 0) {
+                container.innerHTML = '<p class="loading-text">Nenhum alerta encontrado.</p>';
+                return;
+            }
+
+            container.innerHTML = alertas.slice(0, 4).map(alerta => {
+                const classe = alerta.status === 'CRITICO' ? 'critico' : alerta.status === 'ATENCAO' ? 'atencao' : 'ok';
+                const diasRestantes = alerta.dias_restantes || '—';
+                return `
+                    <div class="alert-card">
+                        <div>
+                            <strong>${alerta.nome || 'Alerta'}</strong>
+                            <span style="color: var(--color-muted);">${diasRestantes} dias restantes</span>
+                        </div>
+                        <span class="badge ${classe}">${alerta.status || 'DESCONHECIDO'}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.addEventListener('DOMContentLoaded', verifySession);
+    </script>
+</body>
+</html>

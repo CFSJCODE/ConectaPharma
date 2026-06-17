@@ -1,0 +1,360 @@
+<!-- DADOS PARA TESTE -->
+<!-- Usuário: admin@conectapharma.com -->
+<!-- Senha: admin123 -->
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ConectaPharma</title>
+    <style>
+        /* Variáveis de Cores herdadas do ConectaPharma Design System */
+        :root {
+            --color-primary: #0A2254; 
+            --color-sus-blue: #005DAA; 
+            --color-accent: #10B981; 
+            --color-bg-light: #F8FAFC;
+            --color-text-dark: #1E293B;
+            --color-text-muted: #64748B;
+            --color-white: #FFFFFF;
+            --color-error: #DC2626;
+            --transition-smooth: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--color-bg-light) 0%, #E2E8F0 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--color-text-dark);
+        }
+
+        /* Container Principal do Formulário */
+        .auth-container {
+            background: var(--color-white);
+            border-radius: 24px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Logotipo e Header da Auth */
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-header h1 {
+            color: var(--color-primary);
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-header p {
+            color: var(--color-text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Estilização dos Formulários */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--color-primary);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #CBD5E1;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: var(--transition-smooth);
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: var(--color-sus-blue);
+            box-shadow: 0 0 0 4px rgba(0, 93, 170, 0.1);
+        }
+
+        /* Botão Primário */
+        .btn-submit {
+            width: 100%;
+            background-color: var(--color-sus-blue);
+            color: var(--color-white);
+            border: none;
+            padding: 0.9rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            margin-top: 1rem;
+        }
+
+        .btn-submit:hover {
+            background-color: #004a87;
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Alternador entre Login e Cadastro */
+        .auth-toggle {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+        }
+
+        .auth-toggle a {
+            color: var(--color-sus-blue);
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .auth-toggle a:hover {
+            text-decoration: underline;
+        }
+
+        /* Controle de visibilidade das views (O(1) DOM change) */
+        .view {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        .alert-box {
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: none;
+            text-align: center;
+        }
+        .alert-box.error { background-color: #FEE2E2; color: var(--color-error); border: 1px solid #FCA5A5; display: block; }
+        .alert-box.success { background-color: #DCFCE7; color: #166534; border: 1px solid #86EFAC; display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Botão de voltar */
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--color-text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .back-link:hover { color: var(--color-primary); }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-link">← Voltar</a>
+
+    <div class="auth-container">
+        <div class="auth-header">
+            <h1>ConectaPharma</h1>
+            <p>Acesse o ecossistema digital de saúde</p>
+        </div>
+
+        <!-- Mensagens de Alerta (Invisíveis por padrão) -->
+        <div id="alert-message" class="alert-box"></div>
+
+        <!-- ==============================================
+             VIEW 1: FORMULÁRIO DE LOGIN
+             ============================================== -->
+        <form id="view-login" class="view active" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="login-email">E-mail</label>
+                <input type="email" id="login-email" placeholder="paciente@sus.gov.br" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Senha</label>
+                <input type="password" id="login-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-submit">Entrar na Plataforma</button>
+            
+            <div class="auth-toggle">
+                Não tem uma conta? <a onclick="switchView('view-register')">Cadastre-se aqui</a>
+            </div>
+        </form>
+
+        <!-- ==============================================
+             VIEW 2: FORMULÁRIO DE CADASTRO
+             ============================================== -->
+        <form id="view-register" class="view" onsubmit="handleRegister(event)">
+            <div class="form-group">
+                <label for="reg-name">Nome Completo</label>
+                <input type="text" id="reg-name" placeholder="Ex: Maria Silva" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-email">E-mail</label>
+                <input type="email" id="reg-email" placeholder="paciente@sus.gov.br" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-password">Criar Senha</label>
+                <input type="password" id="reg-password" placeholder="Crie uma senha forte" required>
+            </div>
+            <button type="submit" class="btn-submit">Finalizar Cadastro</button>
+            
+            <div class="auth-toggle">
+                Já possui conta? <a onclick="switchView('view-login')">Faça o Login</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000/api/v1';
+        const STORAGE_TOKEN_KEY = 'conectapharma_token';
+        const STORAGE_USER_KEY = 'conectapharma_user';
+
+        // Alterna dinamicamente as telas (O(1) manipulando apenas as classes CSS)
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            // Limpa as mensagens de erro/sucesso ao trocar de tela
+            const alertBox = document.getElementById('alert-message');
+            alertBox.className = 'alert-box';
+            alertBox.innerText = '';
+        }
+
+        // Função utilitária para exibir alertas visuais
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alert-message');
+            alertBox.innerText = message;
+            alertBox.className = `alert-box ${type}`; // type pode ser 'error' ou 'success'
+        }
+
+        function setFormLoading(formId, isLoading, label) {
+            const button = document.querySelector(`#${formId} button[type="submit"]`);
+            if (!button) return;
+            if (!button.dataset.defaultLabel) {
+                button.dataset.defaultLabel = button.innerText;
+            }
+            button.disabled = isLoading;
+            button.innerText = isLoading ? label : button.dataset.defaultLabel;
+        }
+
+        async function readApiError(response) {
+            try {
+                const payload = await response.json();
+                return payload.detail || 'Não foi possível concluir a operação.';
+            } catch (_) {
+                return 'Não foi possível concluir a operação.';
+            }
+        }
+
+        // Lógica de Validação de Login com JWT real emitido pelo FastAPI
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            setFormLoading('view-login', true, 'Entrando...');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                if (!response.ok) {
+                    showAlert(await readApiError(response), 'error');
+                    return;
+                }
+
+                const data = await response.json();
+
+                localStorage.removeItem(STORAGE_TOKEN_KEY);
+                localStorage.removeItem(STORAGE_USER_KEY);
+                sessionStorage.setItem(STORAGE_TOKEN_KEY, data.access_token);
+                sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(data.user));
+
+                showAlert(`Bem-vindo(a), ${data.user.name}! Redirecionando...`, 'success');
+                setTimeout(() => {
+                    window.location.href = 'plataforma.html';
+                }, 800);
+            } catch (error) {
+                console.error('Erro ao autenticar:', error);
+                showAlert('Não foi possível conectar ao backend. Verifique se a API está rodando.', 'error');
+            } finally {
+                setFormLoading('view-login', false);
+            }
+        }
+
+        // Lógica de Cadastro de Novos Usuários usando o backend
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            setFormLoading('view-register', true, 'Cadastrando...');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password }),
+                });
+
+                if (!response.ok) {
+                    showAlert(await readApiError(response), 'error');
+                    return;
+                }
+
+                showAlert('Cadastro realizado com sucesso! Faça seu login.', 'success');
+                document.getElementById('view-register').reset();
+
+                setTimeout(() => {
+                    switchView('view-login');
+                }, 1200);
+            } catch (error) {
+                console.error('Erro ao cadastrar:', error);
+                showAlert('Não foi possível conectar ao backend. Verifique se a API está rodando.', 'error');
+            } finally {
+                setFormLoading('view-register', false);
+            }
+        }
+    </script>
+</body>
+</html>
