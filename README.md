@@ -61,6 +61,16 @@ Usuário de desenvolvimento:
 python -m pytest
 ```
 
+## GitHub Pages
+
+O site estático é publicado pelo workflow `.github/workflows/pages.yml`. Ele usa a pasta `Frontend/` como raiz do GitHub Pages, então `Frontend/index.html` vira a página inicial publicada em:
+
+```text
+https://cfsjcode.github.io/ConectaPharma/
+```
+
+No GitHub, confira em `Settings > Pages` se a fonte de build está configurada como `GitHub Actions`. A publicação roda automaticamente a cada push na branch `main` quando houver alteração em `Frontend/` ou no próprio workflow.
+
 ## Integração com Meu SUS Digital / RNDS
 
 O app Meu SUS Digital não deve ser tratado como uma API pública direta para protótipos. A integração oficial com dados e serviços digitais do SUS acontece por portfólios do Portal de Serviços DATASUS/RNDS, mediante credenciamento, CNES, homologação e certificado digital ICP-Brasil.
