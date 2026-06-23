@@ -111,7 +111,29 @@ def test_farmacias_proximas_processa_no_backend_com_fallback_mock():
         "google_maps_url",
         "openstreetmap_url",
         "waze_url",
+        "source",
+        "place_id",
+        "business_status",
+        "rating",
+        "user_rating_count",
     } <= set(body["items"][0])
+
+
+def test_farmacias_proximas_auto_sem_google_key_nao_quebra():
+    response = client.get(
+        "/api/v1/farmacias/proximas",
+        params={
+            "lat": -19.9191,
+            "lng": -43.9386,
+            "radius_km": 5,
+            "open_now": False,
+            "limit": 5,
+            "source": "auto",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["count"] >= 0
 
 
 def test_estabelecimentos_saude_limita_a_postos_upas_e_similares():

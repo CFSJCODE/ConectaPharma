@@ -125,6 +125,28 @@ class Settings:
         "CONNECTAPHARMA_OVERPASS_USER_AGENT",
         "ConectaPharma-MVP/1.0 (academic prototype; contact: claudiofranciscojunior2006@gmail.com)",
     )
+    GOOGLE_MAPS_API_KEY: str = os.getenv(
+        "CONNECTAPHARMA_GOOGLE_MAPS_API_KEY",
+        os.getenv("GOOGLE_MAPS_API_KEY", ""),
+    ).strip()
+    GOOGLE_PLACES_ENABLED: bool = env_bool(
+        "CONNECTAPHARMA_GOOGLE_PLACES_ENABLED",
+        bool(os.getenv("CONNECTAPHARMA_GOOGLE_MAPS_API_KEY") or os.getenv("GOOGLE_MAPS_API_KEY")),
+    )
+    GOOGLE_PLACES_NEARBY_URL: str = os.getenv(
+        "CONNECTAPHARMA_GOOGLE_PLACES_NEARBY_URL",
+        "https://places.googleapis.com/v1/places:searchNearby",
+    )
+    GOOGLE_PLACES_TEXT_URL: str = os.getenv(
+        "CONNECTAPHARMA_GOOGLE_PLACES_TEXT_URL",
+        "https://places.googleapis.com/v1/places:searchText",
+    )
+    GOOGLE_PLACES_TIMEOUT_SECONDS: float = float(os.getenv("CONNECTAPHARMA_GOOGLE_PLACES_TIMEOUT_SECONDS", "10"))
+    GOOGLE_PLACES_CACHE_TTL_SECONDS: int = int(os.getenv("CONNECTAPHARMA_GOOGLE_PLACES_CACHE_TTL_SECONDS", "900"))
+    GOOGLE_PLACES_RESPONSE_CACHE_TTL_SECONDS: int = int(os.getenv("CONNECTAPHARMA_GOOGLE_PLACES_RESPONSE_CACHE_TTL_SECONDS", "60"))
+    GOOGLE_PLACES_MAX_RESULT_COUNT: int = int(os.getenv("CONNECTAPHARMA_GOOGLE_PLACES_MAX_RESULT_COUNT", "20"))
+    GOOGLE_PLACES_LANGUAGE_CODE: str = os.getenv("CONNECTAPHARMA_GOOGLE_PLACES_LANGUAGE_CODE", "pt-BR")
+    GOOGLE_PLACES_REGION_CODE: str = os.getenv("CONNECTAPHARMA_GOOGLE_PLACES_REGION_CODE", "BR")
 
 settings = Settings()
 
@@ -187,6 +209,12 @@ class FarmaciaProximaItem(BaseModel):
     id: str
     name: str
     source: str
+    place_id: Optional[str] = None
+    business_status: Optional[str] = None
+    google_primary_type: Optional[str] = None
+    google_types: List[str] = Field(default_factory=list)
+    rating: Optional[float] = None
+    user_rating_count: Optional[int] = None
     address: str
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
@@ -758,8 +786,8 @@ class RouteLinkService:
     def build(latitude: float, longitude: float, label: str = "Destino") -> Dict[str, str]:
         """Gera links externos gratuitos para navegação.
 
-        A busca do estabelecimento vem do OpenStreetMap/Overpass. Google Maps e
-        Waze são usados apenas como links de rota, sem chamadas às APIs pagas.
+        A busca pode vir do Google Places ou do OpenStreetMap/Overpass. Estes
+        links são apenas URLs públicas de navegação exibidas ao usuário.
         """
         safe_label = re.sub(r"\s+", "+", label.strip()) if label else "Destino"
         return {
@@ -917,6 +945,254 @@ class OpeningHoursService:
             return None
         return str(opening_hours)
 
+
+
+class GooglePlacesService:
+    """Integra Google Maps Platform Places API no backend.
+
+    A chave da API permanece somente no servidor. O frontend não recebe a chave,
+    não chama Places API diretamente e apenas renderiza o JSON normalizado.
+    """
+
+    FIELD_MASK = ",".join([
+        "places.id",
+        "places.displayName",
+        "places.formattedAddress",
+        "places.location",
+        "places.nationalPhoneNumber",
+        "places.internationalPhoneNumber",
+        "places.websiteUri",
+        "places.googleMapsUri",
+        "places.rating",
+        "places.userRatingCount",
+        "places.businessStatus",
+        "places.regularOpeningHours",
+        "places.currentOpeningHours",
+        "places.types",
+        "places.primaryType",
+    ])
+
+    _client: Optional[httpx.AsyncClient] = None
+    _pharmacy_cache: Dict[str, tuple[float, List[Dict[str, Any]]]] = {}
+    _health_cache: Dict[str, tuple[float, List[Dict[str, Any]]]] = {}
+    _locks: Dict[str, asyncio.Lock] = {}
+
+    @classmethod
+    def is_configured(cls) -> bool:
+        return settings.GOOGLE_PLACES_ENABLED and bool(settings.GOOGLE_MAPS_API_KEY)
+
+    @classmethod
+    def get_client(cls) -> httpx.AsyncClient:
+        if cls._client is None or cls._client.is_closed:
+            timeout = httpx.Timeout(
+                settings.GOOGLE_PLACES_TIMEOUT_SECONDS,
+                connect=min(5.0, settings.GOOGLE_PLACES_TIMEOUT_SECONDS),
+            )
+            cls._client = httpx.AsyncClient(timeout=timeout)
+        return cls._client
+
+    @classmethod
+    async def close_client(cls) -> None:
+        if cls._client is not None and not cls._client.is_closed:
+            await cls._client.aclose()
+        cls._client = None
+
+    @staticmethod
+    def _headers() -> Dict[str, str]:
+        return {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": settings.GOOGLE_MAPS_API_KEY,
+            "X-Goog-FieldMask": GooglePlacesService.FIELD_MASK,
+        }
+
+    @staticmethod
+    def _cache_key(prefix: str, lat: float, lng: float, radius_km: float, extra: str = "") -> str:
+        return f"{prefix}:{round(lat, 3)}:{round(lng, 3)}:{round(radius_km, 1)}:{extra}"
+
+    @staticmethod
+    def _opening_label(place: Dict[str, Any]) -> str:
+        current = place.get("currentOpeningHours") or {}
+        regular = place.get("regularOpeningHours") or {}
+        if current.get("openNow") is True:
+            return "Aberta agora segundo Google Places"
+        if current.get("openNow") is False:
+            return "Fechada agora segundo Google Places"
+        descriptions = current.get("weekdayDescriptions") or regular.get("weekdayDescriptions") or []
+        return " | ".join(descriptions) if descriptions else "Horário não informado pelo Google Places"
+
+    @staticmethod
+    def _open_now(place: Dict[str, Any]) -> Optional[bool]:
+        current = place.get("currentOpeningHours") or {}
+        if isinstance(current.get("openNow"), bool):
+            return current.get("openNow")
+        regular = place.get("regularOpeningHours") or {}
+        if isinstance(regular.get("openNow"), bool):
+            return regular.get("openNow")
+        return None
+
+    @staticmethod
+    def _raw_hours(place: Dict[str, Any]) -> Optional[str]:
+        current = place.get("currentOpeningHours") or {}
+        regular = place.get("regularOpeningHours") or {}
+        descriptions = current.get("weekdayDescriptions") or regular.get("weekdayDescriptions")
+        return " | ".join(descriptions) if descriptions else None
+
+    @staticmethod
+    def _phone(place: Dict[str, Any]) -> Optional[str]:
+        return place.get("nationalPhoneNumber") or place.get("internationalPhoneNumber")
+
+    @staticmethod
+    def _whatsapp_from_phone(phone: Optional[str]) -> Optional[str]:
+        if not phone:
+            return None
+        digits = re.sub(r"\D+", "", phone)
+        if not digits:
+            return None
+        if len(digits) in (10, 11):
+            return f"55{digits}"
+        return digits if digits.startswith("55") else None
+
+    @classmethod
+    def _record_from_place(cls, place: Dict[str, Any], default_name: str) -> Optional[Dict[str, Any]]:
+        location = place.get("location") or {}
+        lat = location.get("latitude")
+        lng = location.get("longitude")
+        if lat is None or lng is None:
+            return None
+        display_name = place.get("displayName") or {}
+        name = display_name.get("text") or default_name
+        phone = cls._phone(place)
+        links = RouteLinkService.build(float(lat), float(lng), name)
+        google_maps_uri = place.get("googleMapsUri") or links["google_maps_url"]
+        return {
+            "id": f"google-{place.get('id')}",
+            "place_id": place.get("id"),
+            "name": name,
+            "source": "google_places",
+            "address": place.get("formattedAddress") or "Endereço não informado pelo Google Places",
+            "phone": phone,
+            "whatsapp": cls._whatsapp_from_phone(phone),
+            "website": place.get("websiteUri"),
+            "email": None,
+            "operator": None,
+            "brand": None,
+            "latitude": float(lat),
+            "longitude": float(lng),
+            "is_open": cls._open_now(place),
+            "opening_hours_label": cls._opening_label(place),
+            "opening_hours_raw": cls._raw_hours(place),
+            "address_quality": "google_formatted_address" if place.get("formattedAddress") else "missing_address",
+            "business_status": place.get("businessStatus"),
+            "rating": place.get("rating"),
+            "user_rating_count": place.get("userRatingCount"),
+            "google_primary_type": place.get("primaryType"),
+            "google_types": place.get("types") or [],
+            "google_maps_url": google_maps_uri,
+            "maps_url": google_maps_uri,
+            "openstreetmap_url": links["openstreetmap_url"],
+            "waze_url": links["waze_url"],
+        }
+
+    @classmethod
+    async def fetch_pharmacies(cls, lat: float, lng: float, radius_km: float) -> List[Dict[str, Any]]:
+        if not cls.is_configured():
+            return []
+        cache_key = cls._cache_key("pharmacy", lat, lng, radius_km)
+        now_monotonic = time.monotonic()
+        cached = cls._pharmacy_cache.get(cache_key)
+        if cached and now_monotonic - cached[0] <= settings.GOOGLE_PLACES_CACHE_TTL_SECONDS:
+            return cached[1]
+        lock = cls._locks.setdefault(cache_key, asyncio.Lock())
+        async with lock:
+            cached = cls._pharmacy_cache.get(cache_key)
+            now_monotonic = time.monotonic()
+            if cached and now_monotonic - cached[0] <= settings.GOOGLE_PLACES_CACHE_TTL_SECONDS:
+                return cached[1]
+            max_results = max(1, min(settings.GOOGLE_PLACES_MAX_RESULT_COUNT, 20))
+            payload = {
+                "includedTypes": ["pharmacy", "drugstore"],
+                "maxResultCount": max_results,
+                "rankPreference": "DISTANCE",
+                "languageCode": settings.GOOGLE_PLACES_LANGUAGE_CODE,
+                "regionCode": settings.GOOGLE_PLACES_REGION_CODE,
+                "locationRestriction": {
+                    "circle": {
+                        "center": {"latitude": lat, "longitude": lng},
+                        "radius": min(float(radius_km) * 1000.0, 50000.0),
+                    }
+                },
+            }
+            response = await cls.get_client().post(
+                settings.GOOGLE_PLACES_NEARBY_URL,
+                headers=cls._headers(),
+                json=payload,
+            )
+            response.raise_for_status()
+            data = response.json()
+            records: List[Dict[str, Any]] = []
+            seen: set[str] = set()
+            for place in data.get("places", []):
+                record = cls._record_from_place(place, "Farmácia no Google Maps")
+                if not record or record["id"] in seen:
+                    continue
+                seen.add(record["id"])
+                records.append(record)
+            cls._pharmacy_cache[cache_key] = (now_monotonic, records)
+            return records
+
+    @classmethod
+    async def fetch_health_establishments(cls, lat: float, lng: float, radius_km: float, kind: str) -> List[Dict[str, Any]]:
+        """Busca complementar por Google Text Search para UBS, UPA e postos de saúde.
+
+        O filtro semântico final continua no backend para evitar retornar clínicas
+        privadas genéricas quando o objetivo do ConectaPharma é apoio público/comunitário.
+        """
+        if not cls.is_configured():
+            return []
+        query_by_kind = {
+            "primary_care": "UBS posto de saúde centro de saúde",
+            "urgent_care": "UPA pronto atendimento público",
+            "all": "UBS UPA posto de saúde pronto atendimento",
+        }
+        query_text = query_by_kind.get(kind, query_by_kind["all"])
+        cache_key = cls._cache_key("health", lat, lng, radius_km, kind)
+        now_monotonic = time.monotonic()
+        cached = cls._health_cache.get(cache_key)
+        if cached and now_monotonic - cached[0] <= settings.GOOGLE_PLACES_CACHE_TTL_SECONDS:
+            return cached[1]
+        payload = {
+            "textQuery": query_text,
+            "maxResultCount": max(1, min(settings.GOOGLE_PLACES_MAX_RESULT_COUNT, 20)),
+            "languageCode": settings.GOOGLE_PLACES_LANGUAGE_CODE,
+            "regionCode": settings.GOOGLE_PLACES_REGION_CODE,
+            "locationBias": {
+                "circle": {
+                    "center": {"latitude": lat, "longitude": lng},
+                    "radius": min(float(radius_km) * 1000.0, 50000.0),
+                }
+            },
+        }
+        response = await cls.get_client().post(
+            settings.GOOGLE_PLACES_TEXT_URL,
+            headers=cls._headers(),
+            json=payload,
+        )
+        response.raise_for_status()
+        data = response.json()
+        records: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for place in data.get("places", []):
+            record = cls._record_from_place(place, "Estabelecimento de saúde no Google Maps")
+            if not record or record["id"] in seen:
+                continue
+            searchable = normalize_text(f"{record.get('name', '')} {record.get('address', '')}")
+            if not any(normalize_text(keyword) in searchable for keyword in HealthEstablishmentService.PUBLIC_HEALTH_KEYWORDS):
+                continue
+            seen.add(record["id"])
+            record["kind"] = HealthEstablishmentService.kind_from_searchable(searchable)
+            records.append(record)
+        cls._health_cache[cache_key] = (now_monotonic, records)
+        return records
 
 class OverpassPharmacyService:
     """Consulta gratuita ao OpenStreetMap/Overpass com cache e client HTTP reutilizável.
@@ -1188,6 +1464,26 @@ out center tags;
         if source == "mock":
             records = cls.fallback_records()
             used_source = "local_mock"
+        elif source in {"google", "auto"}:
+            try:
+                records = await GooglePlacesService.fetch_pharmacies(lat, lng, radius_km)
+                if records:
+                    used_source = "google_places"
+                elif source == "google":
+                    used_source = "google_places_empty_fallback_openstreetmap"
+                    records = await cls.fetch_from_overpass(lat, lng, radius_km)
+                else:
+                    used_source = "openstreetmap_fallback_no_google_key_or_empty"
+                    records = await cls.fetch_from_overpass(lat, lng, radius_km)
+            except Exception as exc:
+                logger.warning("Falha ao consultar Google Places; usando OpenStreetMap/fallback local: %s", exc)
+                try:
+                    records = await cls.fetch_from_overpass(lat, lng, radius_km)
+                    used_source = "openstreetmap_fallback_after_google_error"
+                except Exception as osm_exc:
+                    logger.warning("Falha ao consultar Overpass API; usando fallback local: %s", osm_exc)
+                    records = cls.fallback_records()
+                    used_source = "local_mock_fallback"
         else:
             try:
                 records = await cls.fetch_from_overpass(lat, lng, radius_km)
@@ -1239,8 +1535,16 @@ out center tags;
                     opening_hours_raw=OpeningHoursService.raw(record),
                     address_quality=record.get("address_quality", "osm_structured_or_fallback"),
                     source=record.get("source", used_source),
-                    maps_url=RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia")["google_maps_url"],
-                    **RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia"),
+                    place_id=record.get("place_id"),
+                    business_status=record.get("business_status"),
+                    google_primary_type=record.get("google_primary_type"),
+                    google_types=record.get("google_types") or [],
+                    rating=record.get("rating"),
+                    user_rating_count=record.get("user_rating_count"),
+                    maps_url=record.get("maps_url") or RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia")["google_maps_url"],
+                    google_maps_url=record.get("google_maps_url") or RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia")["google_maps_url"],
+                    openstreetmap_url=record.get("openstreetmap_url") or RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia")["openstreetmap_url"],
+                    waze_url=record.get("waze_url") or RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia")["waze_url"],
                 )
             )
 
@@ -1327,15 +1631,22 @@ class HealthEstablishmentService:
         return normalize_text(value or "")
 
     @classmethod
-    def _kind_from_tags(cls, tags: Dict[str, str]) -> str:
-        searchable = cls._clean_text(" ".join(str(tags.get(key, "")) for key in ("name", "official_name", "operator", "description")))
-        if any(term in searchable for term in ("upa", "pronto atendimento", "unidade de pronto atendimento", "pa 24", "24h")) or tags.get("emergency") == "yes":
+    def kind_from_searchable(cls, searchable: str) -> str:
+        searchable = cls._clean_text(searchable)
+        if any(term in searchable for term in ("upa", "pronto atendimento", "unidade de pronto atendimento", "pa 24", "24h")):
             return "urgent_care"
         if any(term in searchable for term in ("ubs", "unidade basica", "unidade básica", "posto de saude", "posto de saúde", "psf", "esf", "saude da familia", "saúde da família")):
             return "primary_care"
         if any(term in searchable for term in ("centro de saude", "centro de saúde", "unidade de saude", "unidade de saúde", "policlinica", "policlínica")):
             return "community_health_center"
         return "similar_public_health"
+
+    @classmethod
+    def _kind_from_tags(cls, tags: Dict[str, str]) -> str:
+        searchable = cls._clean_text(" ".join(str(tags.get(key, "")) for key in ("name", "official_name", "operator", "description")))
+        if tags.get("emergency") == "yes":
+            return "urgent_care"
+        return cls.kind_from_searchable(searchable)
 
     @classmethod
     def _is_allowed_public_health_facility(cls, tags: Dict[str, str]) -> bool:
@@ -1475,6 +1786,23 @@ class HealthEstablishmentService:
         if source == "mock":
             records = cls.fallback_records()
             used_source = "local_mock"
+        elif source in {"google", "auto"}:
+            try:
+                records = await GooglePlacesService.fetch_health_establishments(lat, lng, radius_km, kind)
+                if records:
+                    used_source = "google_places"
+                else:
+                    records = await cls.fetch_from_overpass(lat, lng, radius_km, kind)
+                    used_source = "openstreetmap_fallback_no_google_key_or_empty"
+            except Exception as exc:
+                logger.warning("Falha ao consultar Google Places para saúde; usando OpenStreetMap/fallback local: %s", exc)
+                try:
+                    records = await cls.fetch_from_overpass(lat, lng, radius_km, kind)
+                    used_source = "openstreetmap_fallback_after_google_error"
+                except Exception as osm_exc:
+                    logger.warning("Falha ao consultar estabelecimentos no Overpass; usando fallback local: %s", osm_exc)
+                    records = cls.fallback_records()
+                    used_source = "local_mock_fallback"
         else:
             try:
                 records = await cls.fetch_from_overpass(lat, lng, radius_km, kind)
@@ -1513,8 +1841,10 @@ class HealthEstablishmentService:
                 opening_hours_label=OpeningHoursService.label(record, now),
                 opening_hours_raw=OpeningHoursService.raw(record),
                 address_quality=record.get("address_quality", "osm_structured_or_fallback"),
-                maps_url=RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde")["google_maps_url"],
-                **RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde"),
+                maps_url=record.get("maps_url") or RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde")["google_maps_url"],
+                google_maps_url=record.get("google_maps_url") or RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde")["google_maps_url"],
+                openstreetmap_url=record.get("openstreetmap_url") or RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde")["openstreetmap_url"],
+                waze_url=record.get("waze_url") or RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde")["waze_url"],
             ))
 
         limited_items = heapq.nsmallest(limit, items, key=lambda item: item.distance_km)
@@ -1932,7 +2262,7 @@ async def listar_estabelecimentos_saude_proximos(
     open_now: bool = Query(False),
     limit: int = Query(10, ge=1, le=50),
     kind: str = Query("all", pattern="^(all|primary_care|urgent_care)$"),
-    source: str = Query("overpass", pattern="^(overpass|mock)$"),
+    source: str = Query("overpass", pattern="^(google|auto|overpass|mock)$"),
 ):
     """Localiza postos de saúde, UBSs, UPAs e serviços públicos similares próximos.
 
@@ -1956,13 +2286,14 @@ async def listar_farmacias_proximas(
     radius_km: float = Query(10.0, gt=0, le=50, description="Raio máximo de busca em quilômetros."),
     open_now: bool = Query(True, description="Quando true, retorna apenas farmácias abertas agora."),
     limit: int = Query(10, ge=1, le=50, description="Quantidade máxima de resultados."),
-    source: str = Query("overpass", pattern="^(overpass|mock)$", description="Fonte: overpass ou mock para testes locais."),
+    source: str = Query("auto", pattern="^(google|auto|overpass|mock)$", description="Fonte: google, auto, overpass ou mock para testes locais."),
 ):
     """Lista farmácias próximas e abertas usando processamento 100% no backend.
 
     O frontend apenas envia latitude/longitude autorizadas pelo usuário e renderiza
-    a resposta. A API consulta OpenStreetMap/Overpass quando `source=overpass`,
-    aplica cache em memória, calcula distância, avalia horário de funcionamento
+    a resposta. Com `source=auto`, a API tenta Google Places quando a chave está configurada
+    e cai para OpenStreetMap/Overpass se a chave estiver ausente ou a chamada falhar.
+    O backend aplica cache, calcula distância, avalia horário de funcionamento
     e ordena por proximidade.
     """
     return await OverpassPharmacyService.search_nearby(
@@ -2075,12 +2406,15 @@ def create_app() -> FastAPI:
 
     @application.on_event("startup")
     async def startup_resources():
-        # Inicialização preguiçosa do client HTTP para aproveitar keep-alive nas chamadas Overpass.
+        # Inicialização preguiçosa dos clients HTTP para aproveitar keep-alive.
         OverpassPharmacyService.get_client()
+        if GooglePlacesService.is_configured():
+            GooglePlacesService.get_client()
 
     @application.on_event("shutdown")
     async def shutdown_resources():
         await OverpassPharmacyService.close_client()
+        await GooglePlacesService.close_client()
 
     @application.get("/healthz", tags=["Infra"])
     async def health_check():
