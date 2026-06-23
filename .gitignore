@@ -51,3 +51,4 @@ build/
 *firebase-adminsdk*.json
 credentials.json
 secrets/
+.firebase/
