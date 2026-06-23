@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -179,7 +179,7 @@
     <main class="page-body">
         <section class="card welcome-box">
             <h2>Seja bem-vindo(a), <span id="user-name">...</span></h2>
-            <p class="user-infobox">Você está conectado com sucesso ao backend de autenticação.</p>
+            <p class="user-infobox">Sessão autenticada pelo Firebase; o backend valida o Firebase ID Token.</p>
             <div class="status-pill" id="session-status">Carregando sessão...</div>
             <div class="grid-summary">
                 <div class="summary-card">
@@ -203,115 +203,143 @@
             </div>
         </section>
     </main>
-    <script>
-        const API_BASE_URL = 'http://localhost:8000/api/v1';
-        const STORAGE_TOKEN_KEY = 'conectapharma_token';
-        const STORAGE_USER_KEY = 'conectapharma_user';
+    <script type="module">
+        import {
+            getCurrentIdToken,
+            onAuthStateChange,
+            signOutUser,
+            toSessionUser,
+            trackPageView,
+        } from './assets/firebaseClient.js';
 
-        function logout() {
-            sessionStorage.removeItem(STORAGE_TOKEN_KEY);
+        const API_BASE_URL = 'http://localhost:8000/api/v1';
+        const STORAGE_USER_KEY = 'conectapharma_user';
+        const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
+
+        const LOCAL_MOCK_ALERTAS = [
+            { id: 1, nome: 'Losartana 50mg', dias_restantes: 3, status: 'CRITICO' },
+            { id: 2, nome: 'Metformina 850mg', dias_restantes: 11, status: 'OK' },
+            { id: 3, nome: 'Dipirona 500mg', dias_restantes: 7, status: 'ATENCAO' },
+        ];
+
+        const LOCAL_MOCK_FARMACIAS = [
+            { id: 1, nome: 'Farmácia Central', distancia_km: 1.2, disponibilidade_farmaco: true },
+            { id: 2, nome: 'Unidade Popular Norte', distancia_km: 4.1, disponibilidade_farmaco: true },
+            { id: 3, nome: 'Drogaria Sul', distancia_km: 3.5, disponibilidade_farmaco: false },
+        ];
+
+        async function logout() {
+            try {
+                await signOutUser();
+            } finally {
+                clearSession();
+                window.location.href = 'login.html';
+            }
+        }
+
+        function clearSession() {
             sessionStorage.removeItem(STORAGE_USER_KEY);
-            localStorage.removeItem(STORAGE_TOKEN_KEY);
+            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
             localStorage.removeItem(STORAGE_USER_KEY);
+        }
+
+        function redirectToLogin() {
+            clearSession();
             window.location.href = 'login.html';
         }
 
-        function getToken() {
-            return sessionStorage.getItem(STORAGE_TOKEN_KEY);
-        }
-
-        function getSessionUser() {
-            const userJson = sessionStorage.getItem(STORAGE_USER_KEY);
-            if (!userJson) return null;
-            try {
-                return JSON.parse(userJson);
-            } catch (_) {
-                return null;
-            }
+        async function getBackendToken(forceRefresh = false) {
+            const token = await getCurrentIdToken(forceRefresh);
+            if (!token) return null;
+            sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token);
+            return token;
         }
 
         function authHeaders(token) {
             return { Authorization: `Bearer ${token}` };
         }
 
-        function redirectToLogin() {
-            sessionStorage.removeItem(STORAGE_TOKEN_KEY);
-            sessionStorage.removeItem(STORAGE_USER_KEY);
-            localStorage.removeItem(STORAGE_TOKEN_KEY);
-            localStorage.removeItem(STORAGE_USER_KEY);
-            window.location.href = 'login.html';
+        function setSessionStatus(text, mode = 'ok') {
+            const statusPill = document.getElementById('session-status');
+            statusPill.innerHTML = text;
+
+            if (mode === 'ok') {
+                statusPill.style.background = '#DCFCE7';
+                statusPill.style.color = '#166534';
+                return;
+            }
+
+            statusPill.style.background = '#FEF3C7';
+            statusPill.style.color = '#92400E';
         }
 
-        /**
-         * Verifica se o usuário tem uma sessão válida
-         * Se não houver token ou usuário, redireciona para login
-         * Caso contrário, carrega os dados da plataforma
-         */
-        async function verifySession() {
-            const token = getToken();
-            const sessionUser = getSessionUser();
+        function persistSessionUser(user) {
+            const sessionUser = toSessionUser(user);
+            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(sessionUser));
+            document.getElementById('user-name').innerText = sessionUser.name;
+            return sessionUser;
+        }
 
-            if (!token || !sessionUser) {
-                console.warn('Sessão inválida: redirecionando para login');
+        async function verifyBackendSession(token, retry = true) {
+            const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                headers: authHeaders(token),
+                signal: AbortSignal.timeout(4000),
+            });
+
+            if ((response.status === 401 || response.status === 403) && retry) {
+                const freshToken = await getBackendToken(true);
+                return verifyBackendSession(freshToken, false);
+            }
+
+            if (!response.ok) {
+                throw new Error(`Falha ao validar sessão no backend: HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        async function verifySession(firebaseUser) {
+            if (!firebaseUser) {
+                console.warn('Sessão Firebase ausente: redirecionando para login.');
                 redirectToLogin();
                 return;
             }
 
-            document.getElementById('user-name').innerText = sessionUser.name;
+            persistSessionUser(firebaseUser);
 
-            const statusPill = document.getElementById('session-status');
             try {
-                const res = await fetch(`${API_BASE_URL}/auth/me`, {
-                    headers: authHeaders(token),
-                    signal: AbortSignal.timeout(3000)
-                });
+                const token = await getBackendToken(false);
+                const backendUser = await verifyBackendSession(token);
 
-                if (res.status === 401 || res.status === 403 || res.status === 404) {
-                    redirectToLogin();
-                    return;
-                }
+                sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify({
+                    ...toSessionUser(firebaseUser),
+                    backendId: backendUser.id,
+                    name: backendUser.name || firebaseUser.displayName || firebaseUser.email,
+                }));
 
-                if (!res.ok) {
-                    throw new Error(`Falha ao validar sessão: HTTP ${res.status}`);
-                }
-
-                const user = await res.json();
-                sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
-                document.getElementById('user-name').innerText = user.name;
-                statusPill.innerText = '✓ Sessão ativa';
-                statusPill.style.background = '#DCFCE7';
-                statusPill.style.color = '#166534';
+                document.getElementById('user-name').innerText = backendUser.name || firebaseUser.displayName || firebaseUser.email;
+                setSessionStatus('✓ Sessão Firebase validada pela API', 'ok');
                 await loadDashboardData(token);
             } catch (error) {
-                console.warn('API indisponível após sessão local:', error.message);
-                statusPill.innerHTML = 'Sessão local <span class="fallback-badge">API OFFLINE</span>';
-                statusPill.style.background = '#FEF3C7';
-                statusPill.style.color = '#92400E';
-                document.getElementById('alert-list').innerHTML = '<p class="loading-text">Não foi possível validar a API agora. Inicie o backend e recarregue a página.</p>';
+                console.warn('API indisponível ou sem Firebase Admin configurado:', error.message);
+                setSessionStatus('Sessão Firebase ativa <span class="fallback-badge">API OFFLINE/AUTH</span>', 'warn');
+                renderDashboardData(LOCAL_MOCK_ALERTAS, LOCAL_MOCK_FARMACIAS);
+                document.getElementById('rnds-mode').innerText = 'Indisponível';
             }
         }
 
-        /**
-         * Carrega os dados do dashboard
-         * usando o mesmo token validado em /auth/me.
-         */
         async function loadDashboardData(token) {
             try {
                 const [alertRes, farmRes] = await Promise.all([
                     fetch(`${API_BASE_URL}/alertas`, {
                         headers: authHeaders(token),
-                        signal: AbortSignal.timeout(5000)
+                        signal: AbortSignal.timeout(5000),
                     }),
                     fetch(`${API_BASE_URL}/farmacias/mapa`, {
                         headers: authHeaders(token),
-                        signal: AbortSignal.timeout(5000)
-                    })
+                        signal: AbortSignal.timeout(5000),
+                    }),
                 ]);
-
-                if ([alertRes.status, farmRes.status].includes(401) || [alertRes.status, farmRes.status].includes(403)) {
-                    redirectToLogin();
-                    return;
-                }
 
                 if (!alertRes.ok || !farmRes.ok) {
                     throw new Error('Falha ao carregar dados do dashboard.');
@@ -319,15 +347,20 @@
 
                 const alertas = await alertRes.json();
                 const farmacias = await farmRes.json();
-
-                document.getElementById('alerta-count').innerText = alertas.length;
-                document.getElementById('farmacia-count').innerText = farmacias.length;
-                renderAlertList(alertas);
+                renderDashboardData(alertas, farmacias);
                 await loadRndsStatus(token);
             } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                document.getElementById('alert-list').innerHTML = '<p class="loading-text">Não foi possível carregar os dados. A API pode estar indisponível.</p>';
+                console.error('Erro ao carregar dados da API:', error);
+                setSessionStatus('Sessão Firebase ativa <span class="fallback-badge">DADOS MOCK</span>', 'warn');
+                renderDashboardData(LOCAL_MOCK_ALERTAS, LOCAL_MOCK_FARMACIAS);
+                document.getElementById('rnds-mode').innerText = 'Indisponível';
             }
+        }
+
+        function renderDashboardData(alertas, farmacias) {
+            document.getElementById('alerta-count').innerText = alertas.length;
+            document.getElementById('farmacia-count').innerText = farmacias.length;
+            renderAlertList(alertas);
         }
 
         async function loadRndsStatus(token) {
@@ -335,7 +368,7 @@
             try {
                 const response = await fetch(`${API_BASE_URL}/integracoes/rnds/status`, {
                     headers: authHeaders(token),
-                    signal: AbortSignal.timeout(5000)
+                    signal: AbortSignal.timeout(5000),
                 });
 
                 if (!response.ok) {
@@ -344,7 +377,7 @@
 
                 const status = await response.json();
                 rndsMode.innerText = status.mode === 'real' ? 'Real' : 'Dry-run';
-                rndsMode.title = status.notes.join(' ');
+                rndsMode.title = Array.isArray(status.notes) ? status.notes.join(' ') : '';
             } catch (error) {
                 console.warn('Não foi possível carregar status RNDS:', error.message);
                 rndsMode.innerText = 'Indisponível';
@@ -358,7 +391,7 @@
                 return;
             }
 
-            container.innerHTML = alertas.slice(0, 4).map(alerta => {
+            container.innerHTML = alertas.slice(0, 4).map((alerta) => {
                 const classe = alerta.status === 'CRITICO' ? 'critico' : alerta.status === 'ATENCAO' ? 'atencao' : 'ok';
                 const diasRestantes = alerta.dias_restantes || '—';
                 return `
@@ -373,7 +406,17 @@
             }).join('');
         }
 
-        document.addEventListener('DOMContentLoaded', verifySession);
+        window.logout = logout;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            trackPageView('plataforma').catch(() => undefined);
+            onAuthStateChange((user) => {
+                verifySession(user).catch((error) => {
+                    console.error('Falha inesperada ao verificar sessão Firebase:', error);
+                    redirectToLogin();
+                });
+            });
+        });
     </script>
 </body>
 </html>

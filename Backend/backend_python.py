@@ -1,4 +1,4 @@
-﻿"""
+"""
 ConectaPharma API v3.0 - Enterprise Edition
 Refatoração Arquitetural: Monolito Modular (Clean Architecture)
 """
@@ -17,6 +17,15 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+try:
+    import firebase_admin
+    from firebase_admin import auth as firebase_auth
+    from firebase_admin import credentials as firebase_credentials
+except ImportError:  # Firebase Admin é opcional para execução puramente mockada.
+    firebase_admin = None
+    firebase_auth = None
+    firebase_credentials = None
 
 try:
     from dotenv import load_dotenv
@@ -71,6 +80,16 @@ class Settings:
     RNDS_VERIFY_TLS: bool = env_bool("CONNECTAPHARMA_RNDS_VERIFY_TLS", True)
     RNDS_TIMEOUT_SECONDS: float = float(os.getenv("CONNECTAPHARMA_RNDS_TIMEOUT_SECONDS", "15"))
     ESTABELECIMENTO_CNES: Optional[str] = os.getenv("CONNECTAPHARMA_ESTABELECIMENTO_CNES")
+    FIREBASE_PROJECT_ID: str = os.getenv(
+        "CONNECTAPHARMA_FIREBASE_PROJECT_ID",
+        os.getenv("VITE_FIREBASE_PROJECT_ID", "conectapharma-33fd7"),
+    )
+    FIREBASE_CREDENTIALS_PATH: Optional[str] = os.getenv(
+        "CONNECTAPHARMA_FIREBASE_CREDENTIALS_PATH",
+        os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+    )
+    FIREBASE_VERIFY_REVOKED: bool = env_bool("CONNECTAPHARMA_FIREBASE_VERIFY_REVOKED", False)
+    ALLOW_LEGACY_JWT: bool = env_bool("CONNECTAPHARMA_ALLOW_LEGACY_JWT", False)
 
 settings = Settings()
 
@@ -103,7 +122,7 @@ class UserLogin(BaseModel):
     password: str = Field(..., min_length=1)
 
 class UserResponse(UserBase):
-    id: int
+    id: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -136,7 +155,7 @@ class ConsumoSimulacaoRequest(BaseModel):
 
 class EntregaStatus(BaseModel):
     tracking_id: str
-    paciente_id: int
+    paciente_id: str
     status: DeliveryStatus
     voluntario: Optional[str] = None
     entrega_prevista_min: int
@@ -269,26 +288,128 @@ class SecurityHelper:
             logger.warning("Tentativa de acesso com token inválido.")
             return None
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=True)
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict:
-    token = credentials.credentials
+class FirebaseAuthAdapter:
+    """Adaptador mínimo para validar Firebase ID Token no FastAPI.
+
+    O frontend envia `Authorization: Bearer <Firebase ID Token>`.
+    O backend valida a assinatura pelo Firebase Admin SDK e converte o token
+    em um usuário compatível com os schemas atuais do MVP.
+    """
+
+    _initialized = False
+
+    @classmethod
+    def initialize(cls) -> bool:
+        if cls._initialized:
+            return True
+
+        if firebase_admin is None or firebase_auth is None:
+            logger.error(
+                "firebase-admin não está instalado. Instale com: pip install firebase-admin"
+            )
+            return False
+
+        if firebase_admin._apps:
+            cls._initialized = True
+            return True
+
+        try:
+            options = {"projectId": settings.FIREBASE_PROJECT_ID}
+            if settings.FIREBASE_CREDENTIALS_PATH:
+                cred = firebase_credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+                firebase_admin.initialize_app(cred, options)
+            else:
+                # Usa Application Default Credentials quando GOOGLE_APPLICATION_CREDENTIALS
+                # ou o ambiente Google Cloud já estiver configurado.
+                cred = firebase_credentials.ApplicationDefault()
+                firebase_admin.initialize_app(cred, options)
+
+            cls._initialized = True
+            logger.info(
+                "Firebase Admin inicializado para o projeto %s.",
+                settings.FIREBASE_PROJECT_ID,
+            )
+            return True
+        except Exception:
+            logger.exception("Falha ao inicializar Firebase Admin SDK.")
+            return False
+
+    @classmethod
+    def verify_token(cls, id_token: str) -> Dict:
+        if not cls.initialize():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Firebase Admin SDK não está configurado no backend. "
+                    "Defina CONNECTAPHARMA_FIREBASE_CREDENTIALS_PATH ou "
+                    "GOOGLE_APPLICATION_CREDENTIALS com um service account válido."
+                ),
+            )
+
+        try:
+            decoded = firebase_auth.verify_id_token(
+                id_token,
+                check_revoked=settings.FIREBASE_VERIFY_REVOKED,
+            )
+        except Exception as exc:
+            logger.warning("Firebase ID Token inválido: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Firebase ID Token inválido, expirado ou revogado.",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+
+        uid = decoded.get("uid") or decoded.get("sub")
+        email = decoded.get("email") or "usuario.firebase@conectapharma.local"
+        name = decoded.get("name") or decoded.get("displayName") or email
+        issued_at = decoded.get("auth_time") or decoded.get("iat")
+        created_at = datetime.fromtimestamp(issued_at, timezone.utc) if issued_at else datetime.now(timezone.utc)
+
+        return {
+            "id": str(uid),
+            "uid": str(uid),
+            "email": email,
+            "name": name,
+            "photo_url": decoded.get("picture"),
+            "provider": "firebase",
+            "created_at": created_at,
+            "firebase_claims": decoded,
+        }
+
+
+def get_legacy_current_user(token: str) -> Dict:
     payload = SecurityHelper.decode_jwt_token(token)
-    
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido, expirado ou assinatura incorreta.",
+            detail="Token legado inválido, expirado ou assinatura incorreta.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-        
+
     user_id = payload.get("sub")
     user = next((u for u in db.users if str(u["id"]) == str(user_id)), None)
-    
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado no banco de dados.")
-        
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado no banco de dados legado.",
+        )
     return user
+
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict:
+    token = credentials.credentials
+
+    try:
+        return FirebaseAuthAdapter.verify_token(token)
+    except HTTPException as firebase_exc:
+        if settings.ALLOW_LEGACY_JWT:
+            try:
+                return get_legacy_current_user(token)
+            except HTTPException:
+                raise firebase_exc
+        raise firebase_exc
 
 def seed_default_user() -> None:
     """Cria um usuário de desenvolvimento para testes manuais."""
@@ -297,7 +418,7 @@ def seed_default_user() -> None:
         return
 
     db.users.append({
-        "id": 1,
+        "id": "1",
         "email": default_email,
         "name": "Administrador ConectaPharma",
         "password_hash": SecurityHelper.get_password_hash("admin123"),
@@ -597,7 +718,7 @@ async def register(user_in: UserCreate):
         raise HTTPException(status_code=409, detail="Email já cadastrado.")
     
     new_user = {
-        "id": len(db.users) + 1,
+        "id": str(len(db.users) + 1),
         "email": user_in.email,
         "name": user_in.name,
         "password_hash": SecurityHelper.get_password_hash(user_in.password),

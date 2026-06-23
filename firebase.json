@@ -1,0 +1,25 @@
+{
+  "firestore": {
+    "database": "(default)",
+    "location": "southamerica-east1",
+    "rules": "Firebase/firestore.rules",
+    "indexes": "Firebase/firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "Frontend",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "ConectaPharma",
+        "supportEmail": "claudiofranciscojunior2006@gmail.com"
+      }
+    }
+  }
+}

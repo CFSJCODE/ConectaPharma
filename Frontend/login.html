@@ -122,6 +122,50 @@
             transform: none;
         }
 
+        .auth-divider {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 1.25rem 0 0.25rem;
+            color: var(--color-text-muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .auth-divider::before,
+        .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #E2E8F0;
+        }
+
+        .btn-google {
+            width: 100%;
+            background: var(--color-white);
+            color: var(--color-text-dark);
+            border: 1px solid #CBD5E1;
+            padding: 0.85rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            margin-top: 0.85rem;
+        }
+
+        .btn-google:hover {
+            border-color: var(--color-sus-blue);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .btn-google:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* Alternador entre Login e Cadastro */
         .auth-toggle {
             text-align: center;
@@ -210,6 +254,8 @@
                 <input type="password" id="login-password" placeholder="••••••••" required>
             </div>
             <button type="submit" class="btn-submit">Entrar na Plataforma</button>
+            <div class="auth-divider">ou</div>
+            <button type="button" id="btn-google-login" class="btn-google" onclick="handleGoogleAuth()">Entrar com Google</button>
             
             <div class="auth-toggle">
                 Não tem uma conta? <a onclick="switchView('view-register')">Cadastre-se aqui</a>
@@ -233,6 +279,8 @@
                 <input type="password" id="reg-password" placeholder="Crie uma senha forte" required>
             </div>
             <button type="submit" class="btn-submit">Finalizar Cadastro</button>
+            <div class="auth-divider">ou</div>
+            <button type="button" id="btn-google-register" class="btn-google" onclick="handleGoogleAuth()">Cadastrar com Google</button>
             
             <div class="auth-toggle">
                 Já possui conta? <a onclick="switchView('view-login')">Faça o Login</a>
@@ -240,27 +288,32 @@
         </form>
     </div>
 
-    <script>
-        const API_BASE_URL = 'http://localhost:8000/api/v1';
-        const STORAGE_TOKEN_KEY = 'conectapharma_token';
-        const STORAGE_USER_KEY = 'conectapharma_user';
+    <script type="module">
+        import {
+            getFriendlyAuthError,
+            signInWithEmail,
+            signInWithGoogle,
+            signUpWithEmail,
+            toSessionUser,
+            trackPageView,
+        } from './assets/firebaseClient.js';
 
-        // Alterna dinamicamente as telas (O(1) manipulando apenas as classes CSS)
+        const STORAGE_USER_KEY = 'conectapharma_user';
+        const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
+
         function switchView(viewId) {
-            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.view').forEach((el) => el.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
-            
-            // Limpa as mensagens de erro/sucesso ao trocar de tela
+
             const alertBox = document.getElementById('alert-message');
             alertBox.className = 'alert-box';
             alertBox.innerText = '';
         }
 
-        // Função utilitária para exibir alertas visuais
         function showAlert(message, type) {
             const alertBox = document.getElementById('alert-message');
             alertBox.innerText = message;
-            alertBox.className = `alert-box ${type}`; // type pode ser 'error' ou 'success'
+            alertBox.className = `alert-box ${type}`;
         }
 
         function setFormLoading(formId, isLoading, label) {
@@ -273,16 +326,32 @@
             button.innerText = isLoading ? label : button.dataset.defaultLabel;
         }
 
-        async function readApiError(response) {
-            try {
-                const payload = await response.json();
-                return payload.detail || 'Não foi possível concluir a operação.';
-            } catch (_) {
-                return 'Não foi possível concluir a operação.';
-            }
+        function setGoogleLoading(isLoading) {
+            document.querySelectorAll('.btn-google').forEach((button) => {
+                if (!button.dataset.defaultLabel) {
+                    button.dataset.defaultLabel = button.innerText;
+                }
+                button.disabled = isLoading;
+                button.innerText = isLoading ? 'Conectando ao Google...' : button.dataset.defaultLabel;
+            });
         }
 
-        // Lógica de Validação de Login com JWT real emitido pelo FastAPI
+        async function persistFirebaseSession(user) {
+            const sessionUser = toSessionUser(user);
+            const idToken = await user.getIdToken();
+
+            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(sessionUser));
+            sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, idToken);
+            localStorage.removeItem(STORAGE_USER_KEY);
+        }
+
+        function redirectToPlatform(user) {
+            showAlert(`Bem-vindo(a), ${user.displayName || user.email}! Redirecionando...`, 'success');
+            setTimeout(() => {
+                window.location.href = 'plataforma.html';
+            }, 800);
+        }
+
         async function handleLogin(event) {
             event.preventDefault();
 
@@ -291,70 +360,57 @@
             setFormLoading('view-login', true, 'Entrando...');
 
             try {
-                const response = await fetch(`${API_BASE_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
-                });
-
-                if (!response.ok) {
-                    showAlert(await readApiError(response), 'error');
-                    return;
-                }
-
-                const data = await response.json();
-
-                localStorage.removeItem(STORAGE_TOKEN_KEY);
-                localStorage.removeItem(STORAGE_USER_KEY);
-                sessionStorage.setItem(STORAGE_TOKEN_KEY, data.access_token);
-                sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(data.user));
-
-                showAlert(`Bem-vindo(a), ${data.user.name}! Redirecionando...`, 'success');
-                setTimeout(() => {
-                    window.location.href = 'plataforma.html';
-                }, 800);
+                const user = await signInWithEmail(email, password);
+                await persistFirebaseSession(user);
+                redirectToPlatform(user);
             } catch (error) {
-                console.error('Erro ao autenticar:', error);
-                showAlert('Não foi possível conectar ao backend. Verifique se a API está rodando.', 'error');
+                console.error('Erro ao autenticar com Firebase:', error);
+                showAlert(getFriendlyAuthError(error), 'error');
             } finally {
                 setFormLoading('view-login', false);
             }
         }
 
-        // Lógica de Cadastro de Novos Usuários usando o backend
         async function handleRegister(event) {
             event.preventDefault();
-            
+
             const name = document.getElementById('reg-name').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
             setFormLoading('view-register', true, 'Cadastrando...');
 
             try {
-                const response = await fetch(`${API_BASE_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password }),
-                });
-
-                if (!response.ok) {
-                    showAlert(await readApiError(response), 'error');
-                    return;
-                }
-
-                showAlert('Cadastro realizado com sucesso! Faça seu login.', 'success');
-                document.getElementById('view-register').reset();
-
-                setTimeout(() => {
-                    switchView('view-login');
-                }, 1200);
+                const user = await signUpWithEmail(name, email, password);
+                await persistFirebaseSession(user);
+                redirectToPlatform(user);
             } catch (error) {
-                console.error('Erro ao cadastrar:', error);
-                showAlert('Não foi possível conectar ao backend. Verifique se a API está rodando.', 'error');
+                console.error('Erro ao cadastrar com Firebase:', error);
+                showAlert(getFriendlyAuthError(error), 'error');
             } finally {
                 setFormLoading('view-register', false);
             }
         }
+
+        async function handleGoogleAuth() {
+            setGoogleLoading(true);
+            try {
+                const user = await signInWithGoogle();
+                await persistFirebaseSession(user);
+                redirectToPlatform(user);
+            } catch (error) {
+                console.error('Erro no login com Google:', error);
+                showAlert(getFriendlyAuthError(error), 'error');
+            } finally {
+                setGoogleLoading(false);
+            }
+        }
+
+        window.switchView = switchView;
+        window.handleLogin = handleLogin;
+        window.handleRegister = handleRegister;
+        window.handleGoogleAuth = handleGoogleAuth;
+
+        trackPageView('login').catch(() => undefined);
     </script>
 </body>
 </html>

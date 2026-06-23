@@ -1,0 +1,139 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
+    function hasOnlyAllowedKeys(allowed) {
+      return request.resource.data.keys().hasOnly(allowed);
+    }
+
+    match /users/{uid} {
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.role == 'USER';
+      allow read: if isOwner(uid) || isAdmin();
+      allow update: if isOwner(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    match /medications/{documentId} {
+      allow read: if true;
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /institutions/{documentId} {
+      allow read: if true;
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /inventory/{documentId} {
+      allow read: if true;
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /contact_forms/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['name', 'email', 'phone', 'message', 'userId', 'createdAt', 'status'])
+        && request.resource.data.status == 'OPEN';
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /feedbacks/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['message', 'category', 'userId', 'createdAt', 'status'])
+        && request.resource.data.status == 'OPEN';
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /pharmacy_interest_forms/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['pharmacyName', 'responsibleName', 'email', 'phone', 'city', 'state', 'message', 'userId', 'createdAt', 'status'])
+        && request.resource.data.status == 'OPEN';
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /medicine_search_requests/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['medicineName', 'normalizedMedicineName', 'city', 'state', 'message', 'userId', 'createdAt', 'status'])
+        && request.resource.data.status == 'OPEN';
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /medicine_alerts/{documentId} {
+      allow create: if request.resource.data.status == 'ACTIVE';
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /delivery_simulations/{documentId} {
+      allow create: if true;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /search_logs/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['term', 'normalizedTerm', 'resultCount', 'userId', 'createdAt']);
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /click_logs/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['pharmacyId', 'actionType', 'userId', 'createdAt'])
+        && request.resource.data.actionType in ['VIEW', 'WHATSAPP_CLICK', 'PHONE_CLICK', 'ADDRESS_CLICK'];
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /form_submit_logs/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['formType', 'userId', 'createdAt']);
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /auth_logs/{documentId} {
+      allow create: if isSignedIn()
+        && hasOnlyAllowedKeys(['method', 'eventType', 'userId', 'createdAt'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.method in ['email', 'google']
+        && request.resource.data.eventType in ['LOGIN', 'SIGN_UP'];
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /alert_logs/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['normalizedMedicineName', 'userId', 'createdAt']);
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /delivery_simulation_logs/{documentId} {
+      allow create: if hasOnlyAllowedKeys(['userId', 'createdAt']);
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

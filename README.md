@@ -98,3 +98,16 @@ git push -u origin main
 ```
 
 Não envie `.env`, certificados digitais, chaves privadas ou dados reais de pacientes.
+
+
+## Firebase — arquivo correto de configuração
+
+A configuração pública do app Web do Firebase foi centralizada em:
+
+```txt
+Frontend/assets/firebaseClient.js
+```
+
+Não cole a tag `<script>` gerada pelo Console Firebase diretamente nas páginas HTML. O projeto usa esse módulo para inicializar Firebase App, Authentication, Firestore e Analytics de forma centralizada.
+
+O arquivo `.env.example` foi preenchido com os mesmos identificadores públicos do projeto Firebase para futura migração para Vite ou outro empacotador. Para o backend FastAPI, configure apenas localmente o caminho do JSON de service account em `CONNECTAPHARMA_FIREBASE_CREDENTIALS_PATH` ou `GOOGLE_APPLICATION_CREDENTIALS`; esse JSON não deve ser versionado.
