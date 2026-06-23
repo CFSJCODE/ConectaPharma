@@ -768,3 +768,33 @@ CONNECTAPHARMA_OVERPASS_MAX_KEEPALIVE_CONNECTIONS=4
 ### Observação operacional
 
 A localização do usuário continua sendo solicitada apenas após clique explícito. O frontend envia coordenadas para o backend e apenas renderiza o JSON retornado; cálculo de distância, filtro de abertura, consulta Overpass, cache e ordenação permanecem no backend.
+
+---
+
+## Recursos adicionados — Diretório, medicamentos e geolocalização
+
+A plataforma autenticada (`Frontend/plataforma.html`) foi ampliada com novos módulos compatíveis com o escopo do MVP:
+
+- **Lista de farmácias cadastradas**: consulta operacional das farmácias da base do backend.
+- **Pesquisa de farmácias**: busca por nome, endereço, bairro ou horário.
+- **Catálogo de medicamentos**: listagem e pesquisa de medicamentos operacionais.
+- **Cadastro de medicamentos**: criação de novos itens no catálogo do MVP via backend autenticado.
+- **Farmácias abertas próximas**: o frontend solicita a localização do usuário e o backend consulta OpenStreetMap/Overpass, calcula distância, filtra abertura e ordena resultados.
+- **Estabelecimentos de saúde próximos**: localização de farmácias, hospitais, clínicas e consultórios próximos usando dados abertos processados no backend.
+- **Frontend sem logs de depuração**: foram removidas chamadas `console.*` do frontend; a interface mostra mensagens de estado amigáveis ao usuário.
+
+### Novos endpoints principais
+
+```text
+GET  /api/v1/farmacias
+GET  /api/v1/farmacias?q=centro
+GET  /api/v1/farmacias/proximas?lat=-19.9191&lng=-43.9386&radius_km=10&open_now=true&limit=10&source=overpass
+GET  /api/v1/saude/medicamentos
+GET  /api/v1/saude/medicamentos?q=losartana
+POST /api/v1/saude/medicamentos
+GET  /api/v1/estabelecimentos-saude/proximos?lat=-19.9191&lng=-43.9386&radius_km=5&kind=all&open_now=false&limit=12&source=overpass
+```
+
+### Observação de privacidade
+
+A localização do usuário é solicitada somente após ação explícita na interface. O frontend envia coordenadas ao backend apenas para a busca solicitada. O processamento de distância, horário, filtro, cache e ordenação permanece no backend.

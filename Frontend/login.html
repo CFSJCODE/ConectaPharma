@@ -298,7 +298,6 @@
             signInWithGoogle,
             signUpWithEmail,
             toSessionUser,
-            trackPageView,
         } from './assets/firebaseClient.js';
 
         const STORAGE_USER_KEY = 'conectapharma_user';
@@ -367,7 +366,6 @@
                 await persistFirebaseSession(user);
                 redirectToPlatform(user);
             } catch (error) {
-                console.error('Erro ao autenticar com Firebase:', error);
                 showAlert(getFriendlyAuthError(error), 'error');
             } finally {
                 setFormLoading('view-login', false);
@@ -387,7 +385,6 @@
                 await persistFirebaseSession(user);
                 redirectToPlatform(user);
             } catch (error) {
-                console.error('Erro ao cadastrar com Firebase:', error);
                 showAlert(getFriendlyAuthError(error), 'error');
             } finally {
                 setFormLoading('view-register', false);
@@ -401,7 +398,6 @@
                 await persistFirebaseSession(user);
                 redirectToPlatform(user);
             } catch (error) {
-                console.error('Erro no login com Google:', error);
                 showAlert(getFriendlyAuthError(error), 'error');
             } finally {
                 setGoogleLoading(false);
@@ -413,7 +409,6 @@
         window.handleRegister = handleRegister;
         window.handleGoogleAuth = handleGoogleAuth;
 
-        (window.requestIdleCallback || window.setTimeout)(() => trackPageView('login').catch(() => undefined), 1);
     </script>
 </body>
 </html>

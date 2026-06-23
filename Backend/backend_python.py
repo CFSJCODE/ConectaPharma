@@ -191,6 +191,61 @@ class FarmaciasProximasResponse(BaseModel):
     generated_at: datetime
     items: List[FarmaciaProximaItem]
 
+
+
+class MedicamentoCreate(BaseModel):
+    nome: str = Field(..., min_length=2, max_length=120)
+    categoria: Optional[str] = Field(None, max_length=80)
+    descricao: Optional[str] = Field(None, max_length=240)
+    dose_diaria_comprimidos: float = Field(1.0, gt=0, le=20)
+    stock: int = Field(0, ge=0, le=100000)
+    requires_prescription: bool = True
+
+class MedicamentoCatalogoItem(BaseModel):
+    id: int
+    nome: str
+    categoria: Optional[str] = None
+    descricao: Optional[str] = None
+    dose_diaria_comprimidos: float
+    stock: int
+    requires_prescription: bool = True
+
+class FarmaciaDiretorioItem(BaseModel):
+    id: int
+    nome: str
+    endereco: str
+    telefone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    horario_funcionamento: str
+    disponibilidade_farmaco: bool
+    avaliacao: float
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    maps_url: Optional[str] = None
+
+class EstabelecimentoSaudeItem(BaseModel):
+    id: str
+    name: str
+    kind: str
+    address: str
+    phone: Optional[str] = None
+    latitude: float
+    longitude: float
+    distance_km: float
+    is_open: Optional[bool] = None
+    status_label: str
+    opening_hours_label: str
+    maps_url: str
+
+class EstabelecimentosSaudeResponse(BaseModel):
+    origin: Dict[str, float]
+    count: int
+    source: str
+    radius_km: float
+    open_now: bool
+    generated_at: datetime
+    items: List[EstabelecimentoSaudeItem]
+
 class ConsumoSimulacaoRequest(BaseModel):
     medicamento_id: int
     dose_diaria_comprimidos: float = Field(..., gt=0)
@@ -249,10 +304,35 @@ class MockDatabase:
     def __init__(self) -> None:
         self.users: List[Dict] = []
         self.medicamentos = [
-            {"id": 1, "nome": "Losartana 50mg", "dose_diaria_comprimidos": 1, "stock": 3},
-            {"id": 2, "nome": "Metformina 850mg", "dose_diaria_comprimidos": 2, "stock": 22},
-            {"id": 3, "nome": "Dipirona 500mg", "dose_diaria_comprimidos": 1, "stock": 14},
+            {
+                "id": 1,
+                "nome": "Losartana 50mg",
+                "categoria": "Anti-hipertensivo",
+                "descricao": "Medicamento de uso contínuo utilizado em protocolos de controle pressórico.",
+                "dose_diaria_comprimidos": 1.0,
+                "stock": 3,
+                "requires_prescription": True,
+            },
+            {
+                "id": 2,
+                "nome": "Metformina 850mg",
+                "categoria": "Antidiabético",
+                "descricao": "Medicamento de uso contínuo associado ao controle glicêmico.",
+                "dose_diaria_comprimidos": 2.0,
+                "stock": 22,
+                "requires_prescription": True,
+            },
+            {
+                "id": 3,
+                "nome": "Dipirona 500mg",
+                "categoria": "Analgésico",
+                "descricao": "Medicamento sintomático registrado apenas como item operacional do MVP.",
+                "dose_diaria_comprimidos": 1.0,
+                "stock": 14,
+                "requires_prescription": False,
+            },
         ]
+        self.next_medicamento_id = 4
         self.farmacias = [
             {
                 "id": 1,
@@ -322,6 +402,44 @@ class MockDatabase:
                     "sunday": [],
                 },
                 "inv": {1: 4, 2: 0, 3: 20},
+            },
+        ]
+        self.estabelecimentos_saude = [
+            {
+                "id": "mock-health-1",
+                "name": "Unidade Básica de Saúde Centro-Sul",
+                "kind": "HEALTH_CENTER",
+                "address": "Região Centro-Sul, Belo Horizonte - MG",
+                "phone": "(31) 3277-0000",
+                "latitude": -19.9287,
+                "longitude": -43.9408,
+                "opening_hours": {
+                    "monday": [{"open": "07:00", "close": "17:00"}],
+                    "tuesday": [{"open": "07:00", "close": "17:00"}],
+                    "wednesday": [{"open": "07:00", "close": "17:00"}],
+                    "thursday": [{"open": "07:00", "close": "17:00"}],
+                    "friday": [{"open": "07:00", "close": "17:00"}],
+                    "saturday": [],
+                    "sunday": [],
+                },
+            },
+            {
+                "id": "mock-health-2",
+                "name": "Hospital Metropolitano 24h",
+                "kind": "HOSPITAL",
+                "address": "Belo Horizonte - MG",
+                "phone": "(31) 3277-1111",
+                "latitude": -19.9227,
+                "longitude": -43.9451,
+                "opening_hours": {
+                    "monday": [{"open": "00:00", "close": "23:59"}],
+                    "tuesday": [{"open": "00:00", "close": "23:59"}],
+                    "wednesday": [{"open": "00:00", "close": "23:59"}],
+                    "thursday": [{"open": "00:00", "close": "23:59"}],
+                    "friday": [{"open": "00:00", "close": "23:59"}],
+                    "saturday": [{"open": "00:00", "close": "23:59"}],
+                    "sunday": [{"open": "00:00", "close": "23:59"}],
+                },
             },
         ]
         self.entregas: Dict[str, Dict] = {}
@@ -1019,6 +1137,212 @@ out center tags;
         cls._response_cache[response_cache_key] = (now_monotonic, response)
         return response
 
+
+class HealthEstablishmentService:
+    """Busca gratuita de estabelecimentos de saúde via OpenStreetMap/Overpass.
+
+    Todo o processamento permanece no backend: consulta externa, cache,
+    normalização, cálculo de distância, avaliação de horário, filtro e ordenação.
+    """
+
+    _cache: Dict[str, tuple[float, List[Dict[str, Any]]]] = {}
+    _response_cache: Dict[str, tuple[float, EstabelecimentosSaudeResponse]] = {}
+    _locks: Dict[str, asyncio.Lock] = {}
+
+    KIND_LABELS = {
+        "pharmacy": "Farmácia",
+        "hospital": "Hospital",
+        "clinic": "Clínica",
+        "doctors": "Consultório médico",
+        "dentist": "Odontologia",
+        "health_center": "Centro de saúde",
+        "laboratory": "Laboratório",
+        "unknown": "Estabelecimento de saúde",
+    }
+
+    @staticmethod
+    def _cache_key(lat: float, lng: float, radius_km: float, kind: str) -> str:
+        return f"{round(lat, 3)}:{round(lng, 3)}:{round(radius_km, 1)}:{kind}"
+
+    @staticmethod
+    def _response_cache_key(lat: float, lng: float, radius_km: float, open_now: bool, limit: int, kind: str, source: str) -> str:
+        return f"{round(lat, 3)}:{round(lng, 3)}:{round(radius_km, 1)}:{int(open_now)}:{limit}:{kind}:{source}"
+
+    @staticmethod
+    def _build_query(lat: float, lng: float, radius_km: float, kind: str) -> str:
+        radius_m = int(radius_km * 1000)
+        kind_filters = {
+            "all": [
+                '["amenity"="pharmacy"]', '["amenity"="hospital"]', '["amenity"="clinic"]', '["amenity"="doctors"]', '["amenity"="dentist"]',
+                '["healthcare"="pharmacy"]', '["healthcare"="hospital"]', '["healthcare"="clinic"]', '["healthcare"="doctor"]', '["healthcare"="laboratory"]',
+            ],
+            "pharmacy": ['["amenity"="pharmacy"]', '["healthcare"="pharmacy"]'],
+            "hospital": ['["amenity"="hospital"]', '["healthcare"="hospital"]'],
+            "clinic": ['["amenity"="clinic"]', '["healthcare"="clinic"]'],
+            "doctors": ['["amenity"="doctors"]', '["healthcare"="doctor"]'],
+        }
+        filters = kind_filters.get(kind, kind_filters["all"])
+        lines = []
+        for selector in filters:
+            lines.append(f"node{selector}(around:{radius_m},{lat},{lng});")
+            lines.append(f"way{selector}(around:{radius_m},{lat},{lng});")
+            lines.append(f"relation{selector}(around:{radius_m},{lat},{lng});")
+        return "\n".join(["[out:json][timeout:25];", "(", *lines, ");", "out center tags;"])
+
+    @staticmethod
+    def _kind_from_tags(tags: Dict[str, str]) -> str:
+        amenity = tags.get("amenity")
+        healthcare = tags.get("healthcare")
+        raw = amenity or healthcare or "unknown"
+        if raw == "doctor":
+            return "doctors"
+        return raw
+
+    @classmethod
+    def _record_from_element(cls, element: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        tags = element.get("tags", {}) or {}
+        center = element.get("center") or {}
+        lat = element.get("lat", center.get("lat"))
+        lng = element.get("lon", center.get("lon"))
+        if lat is None or lng is None:
+            return None
+        kind = cls._kind_from_tags(tags)
+        return {
+            "id": f"osm-health-{element.get('type', 'node')}-{element.get('id')}",
+            "name": tags.get("name") or tags.get("brand") or cls.KIND_LABELS.get(kind, "Estabelecimento de saúde"),
+            "kind": kind,
+            "source": "openstreetmap",
+            "address": OverpassPharmacyService._address_from_tags(tags),
+            "phone": OverpassPharmacyService._phone_from_tags(tags),
+            "latitude": float(lat),
+            "longitude": float(lng),
+            "osm_opening_hours": tags.get("opening_hours"),
+        }
+
+    @classmethod
+    def fallback_records(cls) -> List[Dict[str, Any]]:
+        records = []
+        for farmacia in db.farmacias:
+            if farmacia.get("latitude") is None or farmacia.get("longitude") is None:
+                continue
+            records.append({
+                "id": f"mock-pharmacy-{farmacia['id']}",
+                "name": farmacia["nome"],
+                "kind": "pharmacy",
+                "source": "local_mock",
+                "address": farmacia.get("endereco", "Endereço não informado"),
+                "phone": farmacia.get("telefone"),
+                "latitude": float(farmacia["latitude"]),
+                "longitude": float(farmacia["longitude"]),
+                "opening_hours": farmacia.get("opening_hours"),
+            })
+        records.extend(db.estabelecimentos_saude)
+        return records
+
+    @classmethod
+    async def fetch_from_overpass(cls, lat: float, lng: float, radius_km: float, kind: str) -> List[Dict[str, Any]]:
+        if not settings.OVERPASS_ENABLED:
+            return []
+        now_monotonic = time.monotonic()
+        cache_key = cls._cache_key(lat, lng, radius_km, kind)
+        cached = cls._cache.get(cache_key)
+        if cached and now_monotonic - cached[0] <= settings.OVERPASS_CACHE_TTL_SECONDS:
+            return cached[1]
+        lock = cls._locks.setdefault(cache_key, asyncio.Lock())
+        async with lock:
+            cached = cls._cache.get(cache_key)
+            now_monotonic = time.monotonic()
+            if cached and now_monotonic - cached[0] <= settings.OVERPASS_CACHE_TTL_SECONDS:
+                return cached[1]
+            response = await OverpassPharmacyService.get_client().post(
+                settings.OVERPASS_URL,
+                data={"data": cls._build_query(lat, lng, radius_km, kind)},
+            )
+            response.raise_for_status()
+            payload = response.json()
+            records = []
+            seen: set[str] = set()
+            for element in payload.get("elements", []):
+                record = cls._record_from_element(element)
+                if not record or record["id"] in seen:
+                    continue
+                seen.add(record["id"])
+                records.append(record)
+            cls._cache[cache_key] = (now_monotonic, records)
+            return records
+
+    @classmethod
+    async def search_nearby(
+        cls,
+        lat: float,
+        lng: float,
+        radius_km: float,
+        open_now: bool,
+        limit: int,
+        kind: str = "all",
+        source: str = "overpass",
+    ) -> EstabelecimentosSaudeResponse:
+        response_cache_key = cls._response_cache_key(lat, lng, radius_km, open_now, limit, kind, source)
+        now_monotonic = time.monotonic()
+        cached = cls._response_cache.get(response_cache_key)
+        if cached and now_monotonic - cached[0] <= settings.OVERPASS_RESPONSE_CACHE_TTL_SECONDS:
+            return cached[1]
+
+        generated_at = datetime.now(timezone.utc)
+        now = get_app_now()
+        used_source = source
+        if source == "mock":
+            records = cls.fallback_records()
+            used_source = "local_mock"
+        else:
+            try:
+                records = await cls.fetch_from_overpass(lat, lng, radius_km, kind)
+                used_source = "openstreetmap"
+            except Exception as exc:
+                logger.warning("Falha ao consultar estabelecimentos no Overpass; usando fallback local: %s", exc)
+                records = cls.fallback_records()
+                used_source = "local_mock_fallback"
+
+        items: List[EstabelecimentoSaudeItem] = []
+        for record in records:
+            record_kind = record.get("kind", "unknown")
+            if kind != "all" and record_kind != kind:
+                continue
+            distance_km = GeoDistanceService.haversine_km(lat, lng, float(record["latitude"]), float(record["longitude"]))
+            if distance_km > radius_km:
+                continue
+            open_state = OpeningHoursService.is_open_now(record, now)
+            if open_now and open_state is not True:
+                continue
+            status_label = "Aberto agora" if open_state is True else "Fechado agora" if open_state is False else "Horário não informado"
+            items.append(EstabelecimentoSaudeItem(
+                id=str(record["id"]),
+                name=record.get("name") or cls.KIND_LABELS.get(record_kind, "Estabelecimento de saúde"),
+                kind=cls.KIND_LABELS.get(record_kind, record_kind),
+                address=record.get("address") or "Endereço não informado",
+                phone=record.get("phone"),
+                latitude=float(record["latitude"]),
+                longitude=float(record["longitude"]),
+                distance_km=round(distance_km, 2),
+                is_open=open_state,
+                status_label=status_label,
+                opening_hours_label=OpeningHoursService.label(record, now),
+                maps_url=f"https://www.google.com/maps/search/?api=1&query={record['latitude']},{record['longitude']}",
+            ))
+
+        limited_items = heapq.nsmallest(limit, items, key=lambda item: item.distance_km)
+        response = EstabelecimentosSaudeResponse(
+            origin={"latitude": lat, "longitude": lng},
+            count=len(limited_items),
+            source=used_source,
+            radius_km=radius_km,
+            open_now=open_now,
+            generated_at=generated_at,
+            items=limited_items,
+        )
+        cls._response_cache[response_cache_key] = (now_monotonic, response)
+        return response
+
 class RndsConfigurationError(Exception):
     pass
 
@@ -1269,6 +1593,7 @@ router_farmacias = APIRouter(prefix="/farmacias", tags=["Farmácias"])
 router_health = APIRouter(prefix="/saude", tags=["Monitoramento de Saúde"])
 router_logistics = APIRouter(prefix="/logistica", tags=["Logística e Entregas"])
 router_integrations = APIRouter(prefix="/integracoes", tags=["Integrações Governamentais"])
+router_estabelecimentos = APIRouter(prefix="/estabelecimentos-saude", tags=["Estabelecimentos de Saúde"])
 
 @router_auth.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate):
@@ -1323,6 +1648,118 @@ async def listar_farmacias_mapa():
         )
         for farmacia in db.farmacias
     ]
+
+
+def normalize_text(value: str) -> str:
+    value = value.strip().lower()
+    replacements = str.maketrans("áàãâäéèêëíìîïóòõôöúùûüç", "aaaaaeeeeiiiiooooouuuuc")
+    return value.translate(replacements)
+
+@router_farmacias.get("", response_model=List[FarmaciaDiretorioItem])
+async def listar_farmacias(
+    query_text: Optional[str] = Query(None, alias="q", min_length=1, max_length=120),
+    limit: int = Query(30, ge=1, le=100),
+):
+    """Lista e pesquisa farmácias da base operacional local do MVP."""
+    normalized_query = normalize_text(query_text) if query_text else None
+    items = []
+    for farmacia in db.farmacias:
+        searchable = " ".join([
+            farmacia.get("nome", ""),
+            farmacia.get("endereco", ""),
+            farmacia.get("horario_funcionamento", ""),
+        ])
+        if normalized_query and normalized_query not in normalize_text(searchable):
+            continue
+        lat = farmacia.get("latitude")
+        lng = farmacia.get("longitude")
+        items.append(FarmaciaDiretorioItem(
+            id=int(farmacia["id"]),
+            nome=farmacia["nome"],
+            endereco=farmacia.get("endereco", "Endereço não informado"),
+            telefone=farmacia.get("telefone"),
+            whatsapp=farmacia.get("whatsapp"),
+            horario_funcionamento=farmacia.get("horario_funcionamento", "Horário não informado"),
+            disponibilidade_farmaco=bool(farmacia.get("disponibilidade_farmaco", False)),
+            avaliacao=float(farmacia.get("avaliacao", 0)),
+            latitude=lat,
+            longitude=lng,
+            maps_url=f"https://www.google.com/maps/search/?api=1&query={lat},{lng}" if lat is not None and lng is not None else None,
+        ))
+    return items[:limit]
+
+@router_health.get("/medicamentos", response_model=List[MedicamentoCatalogoItem])
+async def listar_medicamentos(
+    query_text: Optional[str] = Query(None, alias="q", min_length=1, max_length=120),
+    limit: int = Query(50, ge=1, le=200),
+):
+    """Lista e pesquisa medicamentos cadastrados no catálogo operacional do MVP."""
+    normalized_query = normalize_text(query_text) if query_text else None
+    items = []
+    for medicamento in db.medicamentos:
+        searchable = " ".join([
+            medicamento.get("nome", ""),
+            medicamento.get("categoria", ""),
+            medicamento.get("descricao", ""),
+        ])
+        if normalized_query and normalized_query not in normalize_text(searchable):
+            continue
+        items.append(MedicamentoCatalogoItem(
+            id=int(medicamento["id"]),
+            nome=medicamento["nome"],
+            categoria=medicamento.get("categoria"),
+            descricao=medicamento.get("descricao"),
+            dose_diaria_comprimidos=float(medicamento.get("dose_diaria_comprimidos", 1)),
+            stock=int(medicamento.get("stock", 0)),
+            requires_prescription=bool(medicamento.get("requires_prescription", True)),
+        ))
+    return items[:limit]
+
+@router_health.post("/medicamentos", response_model=MedicamentoCatalogoItem, status_code=status.HTTP_201_CREATED)
+async def cadastrar_medicamento(req: MedicamentoCreate, current_user: dict = Depends(get_current_user)):
+    """Cadastra medicamento no catálogo operacional do MVP.
+
+    Não armazena dados clínicos de pacientes, prescrição, diagnóstico ou CNS/CPF.
+    """
+    normalized_name = normalize_text(req.nome)
+    if any(normalize_text(med.get("nome", "")) == normalized_name for med in db.medicamentos):
+        raise HTTPException(status_code=409, detail="Medicamento já cadastrado no catálogo.")
+    med = {
+        "id": db.next_medicamento_id,
+        "nome": req.nome.strip(),
+        "categoria": req.categoria.strip() if req.categoria else None,
+        "descricao": req.descricao.strip() if req.descricao else None,
+        "dose_diaria_comprimidos": float(req.dose_diaria_comprimidos),
+        "stock": int(req.stock),
+        "requires_prescription": bool(req.requires_prescription),
+    }
+    db.next_medicamento_id += 1
+    db.medicamentos.append(med)
+    return MedicamentoCatalogoItem(**med)
+
+@router_estabelecimentos.get("/proximos", response_model=EstabelecimentosSaudeResponse)
+async def listar_estabelecimentos_saude_proximos(
+    lat: float = Query(..., ge=-90, le=90),
+    lng: float = Query(..., ge=-180, le=180),
+    radius_km: float = Query(10.0, gt=0, le=50),
+    open_now: bool = Query(False),
+    limit: int = Query(10, ge=1, le=50),
+    kind: str = Query("all", pattern="^(all|pharmacy|hospital|clinic|doctors)$"),
+    source: str = Query("overpass", pattern="^(overpass|mock)$"),
+):
+    """Localiza estabelecimentos de saúde próximos via backend.
+
+    Suporta OpenStreetMap/Overpass gratuito, fallback local e processamento integral no servidor.
+    """
+    return await HealthEstablishmentService.search_nearby(
+        lat=lat,
+        lng=lng,
+        radius_km=radius_km,
+        open_now=open_now,
+        limit=limit,
+        kind=kind,
+        source=source,
+    )
 
 @router_farmacias.get("/proximas", response_model=FarmaciasProximasResponse)
 async def listar_farmacias_proximas(
@@ -1446,6 +1883,7 @@ def create_app() -> FastAPI:
     application.include_router(router_health, prefix=settings.API_V1_STR)
     application.include_router(router_logistics, prefix=settings.API_V1_STR)
     application.include_router(router_integrations, prefix=settings.API_V1_STR)
+    application.include_router(router_estabelecimentos, prefix=settings.API_V1_STR)
 
     @application.on_event("startup")
     async def startup_resources():

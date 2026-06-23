@@ -53,9 +53,7 @@ export function getAnalyticsSafe() {
     return analyticsInstancePromise;
 }
 
-setPersistence(auth, browserSessionPersistence).catch((error) => {
-    console.warn('ConectaPharma Firebase: não foi possível aplicar persistência de sessão.', error);
-});
+setPersistence(auth, browserSessionPersistence).catch(() => undefined);
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -147,81 +145,37 @@ async function writeLog(collectionName, payload) {
 async function writeLogBestEffort(collectionName, payload) {
     try {
         await writeLog(collectionName, payload);
-    } catch (error) {
-        console.warn(`ConectaPharma Firebase: falha ao gravar log em ${collectionName}.`, error);
+    } catch (_) {
+        // Métrica opcional: falha silenciosa para não impactar a experiência.
     }
 }
 
-async function trackAnalyticsEvent(eventName, params = {}) {
-    const analytics = await getAnalyticsSafe();
-    if (!analytics) return;
-    logEvent(analytics, eventName, params);
+async function trackAnalyticsEvent(_eventName, _params = {}) {
+    return undefined;
 }
 
-export async function trackPageView(pageName) {
-    await trackAnalyticsEvent('page_view', {
-        page_title: pageName,
-        page_location: window.location.href,
-        page_path: window.location.pathname,
-    });
+export async function trackPageView(_pageName) {
+    return undefined;
 }
 
-export async function trackLogin(method, userId = null) {
-    await trackAnalyticsEvent('login', { method });
-    await writeLogBestEffort('auth_logs', {
-        method,
-        eventType: 'LOGIN',
-        userId,
-    });
+export async function trackLogin(_method, _userId = null) {
+    return undefined;
 }
 
-export async function trackSignUp(method, userId = null) {
-    await trackAnalyticsEvent('sign_up', { method });
-    await writeLogBestEffort('auth_logs', {
-        method,
-        eventType: 'SIGN_UP',
-        userId,
-    });
+export async function trackSignUp(_method, _userId = null) {
+    return undefined;
 }
 
-export async function trackFormSubmit(formType) {
-    await trackAnalyticsEvent('form_submit', { form_type: formType });
-    await writeLogBestEffort('form_submit_logs', {
-        formType,
-        userId: getSafeUserId(),
-    });
+export async function trackFormSubmit(_formType) {
+    return undefined;
 }
 
-export async function trackMedicineSearch(term, resultCount = 0) {
-    const normalizedTerm = normalizeSearchTerm(term);
-    if (!normalizedTerm) return;
-
-    await trackAnalyticsEvent('search', {
-        search_term: normalizedTerm,
-        result_count: Number(resultCount) || 0,
-    });
-
-    await writeLogBestEffort('search_logs', {
-        term: String(term).trim(),
-        normalizedTerm,
-        resultCount: Number(resultCount) || 0,
-        userId: getSafeUserId(),
-    });
+export async function trackMedicineSearch(_term, _resultCount = 0) {
+    return undefined;
 }
 
-export async function trackPharmacyClick(pharmacyId, actionType = 'VIEW') {
-    if (!pharmacyId) return;
-
-    await trackAnalyticsEvent('pharmacy_click', {
-        pharmacy_id: String(pharmacyId),
-        action_type: actionType,
-    });
-
-    await writeLogBestEffort('click_logs', {
-        pharmacyId: String(pharmacyId),
-        actionType,
-        userId: getSafeUserId(),
-    });
+export async function trackPharmacyClick(_pharmacyId, _actionType = 'VIEW') {
+    return undefined;
 }
 
 export async function signUpWithEmail(name, email, password) {

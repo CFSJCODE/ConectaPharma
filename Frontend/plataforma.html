@@ -16,215 +16,322 @@
             --color-card: #FFFFFF;
             --color-text: #1E293B;
             --color-muted: #475569;
+            --color-border: rgba(15, 23, 42, 0.10);
+            --color-danger: #B91C1C;
             --transition-smooth: all 0.25s ease;
         }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
+
         body {
-            background-color: var(--color-bg);
+            background: var(--color-bg);
             color: var(--color-text);
             min-height: 100vh;
         }
+
         header {
-            background-color: var(--color-card);
+            background: var(--color-card);
             padding: 1.5rem 2rem;
             box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .header-title h1 { 
-            font-size: 1.75rem; 
-            color: var(--color-primary); 
-        }
-        .header-title p { 
-            color: var(--color-muted); 
-            margin-top: 0.35rem; 
-        }
-        .btn-logout { 
-            border: none; 
-            background: var(--color-sus-blue); 
-            color: white; 
-            padding: 0.9rem 1.4rem; 
-            border-radius: 999px; 
-            cursor: pointer; 
-            transition: var(--transition-smooth); 
-            font-weight: 700;
-        }
-        .btn-logout:hover { 
-            transform: translateY(-1px); 
-            background: #004a87; 
-        }
-        .page-body { 
-            max-width: 1200px; 
-            margin: 2rem auto; 
-            padding: 0 2rem; 
-            display: grid; 
-            grid-template-columns: 1.5fr 0.9fr; 
-            gap: 1.5rem; 
-        }
-        .card { 
-            background: var(--color-card); 
-            border-radius: 24px; 
-            padding: 1.8rem; 
-            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08); 
-        }
-        .welcome-box h2 { 
-            margin-bottom: 0.5rem; 
-        }
-        .user-infobox { 
-            margin-top: 1rem; 
-            color: var(--color-muted); 
-        }
-        .status-pill { 
-            display: inline-flex; 
-            padding: 0.45rem 0.85rem; 
-            border-radius: 999px; 
-            font-weight: 700; 
-            color: #166534; 
-            background: #DCFCE7; 
-            margin-top: 1rem; 
-        }
-        .grid-summary { 
-            display: grid; 
-            gap: 1rem; 
-            grid-template-columns: repeat(2, minmax(0, 1fr)); 
-            margin-top: 1.5rem; 
-        }
-        .summary-card { 
-            padding: 1.35rem; 
-            border-radius: 20px; 
-            background: #EEF2FF; 
-        }
-        .summary-card h3 { 
-            margin-bottom: 0.5rem; 
-            font-size: 0.95rem; 
-            color: var(--color-muted); 
-        }
-        .summary-card p { 
-            font-size: 1.75rem; 
-            font-weight: 800; 
-            color: var(--color-primary); 
-        }
-        .section-title { 
-            font-size: 1.4rem; 
-            margin-bottom: 1rem; 
-            color: var(--color-primary); 
-        }
-        .alert-list { 
-            display: grid; 
-            gap: 0.9rem; 
-        }
-        .alert-card { 
-            padding: 1rem; 
-            border-radius: 18px; 
-            background: #F8FAFC; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border: 1px solid rgba(15, 23, 42, 0.08); 
-        }
-        .alert-card strong { 
-            display: block; 
-            margin-bottom: 0.35rem; 
-        }
-        .badge { 
-            padding: 0.45rem 0.85rem; 
-            border-radius: 999px; 
-            font-size: 0.8rem; 
-            font-weight: 700; 
-        }
-        .badge.critico { 
-            background: #FEE2E2; 
-            color: #B91C1C; 
-        }
-        .badge.ok { 
-            background: #DCFCE7; 
-            color: #166534; 
-        }
-        .badge.atencao {
-            background: #FEF3C7;
-            color: #92400E;
-        }
-        .loading-text {
-            color: var(--color-muted);
-            font-style: italic;
-        }
-        .fallback-badge {
-            display: inline-block;
-            padding: 0.4rem 0.7rem;
-            background: #FEF3C7;
-            color: #92400E;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            margin-left: 0.5rem;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
-        .nearby-card {
+        .header-title h1 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+        }
+
+        .header-title p {
+            color: var(--color-muted);
+            margin-top: 0.35rem;
+        }
+
+        .btn {
+            border: none;
+            background: var(--color-sus-blue);
+            color: white;
+            padding: 0.85rem 1.25rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            font-weight: 800;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            background: #004a87;
+        }
+
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #E2E8F0;
+            color: var(--color-primary);
+        }
+
+        .btn-secondary:hover {
+            background: #CBD5E1;
+        }
+
+        .btn-accent {
+            background: var(--color-accent);
+        }
+
+        .btn-accent:hover {
+            background: #059669;
+        }
+
+        .page-body {
+            max-width: 1280px;
+            margin: 2rem auto;
+            padding: 0 2rem 3rem;
+            display: grid;
+            grid-template-columns: 1.4fr 0.9fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--color-card);
+            border-radius: 24px;
+            padding: 1.8rem;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(15, 23, 42, 0.04);
+        }
+
+        .card-wide {
             grid-column: 1 / -1;
         }
-        .nearby-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            align-items: center;
+
+        .section-title {
+            font-size: 1.4rem;
+            margin-bottom: 0.75rem;
+            color: var(--color-primary);
+        }
+
+        .section-subtitle, .muted {
+            color: var(--color-muted);
+            line-height: 1.55;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            padding: 0.45rem 0.85rem;
+            border-radius: 999px;
+            font-weight: 800;
+            color: #166534;
+            background: #DCFCE7;
             margin-top: 1rem;
         }
-        .select-control {
-            border: 1px solid #CBD5E1;
-            border-radius: 999px;
-            padding: 0.75rem 1rem;
-            background: #FFFFFF;
-            color: var(--color-text);
-            font-weight: 700;
-            outline: none;
+
+        .status-pill.warn {
+            color: #92400E;
+            background: #FEF3C7;
         }
-        .nearby-meta {
-            margin-top: 0.85rem;
+
+        .grid-summary {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-top: 1.5rem;
+        }
+
+        .summary-card {
+            padding: 1.25rem;
+            border-radius: 20px;
+            background: #EEF2FF;
+        }
+
+        .summary-card h3 {
+            margin-bottom: 0.5rem;
+            font-size: 0.88rem;
             color: var(--color-muted);
-            font-size: 0.9rem;
         }
-        .pharmacy-card {
+
+        .summary-card p {
+            font-size: 1.65rem;
+            font-weight: 900;
+            color: var(--color-primary);
+        }
+
+        .list-grid {
+            display: grid;
+            gap: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .item-card {
             padding: 1rem;
             border-radius: 18px;
             background: #F8FAFC;
-            border: 1px solid rgba(15, 23, 42, 0.08);
+            border: 1px solid var(--color-border);
         }
-        .pharmacy-card-header {
+
+        .item-head {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
             gap: 1rem;
+            align-items: flex-start;
         }
-        .pharmacy-card strong {
+
+        .item-card strong {
             display: block;
             color: var(--color-primary);
             margin-bottom: 0.35rem;
         }
-        .pharmacy-actions {
+
+        .item-card p {
+            margin-top: 0.35rem;
+            color: var(--color-muted);
+            line-height: 1.45;
+        }
+
+        .badge {
+            padding: 0.42rem 0.78rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .badge.ok {
+            background: #DCFCE7;
+            color: #166534;
+        }
+
+        .badge.warn {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .badge.danger {
+            background: #FEE2E2;
+            color: var(--color-danger);
+        }
+
+        .actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: 0.65rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .item-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
             margin-top: 0.75rem;
         }
-        .pharmacy-actions a {
+
+        .item-actions a {
             color: var(--color-sus-blue);
             text-decoration: none;
-            font-weight: 700;
+            font-weight: 800;
             font-size: 0.9rem;
         }
-        .pharmacy-actions a:hover {
+
+        .item-actions a:hover {
             text-decoration: underline;
         }
-        @media (max-width: 900px) { 
-            .page-body { 
-                grid-template-columns: 1fr; 
-            } 
+
+        .input, .select, textarea {
+            border: 1px solid #CBD5E1;
+            border-radius: 14px;
+            padding: 0.82rem 1rem;
+            background: #FFFFFF;
+            color: var(--color-text);
+            outline: none;
+            width: 100%;
+            font-size: 0.98rem;
+        }
+
+        .select {
+            border-radius: 999px;
+            font-weight: 700;
+            width: auto;
+        }
+
+        .input:focus, .select:focus, textarea:focus {
+            border-color: var(--color-sus-blue);
+            box-shadow: 0 0 0 4px rgba(0, 93, 170, 0.10);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .form-grid .span-2 {
+            grid-column: 1 / -1;
+        }
+
+        .message {
+            margin-top: 0.8rem;
+            color: var(--color-muted);
+            font-weight: 700;
+        }
+
+        .message.success {
+            color: #166534;
+        }
+
+        .message.error {
+            color: var(--color-danger);
+        }
+
+        .loading-text {
+            color: var(--color-muted);
+            font-style: italic;
+        }
+
+        @media (max-width: 980px) {
+            .page-body {
+                grid-template-columns: 1fr;
+            }
+            .grid-summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .page-body {
+                padding: 0 1rem 2rem;
+            }
+            .grid-summary, .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-grid .span-2 {
+                grid-column: auto;
+            }
+            .select {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -234,273 +341,156 @@
             <h1>Plataforma ConectaPharma</h1>
             <p>Área restrita do usuário autenticado</p>
         </div>
-        <button class="btn-logout" onclick="logout()">Sair</button>
+        <button class="btn" onclick="logout()" type="button">Sair</button>
     </header>
+
     <main class="page-body">
-        <section class="card welcome-box">
-            <h2>Seja bem-vindo(a), <span id="user-name">...</span></h2>
-            <p class="user-infobox">Sessão autenticada pelo Firebase; o backend valida o Firebase ID Token.</p>
+        <section class="card">
+            <h2 class="section-title">Painel do usuário</h2>
+            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. A sessão é autenticada pelo Firebase e validada pelo backend quando disponível.</p>
             <div class="status-pill" id="session-status">Carregando sessão...</div>
             <div class="grid-summary">
                 <div class="summary-card">
-                    <h3>Alertas no backend</h3>
+                    <h3>Alertas</h3>
                     <p id="alerta-count">0</p>
                 </div>
                 <div class="summary-card">
-                    <h3>Farmácias retornadas</h3>
+                    <h3>Farmácias</h3>
                     <p id="farmacia-count">0</p>
                 </div>
                 <div class="summary-card">
-                    <h3>Integração RNDS</h3>
-                    <p id="rnds-mode">...</p>
+                    <h3>Medicamentos</h3>
+                    <p id="medicamento-count">0</p>
                 </div>
             </div>
         </section>
+
         <section class="card">
-            <h2 class="section-title">Últimos alertas de consumo</h2>
-            <div id="alert-list" class="alert-list">
-                <p class="loading-text">Carregando dados...</p>
+            <h2 class="section-title">Alertas de consumo</h2>
+            <p class="section-subtitle">Acompanhamento operacional dos medicamentos monitorados pelo backend.</p>
+            <div id="alert-list" class="list-grid">
+                <p class="loading-text">Carregando alertas...</p>
             </div>
         </section>
 
-        <section class="card nearby-card">
+        <section class="card card-wide">
+            <h2 class="section-title">Lista e pesquisa de farmácias</h2>
+            <p class="section-subtitle">Consulte farmácias cadastradas na base operacional do MVP.</p>
+            <div class="actions">
+                <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
+                <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
+                <button id="btn-list-pharmacies" class="btn btn-secondary" type="button">Listar todas</button>
+            </div>
+            <p id="pharmacy-directory-status" class="message">Aguardando consulta.</p>
+            <div id="pharmacy-directory-list" class="list-grid">
+                <p class="loading-text">Use a pesquisa ou liste todas as farmácias cadastradas.</p>
+            </div>
+        </section>
+
+        <section class="card card-wide">
+            <h2 class="section-title">Catálogo de medicamentos</h2>
+            <p class="section-subtitle">Cadastre e consulte medicamentos operacionais do MVP. Não registre diagnóstico, prescrição, CPF, CNS ou dados clínicos sensíveis.</p>
+            <div class="actions">
+                <input id="medicine-search-input" class="input" type="search" placeholder="Pesquisar medicamento ou categoria" style="max-width: 520px;">
+                <button id="btn-search-medicines" class="btn" type="button">Pesquisar</button>
+                <button id="btn-list-medicines" class="btn btn-secondary" type="button">Listar catálogo</button>
+            </div>
+            <div id="medicine-list" class="list-grid">
+                <p class="loading-text">Carregando catálogo...</p>
+            </div>
+
+            <form id="medicine-form" class="form-grid" autocomplete="off">
+                <input id="medicine-name" class="input" type="text" placeholder="Nome do medicamento, exemplo: Amoxicilina 500mg" required>
+                <input id="medicine-category" class="input" type="text" placeholder="Categoria, exemplo: Antibiótico">
+                <input id="medicine-dose" class="input" type="number" min="0.1" max="20" step="0.1" value="1" placeholder="Dose diária estimada">
+                <input id="medicine-stock" class="input" type="number" min="0" max="100000" step="1" value="0" placeholder="Estoque operacional">
+                <select id="medicine-prescription" class="select">
+                    <option value="true" selected>Requer prescrição</option>
+                    <option value="false">Não requer prescrição</option>
+                </select>
+                <textarea id="medicine-description" class="span-2" rows="3" placeholder="Descrição operacional opcional"></textarea>
+                <div class="span-2 actions">
+                    <button id="btn-register-medicine" class="btn btn-accent" type="submit">Cadastrar medicamento</button>
+                    <span id="medicine-form-status" class="message"></span>
+                </div>
+            </form>
+        </section>
+
+        <section class="card card-wide">
             <h2 class="section-title">Farmácias abertas próximas</h2>
-            <p class="user-infobox">
-                A localização é solicitada apenas após o clique. O navegador envia latitude e longitude para a API, e todo o processamento de proximidade, horário e ordenação ocorre no backend.
-            </p>
-            <div class="nearby-actions">
-                <button id="btn-nearby-pharmacies" class="btn-logout" type="button">Usar minha localização</button>
-                <select id="nearby-radius" class="select-control" aria-label="Raio de busca">
+            <p class="section-subtitle">A localização é solicitada apenas após o clique. O backend consulta OpenStreetMap/Overpass, calcula distância, verifica horário e ordena por proximidade.</p>
+            <div class="actions">
+                <button id="btn-nearby-pharmacies" class="btn" type="button">Usar minha localização</button>
+                <select id="nearby-radius" class="select" aria-label="Raio de busca">
                     <option value="3">Raio de 3 km</option>
                     <option value="5">Raio de 5 km</option>
                     <option value="10" selected>Raio de 10 km</option>
                     <option value="20">Raio de 20 km</option>
                 </select>
             </div>
-            <p id="nearby-status" class="nearby-meta">Nenhuma busca por proximidade executada.</p>
-            <div id="nearby-pharmacy-list" class="alert-list" style="margin-top: 1rem;">
-                <p class="loading-text">Clique no botão acima para consultar farmácias abertas próximas.</p>
+            <p id="nearby-status" class="message">Nenhuma busca por proximidade executada.</p>
+            <div id="nearby-pharmacy-list" class="list-grid">
+                <p class="loading-text">Clique no botão para consultar farmácias abertas próximas.</p>
+            </div>
+        </section>
+
+        <section class="card card-wide">
+            <h2 class="section-title">Estabelecimentos de saúde próximos</h2>
+            <p class="section-subtitle">Localize farmácias, hospitais, clínicas e consultórios próximos usando dados abertos do OpenStreetMap processados no backend.</p>
+            <div class="actions">
+                <button id="btn-nearby-health" class="btn" type="button">Localizar estabelecimentos</button>
+                <select id="health-kind" class="select" aria-label="Tipo de estabelecimento">
+                    <option value="all" selected>Todos</option>
+                    <option value="pharmacy">Farmácias</option>
+                    <option value="hospital">Hospitais</option>
+                    <option value="clinic">Clínicas</option>
+                    <option value="doctors">Consultórios</option>
+                </select>
+                <select id="health-radius" class="select" aria-label="Raio de busca de saúde">
+                    <option value="3">Raio de 3 km</option>
+                    <option value="5" selected>Raio de 5 km</option>
+                    <option value="10">Raio de 10 km</option>
+                    <option value="20">Raio de 20 km</option>
+                </select>
+                <select id="health-open-now" class="select" aria-label="Filtro de abertura">
+                    <option value="false" selected>Mostrar todos</option>
+                    <option value="true">Somente abertos agora</option>
+                </select>
+            </div>
+            <p id="health-status" class="message">Nenhuma busca executada.</p>
+            <div id="health-list" class="list-grid">
+                <p class="loading-text">Clique no botão para localizar estabelecimentos de saúde.</p>
             </div>
         </section>
     </main>
+
     <script type="module">
         import {
             getCurrentIdToken,
             onAuthStateChange,
             signOutUser,
             toSessionUser,
-            trackPageView,
         } from './assets/firebaseClient.js';
 
         const API_BASE_URL = window.CONNECTAPHARMA_API_BASE_URL || 'http://localhost:8000/api/v1';
         const STORAGE_USER_KEY = 'conectapharma_user';
         const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
-        const NEARBY_CACHE_KEY = 'conectapharma_nearby_cache_v1';
-        const NEARBY_CACHE_TTL_MS = 5 * 60 * 1000;
+        let currentToken = null;
         let nearbyRequestController = null;
+        let healthRequestController = null;
 
         const LOCAL_MOCK_ALERTAS = [
             { id: 1, nome: 'Losartana 50mg', dias_restantes: 3, status: 'CRITICO' },
-            { id: 2, nome: 'Metformina 850mg', dias_restantes: 11, status: 'OK' },
-            { id: 3, nome: 'Dipirona 500mg', dias_restantes: 7, status: 'ATENCAO' },
+            { id: 2, nome: 'Metformina 850mg', dias_restantes: 15, status: 'OK' },
         ];
 
         const LOCAL_MOCK_FARMACIAS = [
-            { id: 1, nome: 'Farmácia Central', distancia_km: 1.2, disponibilidade_farmaco: true },
-            { id: 2, nome: 'Unidade Popular Norte', distancia_km: 4.1, disponibilidade_farmaco: true },
-            { id: 3, nome: 'Drogaria Sul', distancia_km: 3.5, disponibilidade_farmaco: false },
+            { id: 1, nome: 'Farmácia Central BH', endereco: 'Av. Afonso Pena, 1000 - Centro', horario_funcionamento: '08:00 - 22:00', disponibilidade_farmaco: true, avaliacao: 4.8 },
+            { id: 2, nome: 'Drogaria Plantão 24h', endereco: 'Região Centro-Sul, Belo Horizonte - MG', horario_funcionamento: '24 Horas', disponibilidade_farmaco: true, avaliacao: 4.6 },
         ];
 
-        async function logout() {
-            try {
-                await signOutUser();
-            } finally {
-                clearSession();
-                window.location.href = 'login.html';
-            }
-        }
-
-        function clearSession() {
-            sessionStorage.removeItem(STORAGE_USER_KEY);
-            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
-            localStorage.removeItem(STORAGE_USER_KEY);
-        }
-
-        function redirectToLogin() {
-            clearSession();
-            window.location.href = 'login.html';
-        }
-
-        async function getBackendToken(forceRefresh = false) {
-            const token = await getCurrentIdToken(forceRefresh);
-            if (!token) return null;
-            sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token);
-            return token;
-        }
-
-        function authHeaders(token) {
-            return { Authorization: `Bearer ${token}` };
-        }
-
-        function setSessionStatus(text, mode = 'ok') {
-            const statusPill = document.getElementById('session-status');
-            statusPill.innerHTML = text;
-
-            if (mode === 'ok') {
-                statusPill.style.background = '#DCFCE7';
-                statusPill.style.color = '#166534';
-                return;
-            }
-
-            statusPill.style.background = '#FEF3C7';
-            statusPill.style.color = '#92400E';
-        }
-
-        function persistSessionUser(user) {
-            const sessionUser = toSessionUser(user);
-            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(sessionUser));
-            document.getElementById('user-name').innerText = sessionUser.name;
-            return sessionUser;
-        }
-
-        async function verifyBackendSession(token, retry = true) {
-            const response = await fetch(`${API_BASE_URL}/auth/me`, {
-                headers: authHeaders(token),
-                signal: AbortSignal.timeout(4000),
-            });
-
-            if ((response.status === 401 || response.status === 403) && retry) {
-                const freshToken = await getBackendToken(true);
-                return verifyBackendSession(freshToken, false);
-            }
-
-            if (!response.ok) {
-                throw new Error(`Falha ao validar sessão no backend: HTTP ${response.status}`);
-            }
-
-            return response.json();
-        }
-
-        async function verifySession(firebaseUser) {
-            if (!firebaseUser) {
-                console.warn('Sessão Firebase ausente: redirecionando para login.');
-                redirectToLogin();
-                return;
-            }
-
-            persistSessionUser(firebaseUser);
-
-            try {
-                const token = await getBackendToken(false);
-                const backendUser = await verifyBackendSession(token);
-
-                sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify({
-                    ...toSessionUser(firebaseUser),
-                    backendId: backendUser.id,
-                    name: backendUser.name || firebaseUser.displayName || firebaseUser.email,
-                }));
-
-                document.getElementById('user-name').innerText = backendUser.name || firebaseUser.displayName || firebaseUser.email;
-                setSessionStatus('✓ Sessão Firebase validada pela API', 'ok');
-                await loadDashboardData(token);
-            } catch (error) {
-                console.warn('API indisponível ou sem Firebase Admin configurado:', error.message);
-                setSessionStatus('Sessão Firebase ativa <span class="fallback-badge">API OFFLINE/AUTH</span>', 'warn');
-                renderDashboardData(LOCAL_MOCK_ALERTAS, LOCAL_MOCK_FARMACIAS);
-                document.getElementById('rnds-mode').innerText = 'Indisponível';
-            }
-        }
-
-        async function loadDashboardData(token) {
-            try {
-                const [alertRes, farmRes, rndsRes] = await Promise.allSettled([
-                    fetch(`${API_BASE_URL}/alertas`, {
-                        headers: authHeaders(token),
-                        signal: AbortSignal.timeout(5000),
-                    }),
-                    fetch(`${API_BASE_URL}/farmacias/mapa`, {
-                        headers: authHeaders(token),
-                        signal: AbortSignal.timeout(5000),
-                    }),
-                    fetch(`${API_BASE_URL}/integracoes/rnds/status`, {
-                        headers: authHeaders(token),
-                        signal: AbortSignal.timeout(5000),
-                    }),
-                ]);
-
-                if (alertRes.status !== 'fulfilled' || farmRes.status !== 'fulfilled' || !alertRes.value.ok || !farmRes.value.ok) {
-                    throw new Error('Falha ao carregar dados do dashboard.');
-                }
-
-                const [alertas, farmacias] = await Promise.all([
-                    alertRes.value.json(),
-                    farmRes.value.json(),
-                ]);
-                renderDashboardData(alertas, farmacias);
-
-                if (rndsRes.status === 'fulfilled' && rndsRes.value.ok) {
-                    const status = await rndsRes.value.json();
-                    const rndsMode = document.getElementById('rnds-mode');
-                    rndsMode.innerText = status.mode === 'real' ? 'Real' : 'Dry-run';
-                    rndsMode.title = Array.isArray(status.notes) ? status.notes.join(' ') : '';
-                } else {
-                    document.getElementById('rnds-mode').innerText = 'Indisponível';
-                }
-            } catch (error) {
-                console.error('Erro ao carregar dados da API:', error);
-                setSessionStatus('Sessão Firebase ativa <span class="fallback-badge">DADOS MOCK</span>', 'warn');
-                renderDashboardData(LOCAL_MOCK_ALERTAS, LOCAL_MOCK_FARMACIAS);
-                document.getElementById('rnds-mode').innerText = 'Indisponível';
-            }
-        }
-
-        function renderDashboardData(alertas, farmacias) {
-            document.getElementById('alerta-count').innerText = alertas.length;
-            document.getElementById('farmacia-count').innerText = farmacias.length;
-            renderAlertList(alertas);
-        }
-
-        async function loadRndsStatus(token) {
-            const rndsMode = document.getElementById('rnds-mode');
-            try {
-                const response = await fetch(`${API_BASE_URL}/integracoes/rnds/status`, {
-                    headers: authHeaders(token),
-                    signal: AbortSignal.timeout(5000),
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Falha ao consultar status RNDS: HTTP ${response.status}`);
-                }
-
-                const status = await response.json();
-                rndsMode.innerText = status.mode === 'real' ? 'Real' : 'Dry-run';
-                rndsMode.title = Array.isArray(status.notes) ? status.notes.join(' ') : '';
-            } catch (error) {
-                console.warn('Não foi possível carregar status RNDS:', error.message);
-                rndsMode.innerText = 'Indisponível';
-            }
-        }
-
-        function renderAlertList(alertas) {
-            const container = document.getElementById('alert-list');
-            if (!alertas || alertas.length === 0) {
-                container.innerHTML = '<p class="loading-text">Nenhum alerta encontrado.</p>';
-                return;
-            }
-
-            container.innerHTML = alertas.slice(0, 4).map((alerta) => {
-                const classe = alerta.status === 'CRITICO' ? 'critico' : alerta.status === 'ATENCAO' ? 'atencao' : 'ok';
-                const diasRestantes = alerta.dias_restantes || '—';
-                return `
-                    <div class="alert-card">
-                        <div>
-                            <strong>${alerta.nome || 'Alerta'}</strong>
-                            <span style="color: var(--color-muted);">${diasRestantes} dias restantes</span>
-                        </div>
-                        <span class="badge ${classe}">${alerta.status || 'DESCONHECIDO'}</span>
-                    </div>
-                `;
-            }).join('');
+        function byId(id) {
+            return document.getElementById(id);
         }
 
         function escapeHtml(value) {
@@ -512,118 +502,284 @@
                 .replaceAll("'", '&#039;');
         }
 
+        function setText(id, value) {
+            const element = byId(id);
+            if (element) element.innerText = value;
+        }
+
+        function setMessage(id, value, type = '') {
+            const element = byId(id);
+            if (!element) return;
+            element.innerText = value;
+            element.className = `message ${type}`.trim();
+        }
+
+        function authHeaders(token = currentToken) {
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        }
+
+        function setSessionStatus(message, mode = 'ok') {
+            const status = byId('session-status');
+            status.innerHTML = message;
+            status.className = `status-pill ${mode === 'warn' ? 'warn' : ''}`.trim();
+        }
+
+        async function logout() {
+            await signOutUser();
+            sessionStorage.removeItem(STORAGE_USER_KEY);
+            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
+            window.location.href = 'login.html';
+        }
+
+        function redirectToLogin() {
+            sessionStorage.removeItem(STORAGE_USER_KEY);
+            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
+            window.location.href = 'login.html';
+        }
+
+        async function apiJson(path, options = {}) {
+            const response = await fetch(`${API_BASE_URL}${path}`, {
+                ...options,
+                headers: {
+                    ...(options.headers || {}),
+                    ...(options.auth ? authHeaders() : {}),
+                },
+            });
+            if (!response.ok) {
+                let detail = `HTTP ${response.status}`;
+                try {
+                    const payload = await response.json();
+                    detail = payload.detail || detail;
+                } catch (_) {}
+                throw new Error(detail);
+            }
+            return response.json();
+        }
+
+        async function verifySession(user) {
+            if (!user) {
+                redirectToLogin();
+                return;
+            }
+
+            const sessionUser = toSessionUser(user);
+            currentToken = await getCurrentIdToken();
+            sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, currentToken);
+            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(sessionUser));
+            setText('user-name', sessionUser.name || sessionUser.email || 'Usuário');
+
+            try {
+                const apiUser = await apiJson('/auth/me', { auth: true, signal: AbortSignal.timeout(5000) });
+                setText('user-name', apiUser.name || sessionUser.name || sessionUser.email || 'Usuário');
+                setSessionStatus('Sessão Firebase validada pelo backend');
+            } catch (_) {
+                setSessionStatus('Sessão Firebase ativa; backend indisponível ou sem Firebase Admin', 'warn');
+            }
+
+            await Promise.allSettled([
+                loadDashboardData(),
+                loadPharmacies(),
+                loadMedicines(),
+            ]);
+        }
+
+        async function loadDashboardData() {
+            try {
+                const [alertas, farmacias] = await Promise.all([
+                    apiJson('/alertas', { signal: AbortSignal.timeout(5000) }),
+                    apiJson('/farmacias/mapa', { signal: AbortSignal.timeout(5000) }),
+                ]);
+                renderDashboardData(alertas, farmacias);
+            } catch (_) {
+                renderDashboardData(LOCAL_MOCK_ALERTAS, LOCAL_MOCK_FARMACIAS);
+            }
+        }
+
+        function renderDashboardData(alertas, farmacias) {
+            setText('alerta-count', Array.isArray(alertas) ? alertas.length : 0);
+            setText('farmacia-count', Array.isArray(farmacias) ? farmacias.length : 0);
+            renderAlertList(alertas);
+        }
+
+        function renderAlertList(alertas) {
+            const container = byId('alert-list');
+            if (!Array.isArray(alertas) || alertas.length === 0) {
+                container.innerHTML = '<p class="loading-text">Nenhum alerta encontrado.</p>';
+                return;
+            }
+            container.innerHTML = alertas.slice(0, 5).map((alerta) => {
+                const status = alerta.status || 'DESCONHECIDO';
+                const badgeClass = status === 'CRITICO' ? 'danger' : status === 'ATENCAO' ? 'warn' : 'ok';
+                return `
+                    <div class="item-card">
+                        <div class="item-head">
+                            <div>
+                                <strong>${escapeHtml(alerta.nome || 'Alerta')}</strong>
+                                <p>${escapeHtml(alerta.dias_restantes ?? '—')} dias restantes</p>
+                            </div>
+                            <span class="badge ${badgeClass}">${escapeHtml(status)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function pharmacyActions(item) {
+            const links = [];
+            if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`);
+            if (item.telefone || item.phone) links.push(`<a href="tel:${escapeHtml(item.telefone || item.phone)}">Telefone</a>`);
+            if (item.maps_url) links.push(`<a href="${escapeHtml(item.maps_url)}" target="_blank" rel="noopener">Ver rota</a>`);
+            return links.join('');
+        }
+
+        function renderPharmacyDirectory(items) {
+            const list = byId('pharmacy-directory-list');
+            if (!Array.isArray(items) || items.length === 0) {
+                list.innerHTML = '<p class="loading-text">Nenhuma farmácia encontrada.</p>';
+                return;
+            }
+            list.innerHTML = items.map((item) => `
+                <div class="item-card">
+                    <div class="item-head">
+                        <div>
+                            <strong>${escapeHtml(item.nome)}</strong>
+                            <p>${escapeHtml(item.endereco || 'Endereço não informado')}</p>
+                            <p>${escapeHtml(item.horario_funcionamento || 'Horário não informado')} · Avaliação ${escapeHtml(item.avaliacao ?? '—')}</p>
+                        </div>
+                        <span class="badge ${item.disponibilidade_farmaco ? 'ok' : 'warn'}">${item.disponibilidade_farmaco ? 'Com disponibilidade' : 'Verificar estoque'}</span>
+                    </div>
+                    <div class="item-actions">${pharmacyActions(item)}</div>
+                </div>
+            `).join('');
+        }
+
+        async function loadPharmacies(query = '') {
+            setMessage('pharmacy-directory-status', 'Consultando farmácias...');
+            try {
+                const params = new URLSearchParams({ limit: '30' });
+                if (query) params.set('q', query);
+                const items = await apiJson(`/farmacias?${params.toString()}`, { signal: AbortSignal.timeout(7000) });
+                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s).`, 'success');
+                renderPharmacyDirectory(items);
+            } catch (error) {
+                setMessage('pharmacy-directory-status', `Não foi possível consultar farmácias: ${error.message}`, 'error');
+                renderPharmacyDirectory([]);
+            }
+        }
+
+        function renderMedicines(items) {
+            const list = byId('medicine-list');
+            if (!Array.isArray(items) || items.length === 0) {
+                list.innerHTML = '<p class="loading-text">Nenhum medicamento encontrado.</p>';
+                setText('medicamento-count', 0);
+                return;
+            }
+            setText('medicamento-count', items.length);
+            list.innerHTML = items.map((item) => `
+                <div class="item-card">
+                    <div class="item-head">
+                        <div>
+                            <strong>${escapeHtml(item.nome)}</strong>
+                            <p>${escapeHtml(item.categoria || 'Categoria não informada')} · Estoque operacional: ${escapeHtml(item.stock ?? 0)}</p>
+                            <p>${escapeHtml(item.descricao || 'Sem descrição operacional.')}</p>
+                        </div>
+                        <span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Com prescrição' : 'Sem prescrição'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadMedicines(query = '') {
+            try {
+                const params = new URLSearchParams({ limit: '50' });
+                if (query) params.set('q', query);
+                const items = await apiJson(`/saude/medicamentos?${params.toString()}`, { signal: AbortSignal.timeout(7000) });
+                renderMedicines(items);
+            } catch (_) {
+                renderMedicines([]);
+            }
+        }
+
+        async function registerMedicine(event) {
+            event.preventDefault();
+            const button = byId('btn-register-medicine');
+            button.disabled = true;
+            setMessage('medicine-form-status', 'Cadastrando medicamento...');
+            try {
+                const payload = {
+                    nome: byId('medicine-name').value.trim(),
+                    categoria: byId('medicine-category').value.trim() || null,
+                    descricao: byId('medicine-description').value.trim() || null,
+                    dose_diaria_comprimidos: Number(byId('medicine-dose').value || 1),
+                    stock: Number(byId('medicine-stock').value || 0),
+                    requires_prescription: byId('medicine-prescription').value === 'true',
+                };
+                await apiJson('/saude/medicamentos', {
+                    method: 'POST',
+                    auth: true,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                byId('medicine-form').reset();
+                byId('medicine-dose').value = '1';
+                byId('medicine-stock').value = '0';
+                setMessage('medicine-form-status', 'Medicamento cadastrado com sucesso.', 'success');
+                await loadMedicines();
+            } catch (error) {
+                setMessage('medicine-form-status', `Falha no cadastro: ${error.message}`, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        }
+
         function getUserLocation() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
                     reject(new Error('Geolocalização não é suportada neste navegador.'));
                     return;
                 }
-
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        resolve({
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude,
-                        });
-                    },
+                    (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
                     () => reject(new Error('Permissão de localização negada ou indisponível.')),
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 60000,
-                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
                 );
             });
         }
 
         function renderNearbyPharmacies(items) {
-            const list = document.getElementById('nearby-pharmacy-list');
-
+            const list = byId('nearby-pharmacy-list');
             if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhuma farmácia aberta foi encontrada no raio configurado.</p>';
+                list.innerHTML = '<p class="loading-text">Nenhuma farmácia aberta encontrada no raio configurado.</p>';
                 return;
             }
-
-            list.innerHTML = items.map((pharmacy) => {
-                const distance = Number(pharmacy.distance_km ?? 0).toFixed(2).replace('.', ',');
-                const phone = pharmacy.phone
-                    ? `<a href="tel:${escapeHtml(pharmacy.phone)}">Telefone</a>`
-                    : '';
-                const whatsapp = pharmacy.whatsapp
-                    ? `<a href="https://wa.me/${escapeHtml(pharmacy.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`
-                    : '';
-                const route = pharmacy.maps_url
-                    ? `<a href="${escapeHtml(pharmacy.maps_url)}" target="_blank" rel="noopener">Ver rota</a>`
-                    : '';
-                const actions = [whatsapp, phone, route].filter(Boolean).join('');
-
+            list.innerHTML = items.map((item) => {
+                const distance = Number(item.distance_km ?? 0).toFixed(2).replace('.', ',');
                 return `
-                    <div class="pharmacy-card">
-                        <div class="pharmacy-card-header">
+                    <div class="item-card">
+                        <div class="item-head">
                             <div>
-                                <strong>${escapeHtml(pharmacy.name)}</strong>
-                                <p class="user-infobox">${escapeHtml(pharmacy.address || 'Endereço não informado')}</p>
-                                <p class="user-infobox">${distance} km de distância · ${escapeHtml(pharmacy.opening_hours_label || 'Horário não informado')}</p>
-                                <p class="user-infobox">Fonte: ${escapeHtml(pharmacy.source || 'backend')}</p>
+                                <strong>${escapeHtml(item.name)}</strong>
+                                <p>${escapeHtml(item.address || 'Endereço não informado')}</p>
+                                <p>${distance} km · ${escapeHtml(item.opening_hours_label || 'Horário não informado')}</p>
                             </div>
-                            <span class="badge ok">${escapeHtml(pharmacy.status_label || 'Aberta agora')}</span>
+                            <span class="badge ok">${escapeHtml(item.status_label || 'Aberta agora')}</span>
                         </div>
-                        <div class="pharmacy-actions">${actions}</div>
+                        <div class="item-actions">${pharmacyActions(item)}</div>
                     </div>
                 `;
             }).join('');
         }
 
-        function nearbyCacheKey(location, radiusKm) {
-            // Arredondamento reduz cardinalidade sem transferir cálculo geoespacial para o frontend.
-            return `${Number(location.lat).toFixed(3)}:${Number(location.lng).toFixed(3)}:${radiusKm}`;
-        }
-
-        function readNearbyCache(location, radiusKm) {
-            try {
-                const raw = sessionStorage.getItem(NEARBY_CACHE_KEY);
-                if (!raw) return null;
-                const cache = JSON.parse(raw);
-                const entry = cache[nearbyCacheKey(location, radiusKm)];
-                if (!entry || Date.now() - entry.createdAt > NEARBY_CACHE_TTL_MS) return null;
-                return entry.payload;
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function writeNearbyCache(location, radiusKm, payload) {
-            try {
-                const raw = sessionStorage.getItem(NEARBY_CACHE_KEY);
-                const cache = raw ? JSON.parse(raw) : {};
-                cache[nearbyCacheKey(location, radiusKm)] = { createdAt: Date.now(), payload };
-                sessionStorage.setItem(NEARBY_CACHE_KEY, JSON.stringify(cache));
-            } catch (_) {
-                // Cache de interface é apenas otimização; falha não deve afetar a UX.
-            }
-        }
-
         async function loadNearbyOpenPharmacies() {
-            const button = document.getElementById('btn-nearby-pharmacies');
-            const radiusSelect = document.getElementById('nearby-radius');
-            const status = document.getElementById('nearby-status');
-            const list = document.getElementById('nearby-pharmacy-list');
-
+            const button = byId('btn-nearby-pharmacies');
             button.disabled = true;
-            button.innerText = 'Buscando...';
-            status.innerText = 'Obtendo localização autorizada pelo navegador...';
-            list.innerHTML = '<p class="loading-text">Aguardando resposta do backend...</p>';
-
+            setMessage('nearby-status', 'Obtendo localização autorizada pelo navegador...');
+            byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Aguardando processamento do backend...</p>';
             try {
                 const location = await getUserLocation();
-                const radiusKm = Number(radiusSelect?.value || 10);
-                const cached = readNearbyCache(location, radiusKm);
-                if (cached) {
-                    status.innerText = `${cached.count} farmácia(s) aberta(s) encontrada(s) em cache local temporário.`;
-                    renderNearbyPharmacies(cached.items);
-                    return;
-                }
-
+                const radiusKm = Number(byId('nearby-radius').value || 10);
+                if (nearbyRequestController) nearbyRequestController.abort();
+                nearbyRequestController = new AbortController();
                 const params = new URLSearchParams({
                     lat: String(location.lat),
                     lng: String(location.lng),
@@ -632,57 +788,100 @@
                     limit: '10',
                     source: 'overpass',
                 });
-
-                if (nearbyRequestController) {
-                    nearbyRequestController.abort();
-                }
-                nearbyRequestController = new AbortController();
-                const timeoutSignal = AbortSignal.timeout(18000);
-
-                status.innerText = 'Backend consultando OpenStreetMap/Overpass e processando resultados...';
-
-                const response = await fetch(`${API_BASE_URL}/farmacias/proximas?${params.toString()}`, {
-                    signal: AbortSignal.any([nearbyRequestController.signal, timeoutSignal]),
+                const data = await apiJson(`/farmacias/proximas?${params.toString()}`, {
+                    signal: AbortSignal.any([nearbyRequestController.signal, AbortSignal.timeout(18000)]),
                 });
-
-                if (!response.ok) {
-                    throw new Error(`Falha ao consultar API: HTTP ${response.status}`);
-                }
-
-                const data = await response.json();
-                writeNearbyCache(location, radiusKm, data);
-                status.innerText = `${data.count} farmácia(s) aberta(s) encontrada(s) em até ${data.radius_km} km. Fonte: ${data.source}.`;
+                setMessage('nearby-status', `${data.count} farmácia(s) aberta(s) encontrada(s) em até ${data.radius_km} km.`, 'success');
                 renderNearbyPharmacies(data.items);
             } catch (error) {
-                if (error?.name === 'AbortError') {
-                    status.innerText = 'Busca anterior cancelada para evitar requisições duplicadas.';
-                    return;
+                if (error?.name !== 'AbortError') {
+                    setMessage('nearby-status', error.message || 'Não foi possível consultar farmácias próximas.', 'error');
+                    byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização e a disponibilidade do backend.</p>';
                 }
-                console.error('Erro na busca por farmácias próximas:', error);
-                status.innerText = error.message || 'Não foi possível consultar farmácias próximas.';
-                list.innerHTML = '<p class="loading-text">Verifique a permissão de localização e se o backend FastAPI está em execução.</p>';
             } finally {
                 button.disabled = false;
-                button.innerText = 'Usar minha localização';
             }
         }
 
-        function setupNearbyPharmacySearch() {
-            document.getElementById('btn-nearby-pharmacies')?.addEventListener('click', () => {
-                loadNearbyOpenPharmacies().catch((error) => console.error(error));
-            });
+        function renderHealthEstablishments(items) {
+            const list = byId('health-list');
+            if (!Array.isArray(items) || items.length === 0) {
+                list.innerHTML = '<p class="loading-text">Nenhum estabelecimento encontrado no raio configurado.</p>';
+                return;
+            }
+            list.innerHTML = items.map((item) => {
+                const distance = Number(item.distance_km ?? 0).toFixed(2).replace('.', ',');
+                const phone = item.phone ? `<a href="tel:${escapeHtml(item.phone)}">Telefone</a>` : '';
+                const route = item.maps_url ? `<a href="${escapeHtml(item.maps_url)}" target="_blank" rel="noopener">Ver rota</a>` : '';
+                return `
+                    <div class="item-card">
+                        <div class="item-head">
+                            <div>
+                                <strong>${escapeHtml(item.name)}</strong>
+                                <p>${escapeHtml(item.kind || 'Estabelecimento de saúde')} · ${distance} km</p>
+                                <p>${escapeHtml(item.address || 'Endereço não informado')}</p>
+                                <p>${escapeHtml(item.opening_hours_label || 'Horário não informado')}</p>
+                            </div>
+                            <span class="badge ${item.is_open === true ? 'ok' : item.is_open === false ? 'warn' : 'warn'}">${escapeHtml(item.status_label || 'Horário não informado')}</span>
+                        </div>
+                        <div class="item-actions">${[phone, route].filter(Boolean).join('')}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadNearbyHealthEstablishments() {
+            const button = byId('btn-nearby-health');
+            button.disabled = true;
+            setMessage('health-status', 'Obtendo localização autorizada pelo navegador...');
+            byId('health-list').innerHTML = '<p class="loading-text">Aguardando processamento do backend...</p>';
+            try {
+                const location = await getUserLocation();
+                const radiusKm = Number(byId('health-radius').value || 5);
+                if (healthRequestController) healthRequestController.abort();
+                healthRequestController = new AbortController();
+                const params = new URLSearchParams({
+                    lat: String(location.lat),
+                    lng: String(location.lng),
+                    radius_km: String(radiusKm),
+                    open_now: byId('health-open-now').value,
+                    limit: '12',
+                    kind: byId('health-kind').value,
+                    source: 'overpass',
+                });
+                const data = await apiJson(`/estabelecimentos-saude/proximos?${params.toString()}`, {
+                    signal: AbortSignal.any([healthRequestController.signal, AbortSignal.timeout(18000)]),
+                });
+                setMessage('health-status', `${data.count} estabelecimento(s) encontrado(s) em até ${data.radius_km} km.`, 'success');
+                renderHealthEstablishments(data.items);
+            } catch (error) {
+                if (error?.name !== 'AbortError') {
+                    setMessage('health-status', error.message || 'Não foi possível localizar estabelecimentos de saúde.', 'error');
+                    byId('health-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização e a disponibilidade do backend.</p>';
+                }
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function setupEvents() {
+            byId('btn-search-pharmacies').addEventListener('click', () => loadPharmacies(byId('pharmacy-search-input').value.trim()));
+            byId('btn-list-pharmacies').addEventListener('click', () => { byId('pharmacy-search-input').value = ''; loadPharmacies(); });
+            byId('pharmacy-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPharmacies(event.target.value.trim()); });
+            byId('btn-search-medicines').addEventListener('click', () => loadMedicines(byId('medicine-search-input').value.trim()));
+            byId('btn-list-medicines').addEventListener('click', () => { byId('medicine-search-input').value = ''; loadMedicines(); });
+            byId('medicine-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadMedicines(event.target.value.trim()); });
+            byId('medicine-form').addEventListener('submit', registerMedicine);
+            byId('btn-nearby-pharmacies').addEventListener('click', loadNearbyOpenPharmacies);
+            byId('btn-nearby-health').addEventListener('click', loadNearbyHealthEstablishments);
         }
 
         window.logout = logout;
 
         document.addEventListener('DOMContentLoaded', () => {
-            (window.requestIdleCallback || window.setTimeout)(() => trackPageView('plataforma').catch(() => undefined), 1);
-            setupNearbyPharmacySearch();
+            setupEvents();
             onAuthStateChange((user) => {
-                verifySession(user).catch((error) => {
-                    console.error('Falha inesperada ao verificar sessão Firebase:', error);
-                    redirectToLogin();
-                });
+                verifySession(user).catch(() => redirectToLogin());
             });
         });
     </script>
