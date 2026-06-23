@@ -735,3 +735,36 @@ dir .github\workflows
 Este projeto foi desenvolvido para fins acadêmicos, validação de MVP e demonstração de impacto social aplicado à saúde pública, tecnologia e solidariedade comunitária.
 
 Não utilize dados reais de pacientes sem base legal, consentimento adequado, avaliação ética e conformidade com a LGPD.
+
+## Otimizações de desempenho implementadas
+
+Esta versão inclui ajustes para reduzir latência, processamento redundante e tráfego desnecessário, mantendo o frontend como camada de apresentação.
+
+### Backend FastAPI
+
+- Reutilização de `httpx.AsyncClient` para chamadas ao Overpass API, preservando conexões HTTP com keep-alive.
+- Cache de resposta final para buscas de farmácias próximas, evitando recalcular distância, abertura e ordenação em buscas repetidas no curto prazo.
+- Cache bruto de resultados Overpass com bloqueio assíncrono por chave para evitar múltiplas requisições simultâneas iguais.
+- Limpeza automática de entradas expiradas em cache para evitar crescimento indefinido durante demonstrações longas.
+- Uso de `heapq.nsmallest` para retornar os resultados mais próximos sem ordenar integralmente listas grandes.
+- Compressão GZip para respostas acima de 1 KB.
+- Configurações adicionais de tunning via `.env`:
+
+```env
+CONNECTAPHARMA_OVERPASS_RESPONSE_CACHE_TTL_SECONDS=60
+CONNECTAPHARMA_OVERPASS_MAX_CONNECTIONS=8
+CONNECTAPHARMA_OVERPASS_MAX_KEEPALIVE_CONNECTIONS=4
+```
+
+### Frontend
+
+- `preconnect` e `modulepreload` para reduzir tempo de carregamento do SDK Firebase e do módulo `firebaseClient.js`.
+- Inicialização preguiçosa do Firebase Analytics, evitando requisições analíticas no caminho crítico de autenticação.
+- Registro de page view em período ocioso do navegador.
+- Cache temporário de resultados da busca de farmácias próximas em `sessionStorage`, evitando repetição imediata da mesma consulta.
+- Cancelamento de busca anterior quando o usuário dispara nova busca, evitando requisições concorrentes desnecessárias.
+- Carregamento paralelo dos dados do dashboard e do status RNDS com `Promise.allSettled`.
+
+### Observação operacional
+
+A localização do usuário continua sendo solicitada apenas após clique explícito. O frontend envia coordenadas para o backend e apenas renderiza o JSON retornado; cálculo de distância, filtro de abertura, consulta Overpass, cache e ordenação permanecem no backend.

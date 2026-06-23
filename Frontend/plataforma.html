@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="./assets/firebaseClient.js">
     <title>Plataforma ConectaPharma</title>
     <style>
         :root {
@@ -289,9 +292,12 @@
             trackPageView,
         } from './assets/firebaseClient.js';
 
-        const API_BASE_URL = 'http://localhost:8000/api/v1';
+        const API_BASE_URL = window.CONNECTAPHARMA_API_BASE_URL || 'http://localhost:8000/api/v1';
         const STORAGE_USER_KEY = 'conectapharma_user';
         const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
+        const NEARBY_CACHE_KEY = 'conectapharma_nearby_cache_v1';
+        const NEARBY_CACHE_TTL_MS = 5 * 60 * 1000;
+        let nearbyRequestController = null;
 
         const LOCAL_MOCK_ALERTAS = [
             { id: 1, nome: 'Losartana 50mg', dias_restantes: 3, status: 'CRITICO' },
@@ -407,7 +413,7 @@
 
         async function loadDashboardData(token) {
             try {
-                const [alertRes, farmRes] = await Promise.all([
+                const [alertRes, farmRes, rndsRes] = await Promise.allSettled([
                     fetch(`${API_BASE_URL}/alertas`, {
                         headers: authHeaders(token),
                         signal: AbortSignal.timeout(5000),
@@ -416,16 +422,30 @@
                         headers: authHeaders(token),
                         signal: AbortSignal.timeout(5000),
                     }),
+                    fetch(`${API_BASE_URL}/integracoes/rnds/status`, {
+                        headers: authHeaders(token),
+                        signal: AbortSignal.timeout(5000),
+                    }),
                 ]);
 
-                if (!alertRes.ok || !farmRes.ok) {
+                if (alertRes.status !== 'fulfilled' || farmRes.status !== 'fulfilled' || !alertRes.value.ok || !farmRes.value.ok) {
                     throw new Error('Falha ao carregar dados do dashboard.');
                 }
 
-                const alertas = await alertRes.json();
-                const farmacias = await farmRes.json();
+                const [alertas, farmacias] = await Promise.all([
+                    alertRes.value.json(),
+                    farmRes.value.json(),
+                ]);
                 renderDashboardData(alertas, farmacias);
-                await loadRndsStatus(token);
+
+                if (rndsRes.status === 'fulfilled' && rndsRes.value.ok) {
+                    const status = await rndsRes.value.json();
+                    const rndsMode = document.getElementById('rnds-mode');
+                    rndsMode.innerText = status.mode === 'real' ? 'Real' : 'Dry-run';
+                    rndsMode.title = Array.isArray(status.notes) ? status.notes.join(' ') : '';
+                } else {
+                    document.getElementById('rnds-mode').innerText = 'Indisponível';
+                }
             } catch (error) {
                 console.error('Erro ao carregar dados da API:', error);
                 setSessionStatus('Sessão Firebase ativa <span class="fallback-badge">DADOS MOCK</span>', 'warn');
@@ -554,6 +574,35 @@
             }).join('');
         }
 
+        function nearbyCacheKey(location, radiusKm) {
+            // Arredondamento reduz cardinalidade sem transferir cálculo geoespacial para o frontend.
+            return `${Number(location.lat).toFixed(3)}:${Number(location.lng).toFixed(3)}:${radiusKm}`;
+        }
+
+        function readNearbyCache(location, radiusKm) {
+            try {
+                const raw = sessionStorage.getItem(NEARBY_CACHE_KEY);
+                if (!raw) return null;
+                const cache = JSON.parse(raw);
+                const entry = cache[nearbyCacheKey(location, radiusKm)];
+                if (!entry || Date.now() - entry.createdAt > NEARBY_CACHE_TTL_MS) return null;
+                return entry.payload;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function writeNearbyCache(location, radiusKm, payload) {
+            try {
+                const raw = sessionStorage.getItem(NEARBY_CACHE_KEY);
+                const cache = raw ? JSON.parse(raw) : {};
+                cache[nearbyCacheKey(location, radiusKm)] = { createdAt: Date.now(), payload };
+                sessionStorage.setItem(NEARBY_CACHE_KEY, JSON.stringify(cache));
+            } catch (_) {
+                // Cache de interface é apenas otimização; falha não deve afetar a UX.
+            }
+        }
+
         async function loadNearbyOpenPharmacies() {
             const button = document.getElementById('btn-nearby-pharmacies');
             const radiusSelect = document.getElementById('nearby-radius');
@@ -568,6 +617,13 @@
             try {
                 const location = await getUserLocation();
                 const radiusKm = Number(radiusSelect?.value || 10);
+                const cached = readNearbyCache(location, radiusKm);
+                if (cached) {
+                    status.innerText = `${cached.count} farmácia(s) aberta(s) encontrada(s) em cache local temporário.`;
+                    renderNearbyPharmacies(cached.items);
+                    return;
+                }
+
                 const params = new URLSearchParams({
                     lat: String(location.lat),
                     lng: String(location.lng),
@@ -577,10 +633,16 @@
                     source: 'overpass',
                 });
 
+                if (nearbyRequestController) {
+                    nearbyRequestController.abort();
+                }
+                nearbyRequestController = new AbortController();
+                const timeoutSignal = AbortSignal.timeout(18000);
+
                 status.innerText = 'Backend consultando OpenStreetMap/Overpass e processando resultados...';
 
                 const response = await fetch(`${API_BASE_URL}/farmacias/proximas?${params.toString()}`, {
-                    signal: AbortSignal.timeout(20000),
+                    signal: AbortSignal.any([nearbyRequestController.signal, timeoutSignal]),
                 });
 
                 if (!response.ok) {
@@ -588,9 +650,14 @@
                 }
 
                 const data = await response.json();
+                writeNearbyCache(location, radiusKm, data);
                 status.innerText = `${data.count} farmácia(s) aberta(s) encontrada(s) em até ${data.radius_km} km. Fonte: ${data.source}.`;
                 renderNearbyPharmacies(data.items);
             } catch (error) {
+                if (error?.name === 'AbortError') {
+                    status.innerText = 'Busca anterior cancelada para evitar requisições duplicadas.';
+                    return;
+                }
                 console.error('Erro na busca por farmácias próximas:', error);
                 status.innerText = error.message || 'Não foi possível consultar farmácias próximas.';
                 list.innerHTML = '<p class="loading-text">Verifique a permissão de localização e se o backend FastAPI está em execução.</p>';
@@ -609,7 +676,7 @@
         window.logout = logout;
 
         document.addEventListener('DOMContentLoaded', () => {
-            trackPageView('plataforma').catch(() => undefined);
+            (window.requestIdleCallback || window.setTimeout)(() => trackPageView('plataforma').catch(() => undefined), 1);
             setupNearbyPharmacySearch();
             onAuthStateChange((user) => {
                 verifySession(user).catch((error) => {

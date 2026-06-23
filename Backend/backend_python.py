@@ -3,6 +3,8 @@ ConectaPharma API v3.0 - Enterprise Edition
 Refatoração Arquitetural: Monolito Modular (Clean Architecture)
 """
 
+import asyncio
+import heapq
 import logging
 import math
 import os
@@ -19,6 +21,7 @@ import jwt
 from passlib.context import CryptContext
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -99,6 +102,9 @@ class Settings:
     OVERPASS_URL: str = os.getenv("CONNECTAPHARMA_OVERPASS_URL", "https://overpass-api.de/api/interpreter")
     OVERPASS_TIMEOUT_SECONDS: float = float(os.getenv("CONNECTAPHARMA_OVERPASS_TIMEOUT_SECONDS", "12"))
     OVERPASS_CACHE_TTL_SECONDS: int = int(os.getenv("CONNECTAPHARMA_OVERPASS_CACHE_TTL_SECONDS", "900"))
+    OVERPASS_RESPONSE_CACHE_TTL_SECONDS: int = int(os.getenv("CONNECTAPHARMA_OVERPASS_RESPONSE_CACHE_TTL_SECONDS", "60"))
+    OVERPASS_MAX_CONNECTIONS: int = int(os.getenv("CONNECTAPHARMA_OVERPASS_MAX_CONNECTIONS", "8"))
+    OVERPASS_MAX_KEEPALIVE_CONNECTIONS: int = int(os.getenv("CONNECTAPHARMA_OVERPASS_MAX_KEEPALIVE_CONNECTIONS", "4"))
     OVERPASS_USER_AGENT: str = os.getenv(
         "CONNECTAPHARMA_OVERPASS_USER_AGENT",
         "ConectaPharma-MVP/1.0 (academic prototype; contact: claudiofranciscojunior2006@gmail.com)",
@@ -735,7 +741,7 @@ class OpeningHoursService:
 
 
 class OverpassPharmacyService:
-    """Consulta gratuita ao OpenStreetMap/Overpass com cache em memória.
+    """Consulta gratuita ao OpenStreetMap/Overpass com cache e client HTTP reutilizável.
 
     O frontend não consulta serviços externos. Ele envia coordenadas ao backend;
     o backend consulta/cacheia dados OSM, calcula distância, avalia abertura,
@@ -743,11 +749,59 @@ class OverpassPharmacyService:
     """
 
     _cache: Dict[str, tuple[float, List[Dict[str, Any]]]] = {}
+    _response_cache: Dict[str, tuple[float, FarmaciasProximasResponse]] = {}
+    _locks: Dict[str, asyncio.Lock] = {}
+    _client: Optional[httpx.AsyncClient] = None
+
+    @classmethod
+    def get_client(cls) -> httpx.AsyncClient:
+        """Reutiliza conexões HTTP para reduzir latência nas chamadas Overpass."""
+        if cls._client is None or cls._client.is_closed:
+            timeout = httpx.Timeout(
+                settings.OVERPASS_TIMEOUT_SECONDS,
+                connect=min(5.0, settings.OVERPASS_TIMEOUT_SECONDS),
+            )
+            limits = httpx.Limits(
+                max_connections=settings.OVERPASS_MAX_CONNECTIONS,
+                max_keepalive_connections=settings.OVERPASS_MAX_KEEPALIVE_CONNECTIONS,
+                keepalive_expiry=30.0,
+            )
+            cls._client = httpx.AsyncClient(
+                timeout=timeout,
+                limits=limits,
+                headers={"User-Agent": settings.OVERPASS_USER_AGENT},
+            )
+        return cls._client
+
+    @classmethod
+    async def close_client(cls) -> None:
+        if cls._client is not None and not cls._client.is_closed:
+            await cls._client.aclose()
+        cls._client = None
+
+    @classmethod
+    def clear_expired_caches(cls) -> None:
+        """Remove entradas expiradas para evitar crescimento indefinido em dev/demo."""
+        now_monotonic = time.monotonic()
+        cls._cache = {
+            key: value
+            for key, value in cls._cache.items()
+            if now_monotonic - value[0] <= settings.OVERPASS_CACHE_TTL_SECONDS
+        }
+        cls._response_cache = {
+            key: value
+            for key, value in cls._response_cache.items()
+            if now_monotonic - value[0] <= settings.OVERPASS_RESPONSE_CACHE_TTL_SECONDS
+        }
 
     @staticmethod
     def _cache_key(lat: float, lng: float, radius_km: float) -> str:
         # Arredondamento reduz cardinalidade do cache sem alterar a UX do MVP.
         return f"{round(lat, 3)}:{round(lng, 3)}:{round(radius_km, 1)}"
+
+    @staticmethod
+    def _response_cache_key(lat: float, lng: float, radius_km: float, open_now: bool, limit: int, source: str) -> str:
+        return f"{round(lat, 3)}:{round(lng, 3)}:{round(radius_km, 1)}:{int(open_now)}:{limit}:{source}"
 
     @staticmethod
     def _build_overpass_query(lat: float, lng: float, radius_km: float) -> str:
@@ -829,31 +883,36 @@ out center tags;
         if not settings.OVERPASS_ENABLED:
             return []
 
+        cls.clear_expired_caches()
         cache_key = cls._cache_key(lat, lng, radius_km)
         cached = cls._cache.get(cache_key)
         now_monotonic = time.monotonic()
         if cached and now_monotonic - cached[0] <= settings.OVERPASS_CACHE_TTL_SECONDS:
             return cached[1]
 
-        query = cls._build_overpass_query(lat, lng, radius_km)
-        headers = {"User-Agent": settings.OVERPASS_USER_AGENT}
+        lock = cls._locks.setdefault(cache_key, asyncio.Lock())
+        async with lock:
+            cached = cls._cache.get(cache_key)
+            now_monotonic = time.monotonic()
+            if cached and now_monotonic - cached[0] <= settings.OVERPASS_CACHE_TTL_SECONDS:
+                return cached[1]
 
-        async with httpx.AsyncClient(timeout=settings.OVERPASS_TIMEOUT_SECONDS, headers=headers) as client:
-            response = await client.post(settings.OVERPASS_URL, data={"data": query})
+            query = cls._build_overpass_query(lat, lng, radius_km)
+            response = await cls.get_client().post(settings.OVERPASS_URL, data={"data": query})
             response.raise_for_status()
             payload = response.json()
 
-        records = []
-        seen: set[str] = set()
-        for element in payload.get("elements", []):
-            record = cls._record_from_element(element)
-            if not record or record["id"] in seen:
-                continue
-            seen.add(record["id"])
-            records.append(record)
+            records = []
+            seen: set[str] = set()
+            for element in payload.get("elements", []):
+                record = cls._record_from_element(element)
+                if not record or record["id"] in seen:
+                    continue
+                seen.add(record["id"])
+                records.append(record)
 
-        cls._cache[cache_key] = (now_monotonic, records)
-        return records
+            cls._cache[cache_key] = (now_monotonic, records)
+            return records
 
     @staticmethod
     def fallback_records() -> List[Dict[str, Any]]:
@@ -883,6 +942,13 @@ out center tags;
         limit: int,
         source: str = "overpass",
     ) -> FarmaciasProximasResponse:
+        cls.clear_expired_caches()
+        response_cache_key = cls._response_cache_key(lat, lng, radius_km, open_now, limit, source)
+        cached_response = cls._response_cache.get(response_cache_key)
+        now_monotonic = time.monotonic()
+        if cached_response and now_monotonic - cached_response[0] <= settings.OVERPASS_RESPONSE_CACHE_TTL_SECONDS:
+            return cached_response[1]
+
         generated_at = datetime.now(timezone.utc)
         now = get_app_now()
         records: List[Dict[str, Any]] = []
@@ -925,9 +991,8 @@ out center tags;
             items.append(
                 FarmaciaProximaItem(
                     id=str(record["id"]),
-                    name=str(record["name"]),
-                    source=str(record.get("source", used_source)),
-                    address=str(record.get("address") or "Endereço não informado"),
+                    name=record.get("name") or "Farmácia sem nome",
+                    address=record.get("address"),
                     phone=record.get("phone"),
                     whatsapp=record.get("whatsapp"),
                     latitude=float(record["latitude"]),
@@ -936,17 +1001,13 @@ out center tags;
                     is_open=open_state,
                     status_label=status_label,
                     opening_hours_label=OpeningHoursService.label(record, now),
-                    maps_url=(
-                        "https://www.openstreetmap.org/directions?"
-                        f"from={lat}%2C{lng}&to={record['latitude']}%2C{record['longitude']}"
-                    ),
+                    source=record.get("source", used_source),
+                    maps_url=f"https://www.google.com/maps/search/?api=1&query={record['latitude']},{record['longitude']}",
                 )
             )
 
-        items.sort(key=lambda item: item.distance_km)
-        limited_items = items[:limit]
-
-        return FarmaciasProximasResponse(
+        limited_items = heapq.nsmallest(limit, items, key=lambda item: item.distance_km)
+        response = FarmaciasProximasResponse(
             origin={"latitude": lat, "longitude": lng},
             count=len(limited_items),
             source=used_source,
@@ -955,6 +1016,8 @@ out center tags;
             generated_at=generated_at,
             items=limited_items,
         )
+        cls._response_cache[response_cache_key] = (now_monotonic, response)
+        return response
 
 class RndsConfigurationError(Exception):
     pass
@@ -1363,6 +1426,9 @@ def create_app() -> FastAPI:
         redoc_url=None
     )
 
+    # Compressão reduz latência percebida e payloads JSON/HTML em conexões lentas.
+    application.add_middleware(GZipMiddleware, minimum_size=1024)
+
     # Middleware CORS seguro
     application.add_middleware(
         CORSMiddleware,
@@ -1380,6 +1446,15 @@ def create_app() -> FastAPI:
     application.include_router(router_health, prefix=settings.API_V1_STR)
     application.include_router(router_logistics, prefix=settings.API_V1_STR)
     application.include_router(router_integrations, prefix=settings.API_V1_STR)
+
+    @application.on_event("startup")
+    async def startup_resources():
+        # Inicialização preguiçosa do client HTTP para aproveitar keep-alive nas chamadas Overpass.
+        OverpassPharmacyService.get_client()
+
+    @application.on_event("shutdown")
+    async def shutdown_resources():
+        await OverpassPharmacyService.close_client()
 
     @application.get("/healthz", tags=["Infra"])
     async def health_check():

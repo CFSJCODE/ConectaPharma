@@ -66,3 +66,16 @@ CONNECTAPHARMA_OVERPASS_CACHE_TTL_SECONDS=900
 ## Limitações
 
 O OpenStreetMap depende da qualidade dos dados cadastrados pela comunidade. Alguns estabelecimentos podem não possuir `opening_hours`, telefone ou endereço completo. Quando o horário é desconhecido, o backend não classifica a farmácia como aberta em buscas com `open_now=true`.
+
+## Otimizações de desempenho
+
+A integração com Overpass foi ajustada para reduzir latência e proteger o serviço público contra requisições redundantes:
+
+- `httpx.AsyncClient` é reutilizado pelo backend para manter conexões HTTP abertas.
+- O cache bruto do Overpass usa `CONNECTAPHARMA_OVERPASS_CACHE_TTL_SECONDS`.
+- O cache de resposta final usa `CONNECTAPHARMA_OVERPASS_RESPONSE_CACHE_TTL_SECONDS`.
+- Requisições simultâneas com a mesma região e raio usam bloqueio assíncrono por chave, evitando efeito de rajada.
+- O backend limita e ordena os resultados por proximidade com seleção parcial, não ordenação completa desnecessária.
+- O frontend possui cache temporário de sessão e apenas renderiza os dados retornados pelo backend.
+
+Esses ajustes mantêm o uso gratuito e respeitoso do OpenStreetMap/Overpass, sem Google Places, sem Google Maps Platform, sem Cloud Functions e sem Cloud SQL.

@@ -7,6 +7,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="./assets/firebaseClient.js">
     <title>Login - ConectaPharma</title>
     <style>
         /* Variáveis de Cores herdadas do ConectaPharma Design System */
@@ -410,7 +413,7 @@
         window.handleRegister = handleRegister;
         window.handleGoogleAuth = handleGoogleAuth;
 
-        trackPageView('login').catch(() => undefined);
+        (window.requestIdleCallback || window.setTimeout)(() => trackPageView('login').catch(() => undefined), 1);
     </script>
 </body>
 </html>

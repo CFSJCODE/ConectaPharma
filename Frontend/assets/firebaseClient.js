@@ -41,9 +41,17 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-export const analyticsPromise = typeof window !== 'undefined'
-    ? isSupported().then((supported) => (supported ? getAnalytics(app) : null)).catch(() => null)
-    : Promise.resolve(null);
+let analyticsInstancePromise = null;
+
+export function getAnalyticsSafe() {
+    if (typeof window === 'undefined') return Promise.resolve(null);
+    if (!analyticsInstancePromise) {
+        analyticsInstancePromise = isSupported()
+            .then((supported) => (supported ? getAnalytics(app) : null))
+            .catch(() => null);
+    }
+    return analyticsInstancePromise;
+}
 
 setPersistence(auth, browserSessionPersistence).catch((error) => {
     console.warn('ConectaPharma Firebase: não foi possível aplicar persistência de sessão.', error);
@@ -145,7 +153,7 @@ async function writeLogBestEffort(collectionName, payload) {
 }
 
 async function trackAnalyticsEvent(eventName, params = {}) {
-    const analytics = await analyticsPromise;
+    const analytics = await getAnalyticsSafe();
     if (!analytics) return;
     logEvent(analytics, eventName, params);
 }
