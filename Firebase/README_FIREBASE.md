@@ -295,3 +295,32 @@ firebase deploy
 8. Rotas protegidas aceitam `Authorization: Bearer <Firebase ID Token>`.
 9. Logout encerra sessão Firebase.
 10. O fallback visual continua funcionando quando o backend está offline.
+
+## Farmácias próximas com OpenStreetMap/Overpass
+
+A funcionalidade de farmácias abertas próximas não usa Google Places, Google Maps Platform, Cloud Functions, Cloud SQL ou App Hosting. A arquitetura gratuita implementada é:
+
+```text
+Frontend → FastAPI → OpenStreetMap/Overpass → FastAPI processa → Frontend renderiza
+```
+
+O frontend apenas solicita permissão de localização e envia `lat`/`lng` ao backend. O FastAPI executa:
+
+- consulta gratuita à Overpass API;
+- cache em memória;
+- cálculo de distância por Haversine;
+- interpretação básica de `opening_hours`;
+- filtro `open_now=true`;
+- ordenação por distância crescente.
+
+Endpoint:
+
+```text
+GET /api/v1/farmacias/proximas?lat=-19.9191&lng=-43.9386&radius_km=10&open_now=true&limit=10&source=overpass
+```
+
+Para teste sem chamada externa:
+
+```text
+GET /api/v1/farmacias/proximas?lat=-19.9191&lng=-43.9386&radius_km=10&open_now=true&limit=10&source=mock
+```

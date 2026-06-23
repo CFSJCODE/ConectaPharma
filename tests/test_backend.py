@@ -1,3 +1,7 @@
+import os
+
+os.environ.setdefault("CONNECTAPHARMA_ALLOW_LEGACY_JWT", "true")
+
 from fastapi.testclient import TestClient
 
 from Backend.backend_python import app
@@ -73,6 +77,36 @@ def test_farmacias_mapa_contract():
         "endereco",
         "avaliacao",
     } <= set(body[0])
+
+def test_farmacias_proximas_processa_no_backend_com_fallback_mock():
+    response = client.get(
+        "/api/v1/farmacias/proximas",
+        params={
+            "lat": -19.9191,
+            "lng": -43.9386,
+            "radius_km": 10,
+            "open_now": True,
+            "limit": 10,
+            "source": "mock",
+        },
+    )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["source"] == "local_mock"
+    assert body["count"] >= 1
+    assert {
+        "id",
+        "name",
+        "address",
+        "latitude",
+        "longitude",
+        "distance_km",
+        "is_open",
+        "status_label",
+        "opening_hours_label",
+        "maps_url",
+    } <= set(body["items"][0])
 
 
 def test_rnds_status_defaults_to_dry_run():

@@ -161,6 +161,63 @@
             font-weight: 700;
             margin-left: 0.5rem;
         }
+
+        .nearby-card {
+            grid-column: 1 / -1;
+        }
+        .nearby-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        .select-control {
+            border: 1px solid #CBD5E1;
+            border-radius: 999px;
+            padding: 0.75rem 1rem;
+            background: #FFFFFF;
+            color: var(--color-text);
+            font-weight: 700;
+            outline: none;
+        }
+        .nearby-meta {
+            margin-top: 0.85rem;
+            color: var(--color-muted);
+            font-size: 0.9rem;
+        }
+        .pharmacy-card {
+            padding: 1rem;
+            border-radius: 18px;
+            background: #F8FAFC;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .pharmacy-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .pharmacy-card strong {
+            display: block;
+            color: var(--color-primary);
+            margin-bottom: 0.35rem;
+        }
+        .pharmacy-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .pharmacy-actions a {
+            color: var(--color-sus-blue);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .pharmacy-actions a:hover {
+            text-decoration: underline;
+        }
         @media (max-width: 900px) { 
             .page-body { 
                 grid-template-columns: 1fr; 
@@ -200,6 +257,26 @@
             <h2 class="section-title">Últimos alertas de consumo</h2>
             <div id="alert-list" class="alert-list">
                 <p class="loading-text">Carregando dados...</p>
+            </div>
+        </section>
+
+        <section class="card nearby-card">
+            <h2 class="section-title">Farmácias abertas próximas</h2>
+            <p class="user-infobox">
+                A localização é solicitada apenas após o clique. O navegador envia latitude e longitude para a API, e todo o processamento de proximidade, horário e ordenação ocorre no backend.
+            </p>
+            <div class="nearby-actions">
+                <button id="btn-nearby-pharmacies" class="btn-logout" type="button">Usar minha localização</button>
+                <select id="nearby-radius" class="select-control" aria-label="Raio de busca">
+                    <option value="3">Raio de 3 km</option>
+                    <option value="5">Raio de 5 km</option>
+                    <option value="10" selected>Raio de 10 km</option>
+                    <option value="20">Raio de 20 km</option>
+                </select>
+            </div>
+            <p id="nearby-status" class="nearby-meta">Nenhuma busca por proximidade executada.</p>
+            <div id="nearby-pharmacy-list" class="alert-list" style="margin-top: 1rem;">
+                <p class="loading-text">Clique no botão acima para consultar farmácias abertas próximas.</p>
             </div>
         </section>
     </main>
@@ -406,10 +483,134 @@
             }).join('');
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocalização não é suportada neste navegador.'));
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                        });
+                    },
+                    () => reject(new Error('Permissão de localização negada ou indisponível.')),
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000,
+                    },
+                );
+            });
+        }
+
+        function renderNearbyPharmacies(items) {
+            const list = document.getElementById('nearby-pharmacy-list');
+
+            if (!Array.isArray(items) || items.length === 0) {
+                list.innerHTML = '<p class="loading-text">Nenhuma farmácia aberta foi encontrada no raio configurado.</p>';
+                return;
+            }
+
+            list.innerHTML = items.map((pharmacy) => {
+                const distance = Number(pharmacy.distance_km ?? 0).toFixed(2).replace('.', ',');
+                const phone = pharmacy.phone
+                    ? `<a href="tel:${escapeHtml(pharmacy.phone)}">Telefone</a>`
+                    : '';
+                const whatsapp = pharmacy.whatsapp
+                    ? `<a href="https://wa.me/${escapeHtml(pharmacy.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`
+                    : '';
+                const route = pharmacy.maps_url
+                    ? `<a href="${escapeHtml(pharmacy.maps_url)}" target="_blank" rel="noopener">Ver rota</a>`
+                    : '';
+                const actions = [whatsapp, phone, route].filter(Boolean).join('');
+
+                return `
+                    <div class="pharmacy-card">
+                        <div class="pharmacy-card-header">
+                            <div>
+                                <strong>${escapeHtml(pharmacy.name)}</strong>
+                                <p class="user-infobox">${escapeHtml(pharmacy.address || 'Endereço não informado')}</p>
+                                <p class="user-infobox">${distance} km de distância · ${escapeHtml(pharmacy.opening_hours_label || 'Horário não informado')}</p>
+                                <p class="user-infobox">Fonte: ${escapeHtml(pharmacy.source || 'backend')}</p>
+                            </div>
+                            <span class="badge ok">${escapeHtml(pharmacy.status_label || 'Aberta agora')}</span>
+                        </div>
+                        <div class="pharmacy-actions">${actions}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadNearbyOpenPharmacies() {
+            const button = document.getElementById('btn-nearby-pharmacies');
+            const radiusSelect = document.getElementById('nearby-radius');
+            const status = document.getElementById('nearby-status');
+            const list = document.getElementById('nearby-pharmacy-list');
+
+            button.disabled = true;
+            button.innerText = 'Buscando...';
+            status.innerText = 'Obtendo localização autorizada pelo navegador...';
+            list.innerHTML = '<p class="loading-text">Aguardando resposta do backend...</p>';
+
+            try {
+                const location = await getUserLocation();
+                const radiusKm = Number(radiusSelect?.value || 10);
+                const params = new URLSearchParams({
+                    lat: String(location.lat),
+                    lng: String(location.lng),
+                    radius_km: String(radiusKm),
+                    open_now: 'true',
+                    limit: '10',
+                    source: 'overpass',
+                });
+
+                status.innerText = 'Backend consultando OpenStreetMap/Overpass e processando resultados...';
+
+                const response = await fetch(`${API_BASE_URL}/farmacias/proximas?${params.toString()}`, {
+                    signal: AbortSignal.timeout(20000),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Falha ao consultar API: HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                status.innerText = `${data.count} farmácia(s) aberta(s) encontrada(s) em até ${data.radius_km} km. Fonte: ${data.source}.`;
+                renderNearbyPharmacies(data.items);
+            } catch (error) {
+                console.error('Erro na busca por farmácias próximas:', error);
+                status.innerText = error.message || 'Não foi possível consultar farmácias próximas.';
+                list.innerHTML = '<p class="loading-text">Verifique a permissão de localização e se o backend FastAPI está em execução.</p>';
+            } finally {
+                button.disabled = false;
+                button.innerText = 'Usar minha localização';
+            }
+        }
+
+        function setupNearbyPharmacySearch() {
+            document.getElementById('btn-nearby-pharmacies')?.addEventListener('click', () => {
+                loadNearbyOpenPharmacies().catch((error) => console.error(error));
+            });
+        }
+
         window.logout = logout;
 
         document.addEventListener('DOMContentLoaded', () => {
             trackPageView('plataforma').catch(() => undefined);
+            setupNearbyPharmacySearch();
             onAuthStateChange((user) => {
                 verifySession(user).catch((error) => {
                     console.error('Falha inesperada ao verificar sessão Firebase:', error);

@@ -57,6 +57,7 @@ O MVP busca validar a solução por meio de:
 * Tela de login/cadastro;
 * Área autenticada do usuário;
 * Dashboard inicial;
+* Busca de farmácias abertas próximas usando localização autorizada pelo usuário;
 * Integração com Firebase;
 * Integração opcional com backend FastAPI;
 * Fallback visual quando a API local estiver indisponível.
@@ -85,6 +86,10 @@ O backend fornece uma API complementar para:
 
 * Alertas simulados de consumo;
 * Farmácias mapeadas;
+* Consulta gratuita ao OpenStreetMap/Overpass para farmácias próximas;
+* Cálculo de distância por Haversine;
+* Verificação de farmácias abertas no horário atual;
+* Ordenação de resultados por proximidade;
 * Simulação de logística;
 * Verificação de sessão;
 * Base de integração governamental;
@@ -264,6 +269,23 @@ GOOGLE_APPLICATION_CREDENTIALS=C:\caminho\seguro\service-account.json
 
 Nunca envie esse arquivo JSON para o GitHub.
 
+### 6.3 OpenStreetMap / Overpass
+
+A funcionalidade de farmácias abertas próximas usa **OpenStreetMap + Overpass API** no backend. O frontend não executa busca, cálculo de distância, filtro de horário nem ordenação. Ele apenas solicita a localização ao navegador e envia latitude/longitude ao FastAPI.
+
+Variáveis disponíveis:
+
+```env
+CONNECTAPHARMA_TIMEZONE=America/Sao_Paulo
+CONNECTAPHARMA_OVERPASS_ENABLED=true
+CONNECTAPHARMA_OVERPASS_URL=https://overpass-api.de/api/interpreter
+CONNECTAPHARMA_OVERPASS_TIMEOUT_SECONDS=12
+CONNECTAPHARMA_OVERPASS_CACHE_TTL_SECONDS=900
+CONNECTAPHARMA_OVERPASS_USER_AGENT="ConectaPharma-MVP/1.0 (academic prototype; contact: claudiofranciscojunior2006@gmail.com)"
+```
+
+Para teste determinístico sem chamada externa, use `source=mock` no endpoint de farmácias próximas.
+
 ---
 
 ## 7. Como Rodar Localmente
@@ -313,6 +335,37 @@ http://127.0.0.1:5500/index.html
 ```
 
 Não abra os arquivos diretamente com `file://`, pois o projeto usa módulos JavaScript e integração com Firebase.
+
+### 7.3 Endpoint de farmácias próximas
+
+Endpoint principal:
+
+```text
+GET /api/v1/farmacias/proximas
+```
+
+Parâmetros:
+
+| Parâmetro | Descrição | Exemplo |
+|---|---|---|
+| `lat` | Latitude autorizada pelo usuário | `-19.9191` |
+| `lng` | Longitude autorizada pelo usuário | `-43.9386` |
+| `radius_km` | Raio de busca em km | `10` |
+| `open_now` | Filtrar apenas abertas agora | `true` |
+| `limit` | Limite de resultados | `10` |
+| `source` | `overpass` ou `mock` | `overpass` |
+
+Exemplo local com OpenStreetMap/Overpass:
+
+```text
+http://127.0.0.1:8000/api/v1/farmacias/proximas?lat=-19.9191&lng=-43.9386&radius_km=10&open_now=true&limit=10&source=overpass
+```
+
+Exemplo local sem rede externa:
+
+```text
+http://127.0.0.1:8000/api/v1/farmacias/proximas?lat=-19.9191&lng=-43.9386&radius_km=10&open_now=true&limit=10&source=mock
+```
 
 ---
 
@@ -671,7 +724,9 @@ dir .github\workflows
 * Secret de deploy criado no GitHub;
 * Frontend publicado via Firebase Hosting;
 * Backend preparado para validação de Firebase ID Token;
-* RNDS/DATASUS mantido como integração futura em modo `dry-run`.
+* RNDS/DATASUS mantido como integração futura em modo `dry-run`;
+* Busca de farmácias abertas próximas implementada com OpenStreetMap/Overpass no backend;
+* Frontend limitado à coleta consentida de localização e renderização dos dados processados pela API.
 
 ---
 

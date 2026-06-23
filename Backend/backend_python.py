@@ -4,16 +4,20 @@ Refatoração Arquitetural: Monolito Modular (Clean Architecture)
 """
 
 import logging
+import math
 import os
+import re
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 import jwt
 from passlib.context import CryptContext
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -90,6 +94,15 @@ class Settings:
     )
     FIREBASE_VERIFY_REVOKED: bool = env_bool("CONNECTAPHARMA_FIREBASE_VERIFY_REVOKED", False)
     ALLOW_LEGACY_JWT: bool = env_bool("CONNECTAPHARMA_ALLOW_LEGACY_JWT", False)
+    APP_TIMEZONE: str = os.getenv("CONNECTAPHARMA_TIMEZONE", "America/Sao_Paulo")
+    OVERPASS_ENABLED: bool = env_bool("CONNECTAPHARMA_OVERPASS_ENABLED", True)
+    OVERPASS_URL: str = os.getenv("CONNECTAPHARMA_OVERPASS_URL", "https://overpass-api.de/api/interpreter")
+    OVERPASS_TIMEOUT_SECONDS: float = float(os.getenv("CONNECTAPHARMA_OVERPASS_TIMEOUT_SECONDS", "12"))
+    OVERPASS_CACHE_TTL_SECONDS: int = int(os.getenv("CONNECTAPHARMA_OVERPASS_CACHE_TTL_SECONDS", "900"))
+    OVERPASS_USER_AGENT: str = os.getenv(
+        "CONNECTAPHARMA_OVERPASS_USER_AGENT",
+        "ConectaPharma-MVP/1.0 (academic prototype; contact: claudiofranciscojunior2006@gmail.com)",
+    )
 
 settings = Settings()
 
@@ -147,6 +160,30 @@ class FarmaciaMapa(BaseModel):
     horario_funcionamento: str
     endereco: str
     avaliacao: float
+
+class FarmaciaProximaItem(BaseModel):
+    id: str
+    name: str
+    source: str
+    address: str
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    latitude: float
+    longitude: float
+    distance_km: float
+    is_open: Optional[bool] = None
+    status_label: str
+    opening_hours_label: str
+    maps_url: str
+
+class FarmaciasProximasResponse(BaseModel):
+    origin: Dict[str, float]
+    count: int
+    source: str
+    radius_km: float
+    open_now: bool
+    generated_at: datetime
+    items: List[FarmaciaProximaItem]
 
 class ConsumoSimulacaoRequest(BaseModel):
     medicamento_id: int
@@ -213,23 +250,49 @@ class MockDatabase:
         self.farmacias = [
             {
                 "id": 1,
-                "nome": "Farmácia Central",
+                "nome": "Farmácia Central BH",
                 "distancia_km": 1.2,
                 "disponibilidade_farmaco": True,
-                "horario_funcionamento": "07:00 - 19:00",
-                "endereco": "Av. Saúde, 120 - Centro",
+                "horario_funcionamento": "08:00 - 22:00",
+                "endereco": "Av. Afonso Pena, 1000 - Centro, Belo Horizonte - MG",
                 "avaliacao": 4.8,
+                "telefone": "(31) 3333-0000",
+                "whatsapp": "5531999990000",
+                "latitude": -19.9191,
+                "longitude": -43.9386,
+                "opening_hours": {
+                    "monday": [{"open": "08:00", "close": "22:00"}],
+                    "tuesday": [{"open": "08:00", "close": "22:00"}],
+                    "wednesday": [{"open": "08:00", "close": "22:00"}],
+                    "thursday": [{"open": "08:00", "close": "22:00"}],
+                    "friday": [{"open": "08:00", "close": "22:00"}],
+                    "saturday": [{"open": "08:00", "close": "18:00"}],
+                    "sunday": [{"open": "08:00", "close": "12:00"}],
+                },
                 "inv": {1: 6, 2: 22, 3: 8},
             },
             {
                 "id": 2,
-                "nome": "Drogaria Sul",
+                "nome": "Drogaria Plantão 24h",
                 "distancia_km": 3.5,
-                "disponibilidade_farmaco": False,
+                "disponibilidade_farmaco": True,
                 "horario_funcionamento": "24 Horas",
-                "endereco": "Rua das Flores, 88 - Zona Sul",
-                "avaliacao": 4.4,
-                "inv": {1: 0, 2: 12, 3: 0},
+                "endereco": "Região Centro-Sul, Belo Horizonte - MG",
+                "avaliacao": 4.6,
+                "telefone": "(31) 3333-1111",
+                "whatsapp": "5531999991111",
+                "latitude": -19.9320,
+                "longitude": -43.9378,
+                "opening_hours": {
+                    "monday": [{"open": "00:00", "close": "23:59"}],
+                    "tuesday": [{"open": "00:00", "close": "23:59"}],
+                    "wednesday": [{"open": "00:00", "close": "23:59"}],
+                    "thursday": [{"open": "00:00", "close": "23:59"}],
+                    "friday": [{"open": "00:00", "close": "23:59"}],
+                    "saturday": [{"open": "00:00", "close": "23:59"}],
+                    "sunday": [{"open": "00:00", "close": "23:59"}],
+                },
+                "inv": {1: 10, 2: 18, 3: 12},
             },
             {
                 "id": 3,
@@ -237,8 +300,21 @@ class MockDatabase:
                 "distancia_km": 4.1,
                 "disponibilidade_farmaco": True,
                 "horario_funcionamento": "08:00 - 17:00",
-                "endereco": "Rua Comunitária, 45 - Zona Norte",
+                "endereco": "Rua Comunitária, 45 - Zona Norte, Belo Horizonte - MG",
                 "avaliacao": 4.6,
+                "telefone": "(31) 3333-2222",
+                "whatsapp": "5531999992222",
+                "latitude": -19.8369,
+                "longitude": -43.9676,
+                "opening_hours": {
+                    "monday": [{"open": "08:00", "close": "17:00"}],
+                    "tuesday": [{"open": "08:00", "close": "17:00"}],
+                    "wednesday": [{"open": "08:00", "close": "17:00"}],
+                    "thursday": [{"open": "08:00", "close": "17:00"}],
+                    "friday": [{"open": "08:00", "close": "17:00"}],
+                    "saturday": [],
+                    "sunday": [],
+                },
                 "inv": {1: 4, 2: 0, 3: 20},
             },
         ]
@@ -460,6 +536,425 @@ class LogisticsService:
     @staticmethod
     def alocar_voluntario() -> Dict:
         return secrets.choice(db.voluntarios)
+
+WEEK_DAYS = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+]
+
+OSM_DAY_TOKENS = {
+    "Mo": 0,
+    "Tu": 1,
+    "We": 2,
+    "Th": 3,
+    "Fr": 4,
+    "Sa": 5,
+    "Su": 6,
+}
+
+
+def get_app_now() -> datetime:
+    """Retorna o horário operacional do backend no fuso configurado.
+
+    A decisão de abertura/fechamento deve ocorrer no backend para manter o
+    frontend como camada de apresentação e evitar divergência entre clientes.
+    """
+    try:
+        return datetime.now(ZoneInfo(settings.APP_TIMEZONE))
+    except ZoneInfoNotFoundError:
+        logger.warning(
+            "Timezone %s não encontrado. Usando horário local do servidor.",
+            settings.APP_TIMEZONE,
+        )
+        return datetime.now()
+
+
+class GeoDistanceService:
+    @staticmethod
+    def haversine_km(origin_lat: float, origin_lng: float, dest_lat: float, dest_lng: float) -> float:
+        """Calcula distância geodésica aproximada entre dois pontos.
+
+        A fórmula de Haversine é determinística, gratuita e suficiente para o
+        MVP urbano, em que a distância em linha reta é usada apenas para ordenar
+        farmácias antes de eventual abertura de rota externa pelo navegador.
+        """
+        earth_radius_km = 6371.0
+        delta_lat = math.radians(dest_lat - origin_lat)
+        delta_lng = math.radians(dest_lng - origin_lng)
+        lat1 = math.radians(origin_lat)
+        lat2 = math.radians(dest_lat)
+
+        a = (
+            math.sin(delta_lat / 2) ** 2
+            + math.cos(lat1) * math.cos(lat2) * math.sin(delta_lng / 2) ** 2
+        )
+        return 2 * earth_radius_km * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+class OpeningHoursService:
+    _time_range_re = re.compile(r"(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2}|24:00)")
+    _day_expr_re = re.compile(r"\b(Mo|Tu|We|Th|Fr|Sa|Su)(?:\s*-\s*(Mo|Tu|We|Th|Fr|Sa|Su))?\b")
+
+    @staticmethod
+    def _time_to_minutes(value: str) -> int:
+        if value == "24:00":
+            return 24 * 60
+        hours, minutes = value.split(":")
+        return int(hours) * 60 + int(minutes)
+
+    @staticmethod
+    def _period_matches_now(open_time: str, close_time: str, current_minutes: int) -> bool:
+        open_minutes = OpeningHoursService._time_to_minutes(open_time)
+        close_minutes = OpeningHoursService._time_to_minutes(close_time)
+
+        if close_minutes == 24 * 60:
+            close_minutes = 23 * 60 + 59
+
+        if open_minutes <= close_minutes:
+            return open_minutes <= current_minutes <= close_minutes
+        return current_minutes >= open_minutes or current_minutes <= close_minutes
+
+    @staticmethod
+    def is_structured_open_now(opening_hours: Optional[Dict[str, List[Dict[str, str]]]], now: datetime) -> Optional[bool]:
+        if not opening_hours:
+            return None
+
+        day_key = WEEK_DAYS[now.weekday()]
+        periods = opening_hours.get(day_key, [])
+        if not periods:
+            return False
+
+        current_minutes = now.hour * 60 + now.minute
+        return any(
+            OpeningHoursService._period_matches_now(period.get("open", ""), period.get("close", ""), current_minutes)
+            for period in periods
+            if period.get("open") and period.get("close")
+        )
+
+    @staticmethod
+    def _parse_days(day_expression: str) -> set[int]:
+        matches = OpeningHoursService._day_expr_re.findall(day_expression)
+        if not matches:
+            return set(range(7))
+
+        days: set[int] = set()
+        for start, end in matches:
+            start_idx = OSM_DAY_TOKENS[start]
+            if not end:
+                days.add(start_idx)
+                continue
+
+            end_idx = OSM_DAY_TOKENS[end]
+            if start_idx <= end_idx:
+                days.update(range(start_idx, end_idx + 1))
+            else:
+                days.update(range(start_idx, 7))
+                days.update(range(0, end_idx + 1))
+        return days
+
+    @staticmethod
+    def parse_osm_opening_hours(opening_hours: Optional[str], now: datetime) -> Optional[bool]:
+        """Interpreta subconjunto seguro do padrão OSM `opening_hours`.
+
+        O formato OSM completo é extenso. Para o MVP, cobrimos os casos mais
+        comuns em farmácias: `24/7`, faixas por dia (`Mo-Fr 08:00-18:00`) e
+        múltiplas regras separadas por ponto e vírgula. Expressões não
+        reconhecidas retornam `None`, preservando honestidade operacional.
+        """
+        if not opening_hours:
+            return None
+
+        expression = opening_hours.strip()
+        if not expression:
+            return None
+        if expression == "24/7":
+            return True
+
+        current_day = now.weekday()
+        current_minutes = now.hour * 60 + now.minute
+        matched_rule = False
+
+        for raw_rule in expression.split(";"):
+            rule = raw_rule.strip()
+            if not rule:
+                continue
+
+            days = OpeningHoursService._parse_days(rule)
+            if current_day not in days:
+                continue
+
+            matched_rule = True
+            if re.search(r"\boff\b", rule, flags=re.IGNORECASE):
+                return False
+
+            time_ranges = OpeningHoursService._time_range_re.findall(rule)
+            if not time_ranges:
+                continue
+
+            if any(
+                OpeningHoursService._period_matches_now(open_time, close_time, current_minutes)
+                for open_time, close_time in time_ranges
+            ):
+                return True
+
+        if matched_rule:
+            return False
+        return None
+
+    @staticmethod
+    def is_open_now(record: Dict[str, Any], now: datetime) -> Optional[bool]:
+        structured = OpeningHoursService.is_structured_open_now(record.get("opening_hours"), now)
+        if structured is not None:
+            return structured
+        return OpeningHoursService.parse_osm_opening_hours(record.get("osm_opening_hours"), now)
+
+    @staticmethod
+    def label(record: Dict[str, Any], now: datetime) -> str:
+        osm_label = record.get("osm_opening_hours")
+        if osm_label:
+            return osm_label
+
+        opening_hours = record.get("opening_hours")
+        if not opening_hours:
+            return "Horário não informado"
+
+        day_key = WEEK_DAYS[now.weekday()]
+        periods = opening_hours.get(day_key, [])
+        if not periods:
+            return "Fechada hoje"
+
+        return " / ".join(
+            f"{period.get('open', '--:--')} - {period.get('close', '--:--')}"
+            for period in periods
+        )
+
+
+class OverpassPharmacyService:
+    """Consulta gratuita ao OpenStreetMap/Overpass com cache em memória.
+
+    O frontend não consulta serviços externos. Ele envia coordenadas ao backend;
+    o backend consulta/cacheia dados OSM, calcula distância, avalia abertura,
+    ordena e retorna JSON pronto para renderização.
+    """
+
+    _cache: Dict[str, tuple[float, List[Dict[str, Any]]]] = {}
+
+    @staticmethod
+    def _cache_key(lat: float, lng: float, radius_km: float) -> str:
+        # Arredondamento reduz cardinalidade do cache sem alterar a UX do MVP.
+        return f"{round(lat, 3)}:{round(lng, 3)}:{round(radius_km, 1)}"
+
+    @staticmethod
+    def _build_overpass_query(lat: float, lng: float, radius_km: float) -> str:
+        radius_m = int(radius_km * 1000)
+        return f"""
+[out:json][timeout:25];
+(
+  node["amenity"="pharmacy"](around:{radius_m},{lat},{lng});
+  way["amenity"="pharmacy"](around:{radius_m},{lat},{lng});
+  relation["amenity"="pharmacy"](around:{radius_m},{lat},{lng});
+  node["healthcare"="pharmacy"](around:{radius_m},{lat},{lng});
+  way["healthcare"="pharmacy"](around:{radius_m},{lat},{lng});
+  relation["healthcare"="pharmacy"](around:{radius_m},{lat},{lng});
+);
+out center tags;
+""".strip()
+
+    @staticmethod
+    def _address_from_tags(tags: Dict[str, str]) -> str:
+        street = tags.get("addr:street") or tags.get("addr:place")
+        number = tags.get("addr:housenumber")
+        suburb = tags.get("addr:suburb") or tags.get("addr:neighbourhood")
+        city = tags.get("addr:city")
+        state = tags.get("addr:state")
+
+        address_parts = []
+        if street:
+            address_parts.append(f"{street}, {number}" if number else street)
+        if suburb:
+            address_parts.append(suburb)
+        if city:
+            address_parts.append(city)
+        if state:
+            address_parts.append(state)
+
+        return " - ".join(address_parts) if address_parts else "Endereço não informado no OpenStreetMap"
+
+    @staticmethod
+    def _phone_from_tags(tags: Dict[str, str]) -> Optional[str]:
+        return tags.get("phone") or tags.get("contact:phone") or tags.get("mobile") or tags.get("contact:mobile")
+
+    @staticmethod
+    def _whatsapp_from_tags(tags: Dict[str, str]) -> Optional[str]:
+        whatsapp = tags.get("contact:whatsapp") or tags.get("whatsapp")
+        if whatsapp:
+            return re.sub(r"\D+", "", whatsapp)
+        phone = OverpassPharmacyService._phone_from_tags(tags)
+        if phone:
+            digits = re.sub(r"\D+", "", phone)
+            return digits if digits.startswith("55") else None
+        return None
+
+    @staticmethod
+    def _record_from_element(element: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        tags = element.get("tags", {}) or {}
+        center = element.get("center") or {}
+        lat = element.get("lat", center.get("lat"))
+        lng = element.get("lon", center.get("lon"))
+
+        if lat is None or lng is None:
+            return None
+
+        name = tags.get("name") or tags.get("brand") or "Farmácia cadastrada no OpenStreetMap"
+
+        return {
+            "id": f"osm-{element.get('type', 'node')}-{element.get('id')}",
+            "name": name,
+            "source": "openstreetmap",
+            "address": OverpassPharmacyService._address_from_tags(tags),
+            "phone": OverpassPharmacyService._phone_from_tags(tags),
+            "whatsapp": OverpassPharmacyService._whatsapp_from_tags(tags),
+            "latitude": float(lat),
+            "longitude": float(lng),
+            "osm_opening_hours": tags.get("opening_hours"),
+        }
+
+    @classmethod
+    async def fetch_from_overpass(cls, lat: float, lng: float, radius_km: float) -> List[Dict[str, Any]]:
+        if not settings.OVERPASS_ENABLED:
+            return []
+
+        cache_key = cls._cache_key(lat, lng, radius_km)
+        cached = cls._cache.get(cache_key)
+        now_monotonic = time.monotonic()
+        if cached and now_monotonic - cached[0] <= settings.OVERPASS_CACHE_TTL_SECONDS:
+            return cached[1]
+
+        query = cls._build_overpass_query(lat, lng, radius_km)
+        headers = {"User-Agent": settings.OVERPASS_USER_AGENT}
+
+        async with httpx.AsyncClient(timeout=settings.OVERPASS_TIMEOUT_SECONDS, headers=headers) as client:
+            response = await client.post(settings.OVERPASS_URL, data={"data": query})
+            response.raise_for_status()
+            payload = response.json()
+
+        records = []
+        seen: set[str] = set()
+        for element in payload.get("elements", []):
+            record = cls._record_from_element(element)
+            if not record or record["id"] in seen:
+                continue
+            seen.add(record["id"])
+            records.append(record)
+
+        cls._cache[cache_key] = (now_monotonic, records)
+        return records
+
+    @staticmethod
+    def fallback_records() -> List[Dict[str, Any]]:
+        return [
+            {
+                "id": f"mock-{farmacia['id']}",
+                "name": farmacia["nome"],
+                "source": "local_mock",
+                "address": farmacia.get("endereco", "Endereço não informado"),
+                "phone": farmacia.get("telefone"),
+                "whatsapp": farmacia.get("whatsapp"),
+                "latitude": float(farmacia["latitude"]),
+                "longitude": float(farmacia["longitude"]),
+                "opening_hours": farmacia.get("opening_hours"),
+            }
+            for farmacia in db.farmacias
+            if farmacia.get("latitude") is not None and farmacia.get("longitude") is not None
+        ]
+
+    @classmethod
+    async def search_nearby(
+        cls,
+        lat: float,
+        lng: float,
+        radius_km: float,
+        open_now: bool,
+        limit: int,
+        source: str = "overpass",
+    ) -> FarmaciasProximasResponse:
+        generated_at = datetime.now(timezone.utc)
+        now = get_app_now()
+        records: List[Dict[str, Any]] = []
+        used_source = source
+
+        if source == "mock":
+            records = cls.fallback_records()
+            used_source = "local_mock"
+        else:
+            try:
+                records = await cls.fetch_from_overpass(lat, lng, radius_km)
+                used_source = "openstreetmap"
+            except Exception as exc:
+                logger.warning("Falha ao consultar Overpass API; usando fallback local: %s", exc)
+                records = cls.fallback_records()
+                used_source = "local_mock_fallback"
+
+        items: List[FarmaciaProximaItem] = []
+        for record in records:
+            distance_km = GeoDistanceService.haversine_km(
+                lat,
+                lng,
+                float(record["latitude"]),
+                float(record["longitude"]),
+            )
+            if distance_km > radius_km:
+                continue
+
+            open_state = OpeningHoursService.is_open_now(record, now)
+            if open_now and open_state is not True:
+                continue
+
+            if open_state is True:
+                status_label = "Aberta agora"
+            elif open_state is False:
+                status_label = "Fechada agora"
+            else:
+                status_label = "Horário não informado"
+
+            items.append(
+                FarmaciaProximaItem(
+                    id=str(record["id"]),
+                    name=str(record["name"]),
+                    source=str(record.get("source", used_source)),
+                    address=str(record.get("address") or "Endereço não informado"),
+                    phone=record.get("phone"),
+                    whatsapp=record.get("whatsapp"),
+                    latitude=float(record["latitude"]),
+                    longitude=float(record["longitude"]),
+                    distance_km=round(distance_km, 2),
+                    is_open=open_state,
+                    status_label=status_label,
+                    opening_hours_label=OpeningHoursService.label(record, now),
+                    maps_url=(
+                        "https://www.openstreetmap.org/directions?"
+                        f"from={lat}%2C{lng}&to={record['latitude']}%2C{record['longitude']}"
+                    ),
+                )
+            )
+
+        items.sort(key=lambda item: item.distance_km)
+        limited_items = items[:limit]
+
+        return FarmaciasProximasResponse(
+            origin={"latitude": lat, "longitude": lng},
+            count=len(limited_items),
+            source=used_source,
+            radius_km=radius_km,
+            open_now=open_now,
+            generated_at=generated_at,
+            items=limited_items,
+        )
 
 class RndsConfigurationError(Exception):
     pass
@@ -765,6 +1260,31 @@ async def listar_farmacias_mapa():
         )
         for farmacia in db.farmacias
     ]
+
+@router_farmacias.get("/proximas", response_model=FarmaciasProximasResponse)
+async def listar_farmacias_proximas(
+    lat: float = Query(..., ge=-90, le=90, description="Latitude da localização autorizada pelo usuário."),
+    lng: float = Query(..., ge=-180, le=180, description="Longitude da localização autorizada pelo usuário."),
+    radius_km: float = Query(10.0, gt=0, le=50, description="Raio máximo de busca em quilômetros."),
+    open_now: bool = Query(True, description="Quando true, retorna apenas farmácias abertas agora."),
+    limit: int = Query(10, ge=1, le=50, description="Quantidade máxima de resultados."),
+    source: str = Query("overpass", pattern="^(overpass|mock)$", description="Fonte: overpass ou mock para testes locais."),
+):
+    """Lista farmácias próximas e abertas usando processamento 100% no backend.
+
+    O frontend apenas envia latitude/longitude autorizadas pelo usuário e renderiza
+    a resposta. A API consulta OpenStreetMap/Overpass quando `source=overpass`,
+    aplica cache em memória, calcula distância, avalia horário de funcionamento
+    e ordena por proximidade.
+    """
+    return await OverpassPharmacyService.search_nearby(
+        lat=lat,
+        lng=lng,
+        radius_km=radius_km,
+        open_now=open_now,
+        limit=limit,
+        source=source,
+    )
 
 @router_health.post("/consumo/simulacao", response_model=MedicamentoAlerta)
 async def simular_consumo(req: ConsumoSimulacaoRequest, current_user: dict = Depends(get_current_user)):
