@@ -5,7 +5,6 @@ Refatoração Arquitetural: Monolito Modular (Clean Architecture)
 
 import asyncio
 import heapq
-import json
 import logging
 import math
 import os
@@ -13,8 +12,6 @@ import re
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from threading import RLock
 from enum import Enum
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -78,7 +75,15 @@ class Settings:
         "http://localhost:5500",
         "http://127.0.0.1:5500",
         "http://127.0.0.1:5501",
+        "https://conectapharma-33fd7.web.app",
+        "https://conectapharma-33fd7.firebaseapp.com",
+        "https://cfsjcode.github.io",
         "null",
+    ]
+    EXTRA_CORS_ORIGINS: List[str] = [
+        origin.strip()
+        for origin in os.getenv("CONNECTAPHARMA_CORS_ORIGINS", "").split(",")
+        if origin.strip()
     ]
     RNDS_ENABLED: bool = env_bool("CONNECTAPHARMA_RNDS_ENABLED", False)
     RNDS_ENVIRONMENT: str = os.getenv("CONNECTAPHARMA_RNDS_ENVIRONMENT", "homologacao")
@@ -103,6 +108,14 @@ class Settings:
     APP_TIMEZONE: str = os.getenv("CONNECTAPHARMA_TIMEZONE", "America/Sao_Paulo")
     OVERPASS_ENABLED: bool = env_bool("CONNECTAPHARMA_OVERPASS_ENABLED", True)
     OVERPASS_URL: str = os.getenv("CONNECTAPHARMA_OVERPASS_URL", "https://overpass-api.de/api/interpreter")
+    OVERPASS_URLS: List[str] = [
+        url.strip()
+        for url in os.getenv(
+            "CONNECTAPHARMA_OVERPASS_URLS",
+            "https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter",
+        ).split(",")
+        if url.strip()
+    ]
     OVERPASS_TIMEOUT_SECONDS: float = float(os.getenv("CONNECTAPHARMA_OVERPASS_TIMEOUT_SECONDS", "12"))
     OVERPASS_CACHE_TTL_SECONDS: int = int(os.getenv("CONNECTAPHARMA_OVERPASS_CACHE_TTL_SECONDS", "900"))
     OVERPASS_RESPONSE_CACHE_TTL_SECONDS: int = int(os.getenv("CONNECTAPHARMA_OVERPASS_RESPONSE_CACHE_TTL_SECONDS", "60"))
@@ -111,14 +124,6 @@ class Settings:
     OVERPASS_USER_AGENT: str = os.getenv(
         "CONNECTAPHARMA_OVERPASS_USER_AGENT",
         "ConectaPharma-MVP/1.0 (academic prototype; contact: claudiofranciscojunior2006@gmail.com)",
-    )
-    DATA_DIR: str = os.getenv(
-        "CONNECTAPHARMA_DATA_DIR",
-        str(Path(__file__).resolve().parent / "data"),
-    )
-    DATA_FILE: str = os.getenv(
-        "CONNECTAPHARMA_DATA_FILE",
-        str(Path(DATA_DIR) / "conectapharma_db.json"),
     )
 
 settings = Settings()
@@ -192,6 +197,9 @@ class FarmaciaProximaItem(BaseModel):
     status_label: str
     opening_hours_label: str
     maps_url: str
+    google_maps_url: str
+    openstreetmap_url: str
+    waze_url: str
 
 class FarmaciasProximasResponse(BaseModel):
     origin: Dict[str, float]
@@ -232,21 +240,7 @@ class FarmaciaDiretorioItem(BaseModel):
     avaliacao: float
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    is_open: Optional[bool] = None
-    status_label: Optional[str] = None
     maps_url: Optional[str] = None
-
-class FarmaciaCreate(BaseModel):
-    nome: str = Field(..., min_length=2, max_length=120)
-    endereco: str = Field(..., min_length=4, max_length=200)
-    telefone: Optional[str] = Field(None, max_length=30)
-    whatsapp: Optional[str] = Field(None, max_length=30)
-    horario_funcionamento: str = Field("Horário não informado", max_length=80)
-    disponibilidade_farmaco: bool = True
-    avaliacao: float = Field(0.0, ge=0, le=5)
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    opening_hours: Optional[Dict[str, List[Dict[str, str]]]] = None
 
 class EstabelecimentoSaudeItem(BaseModel):
     id: str
@@ -261,6 +255,9 @@ class EstabelecimentoSaudeItem(BaseModel):
     status_label: str
     opening_hours_label: str
     maps_url: str
+    google_maps_url: str
+    openstreetmap_url: str
+    waze_url: str
 
 class EstabelecimentosSaudeResponse(BaseModel):
     origin: Dict[str, float]
@@ -472,113 +469,6 @@ class MockDatabase:
 
 db = MockDatabase()
 
-class JsonDataStore:
-    """Persistência local simples para transformar o MVP em backend operacional.
-
-    O projeto não depende de banco pago. Os dados de usuários legados, catálogo
-    de medicamentos, farmácias cadastradas e entregas são persistidos em JSON
-    atômico no diretório `Backend/data/`. Em produção, esta classe pode ser
-    substituída por SQLAlchemy/PostgreSQL sem alterar os contratos HTTP.
-    """
-
-    def __init__(self, filepath: str) -> None:
-        self.filepath = Path(filepath)
-        self._lock = RLock()
-
-    @staticmethod
-    def _to_jsonable(value: Any) -> Any:
-        if isinstance(value, datetime):
-            return value.astimezone(timezone.utc).isoformat()
-        if isinstance(value, Enum):
-            return value.value
-        if isinstance(value, dict):
-            return {str(k): JsonDataStore._to_jsonable(v) for k, v in value.items()}
-        if isinstance(value, list):
-            return [JsonDataStore._to_jsonable(v) for v in value]
-        return value
-
-    @staticmethod
-    def _parse_datetime(value: Any) -> datetime:
-        if isinstance(value, datetime):
-            return value
-        if isinstance(value, str):
-            try:
-                return datetime.fromisoformat(value.replace("Z", "+00:00"))
-            except ValueError:
-                pass
-        return datetime.now(timezone.utc)
-
-    @staticmethod
-    def _restore_users(users: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        restored = []
-        for user in users:
-            current = dict(user)
-            current["id"] = str(current.get("id"))
-            current["created_at"] = JsonDataStore._parse_datetime(current.get("created_at"))
-            restored.append(current)
-        return restored
-
-    @staticmethod
-    def _restore_entregas(entregas: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        restored = {}
-        for tracking_id, entrega in entregas.items():
-            current = dict(entrega)
-            current["ultimo_update"] = JsonDataStore._parse_datetime(current.get("ultimo_update"))
-            status_value = current.get("status")
-            if isinstance(status_value, str):
-                try:
-                    current["status"] = DeliveryStatus(status_value)
-                except ValueError:
-                    current["status"] = DeliveryStatus.PENDENTE
-            restored[tracking_id] = current
-        return restored
-
-    def load_into(self, database: MockDatabase) -> None:
-        with self._lock:
-            if not self.filepath.exists():
-                self.save_from(database)
-                return
-            try:
-                payload = json.loads(self.filepath.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError) as exc:
-                logger.warning("Falha ao carregar base local %s: %s", self.filepath, exc)
-                return
-
-            database.users = self._restore_users(payload.get("users", database.users))
-            database.medicamentos = payload.get("medicamentos", database.medicamentos)
-            database.next_medicamento_id = int(
-                payload.get(
-                    "next_medicamento_id",
-                    max((int(m.get("id", 0)) for m in database.medicamentos), default=0) + 1,
-                )
-            )
-            database.farmacias = payload.get("farmacias", database.farmacias)
-            database.estabelecimentos_saude = payload.get("estabelecimentos_saude", database.estabelecimentos_saude)
-            database.entregas = self._restore_entregas(payload.get("entregas", database.entregas))
-            database.voluntarios = payload.get("voluntarios", database.voluntarios)
-
-    def save_from(self, database: MockDatabase) -> None:
-        with self._lock:
-            self.filepath.parent.mkdir(parents=True, exist_ok=True)
-            payload = {
-                "users": database.users,
-                "medicamentos": database.medicamentos,
-                "next_medicamento_id": database.next_medicamento_id,
-                "farmacias": database.farmacias,
-                "estabelecimentos_saude": database.estabelecimentos_saude,
-                "entregas": database.entregas,
-                "voluntarios": database.voluntarios,
-            }
-            tmp = self.filepath.with_suffix(self.filepath.suffix + ".tmp")
-            tmp.write_text(
-                json.dumps(self._to_jsonable(payload), ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-            tmp.replace(self.filepath)
-
-
-data_store = JsonDataStore(settings.DATA_FILE)
-
 # =============================================================================
 # 3. CAMADA DE SEGURANÇA (Security Utils)
 # =============================================================================
@@ -757,12 +647,6 @@ def seed_default_user() -> None:
         "created_at": datetime.now(timezone.utc),
     })
 
-def initialize_persistent_storage() -> None:
-    """Carrega a base local e garante dados mínimos para desenvolvimento."""
-    data_store.load_into(db)
-    seed_default_user()
-    data_store.save_from(db)
-
 # =============================================================================
 # 4. CAMADA DE SERVIÇOS (Business Logic / Domain)
 # =============================================================================
@@ -856,6 +740,22 @@ class GeoDistanceService:
             + math.cos(lat1) * math.cos(lat2) * math.sin(delta_lng / 2) ** 2
         )
         return 2 * earth_radius_km * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+class RouteLinkService:
+    @staticmethod
+    def build(latitude: float, longitude: float, label: str = "Destino") -> Dict[str, str]:
+        """Gera links externos gratuitos para navegação.
+
+        A busca do estabelecimento vem do OpenStreetMap/Overpass. Google Maps e
+        Waze são usados apenas como links de rota, sem chamadas às APIs pagas.
+        """
+        safe_label = re.sub(r"\s+", "+", label.strip()) if label else "Destino"
+        return {
+            "google_maps_url": f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}",
+            "openstreetmap_url": f"https://www.openstreetmap.org/?mlat={latitude}&mlon={longitude}#map=17/{latitude}/{longitude}",
+            "waze_url": f"https://www.waze.com/ul?ll={latitude}%2C{longitude}&navigate=yes&q={safe_label}",
+        }
 
 
 class OpeningHoursService:
@@ -1154,9 +1054,21 @@ out center tags;
                 return cached[1]
 
             query = cls._build_overpass_query(lat, lng, radius_km)
-            response = await cls.get_client().post(settings.OVERPASS_URL, data={"data": query})
-            response.raise_for_status()
-            payload = response.json()
+            last_error: Optional[Exception] = None
+            payload: Dict[str, Any] = {}
+            endpoints = settings.OVERPASS_URLS or [settings.OVERPASS_URL]
+            for endpoint in endpoints:
+                try:
+                    response = await cls.get_client().post(endpoint, data={"data": query})
+                    response.raise_for_status()
+                    payload = response.json()
+                    last_error = None
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning("Falha no endpoint Overpass %s: %s", endpoint, exc)
+            if last_error is not None:
+                raise last_error
 
             records = []
             seen: set[str] = set()
@@ -1258,35 +1170,10 @@ out center tags;
                     status_label=status_label,
                     opening_hours_label=OpeningHoursService.label(record, now),
                     source=record.get("source", used_source),
-                    maps_url=f"https://www.google.com/maps/search/?api=1&query={record['latitude']},{record['longitude']}",
+                    maps_url=RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia")["google_maps_url"],
+                    **RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia"),
                 )
             )
-
-        if open_now and not items and source != "mock":
-            for record in cls.fallback_records():
-                distance_km = GeoDistanceService.haversine_km(lat, lng, float(record["latitude"]), float(record["longitude"]))
-                if distance_km > radius_km:
-                    continue
-                open_state = OpeningHoursService.is_open_now(record, now)
-                if open_state is not True:
-                    continue
-                items.append(FarmaciaProximaItem(
-                    id=str(record["id"]),
-                    name=record.get("name") or "Farmácia cadastrada",
-                    address=record.get("address") or "Endereço não informado",
-                    phone=record.get("phone"),
-                    whatsapp=record.get("whatsapp"),
-                    latitude=float(record["latitude"]),
-                    longitude=float(record["longitude"]),
-                    distance_km=round(distance_km, 2),
-                    is_open=True,
-                    status_label="Aberta agora",
-                    opening_hours_label=OpeningHoursService.label(record, now),
-                    source="local_mock_fallback",
-                    maps_url=f"https://www.google.com/maps/search/?api=1&query={record['latitude']},{record['longitude']}",
-                ))
-            if items:
-                used_source = "openstreetmap_local_fallback"
 
         limited_items = heapq.nsmallest(limit, items, key=lambda item: item.distance_km)
         response = FarmaciasProximasResponse(
@@ -1491,7 +1378,8 @@ class HealthEstablishmentService:
                 is_open=open_state,
                 status_label=status_label,
                 opening_hours_label=OpeningHoursService.label(record, now),
-                maps_url=f"https://www.google.com/maps/search/?api=1&query={record['latitude']},{record['longitude']}",
+                maps_url=RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde")["google_maps_url"],
+                **RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde"),
             ))
 
         limited_items = heapq.nsmallest(limit, items, key=lambda item: item.distance_km)
@@ -1772,8 +1660,7 @@ async def register(user_in: UserCreate):
         "created_at": datetime.now(timezone.utc)
     }
     db.users.append(new_user)
-    data_store.save_from(db)
-    logger.info("Novo usuário registrado: %s", user_in.email)
+    logger.info(f"Novo usuário registrado: {user_in.email}")
     return new_user
 
 @router_auth.post("/login", response_model=Token)
@@ -1816,47 +1703,26 @@ async def listar_farmacias_mapa():
 
 
 def normalize_text(value: str) -> str:
-    """Normalização determinística para busca textual sem dependências externas."""
-    normalized = str(value or "").strip().lower()
+    value = value.strip().lower()
     replacements = str.maketrans("áàãâäéèêëíìîïóòõôöúùûüç", "aaaaaeeeeiiiiooooouuuuc")
-    normalized = normalized.translate(replacements)
-    normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
-    return re.sub(r"\s+", " ", normalized).strip()
-
-def text_matches_query(searchable: str, query_text: Optional[str]) -> bool:
-    if not query_text:
-        return True
-    haystack = normalize_text(searchable)
-    tokens = [token for token in normalize_text(query_text).split(" ") if token]
-    return all(token in haystack for token in tokens)
+    return value.translate(replacements)
 
 @router_farmacias.get("", response_model=List[FarmaciaDiretorioItem])
 async def listar_farmacias(
     query_text: Optional[str] = Query(None, alias="q", min_length=1, max_length=120),
-    open_now: Optional[bool] = Query(None, description="Filtra por funcionamento atual quando informado."),
-    available_only: bool = Query(False, description="Retorna somente farmácias com disponibilidade operacional."),
     limit: int = Query(30, ge=1, le=100),
 ):
-    """Lista e pesquisa farmácias cadastradas na base persistente do MVP."""
-    now = get_app_now()
-    items: List[FarmaciaDiretorioItem] = []
-
+    """Lista e pesquisa farmácias da base operacional local do MVP."""
+    normalized_query = normalize_text(query_text) if query_text else None
+    items = []
     for farmacia in db.farmacias:
         searchable = " ".join([
             farmacia.get("nome", ""),
             farmacia.get("endereco", ""),
             farmacia.get("horario_funcionamento", ""),
-            farmacia.get("telefone", ""),
         ])
-        if not text_matches_query(searchable, query_text):
+        if normalized_query and normalized_query not in normalize_text(searchable):
             continue
-        if available_only and not bool(farmacia.get("disponibilidade_farmaco", False)):
-            continue
-
-        open_state = OpeningHoursService.is_open_now(farmacia, now)
-        if open_now is not None and open_state is not open_now:
-            continue
-
         lat = farmacia.get("latitude")
         lng = farmacia.get("longitude")
         items.append(FarmaciaDiretorioItem(
@@ -1870,37 +1736,9 @@ async def listar_farmacias(
             avaliacao=float(farmacia.get("avaliacao", 0)),
             latitude=lat,
             longitude=lng,
-            is_open=open_state,
-            status_label="Aberta agora" if open_state is True else "Fechada agora" if open_state is False else "Horário não informado",
             maps_url=f"https://www.google.com/maps/search/?api=1&query={lat},{lng}" if lat is not None and lng is not None else None,
         ))
-
-    items.sort(key=lambda item: (0 if item.disponibilidade_farmaco else 1, item.nome.lower()))
     return items[:limit]
-
-@router_farmacias.post("", response_model=FarmaciaDiretorioItem, status_code=status.HTTP_201_CREATED)
-async def cadastrar_farmacia(req: FarmaciaCreate, current_user: dict = Depends(get_current_user)):
-    """Cadastra uma farmácia/unidade operacional na base persistente local."""
-    if any(normalize_text(item.get("nome", "")) == normalize_text(req.nome) for item in db.farmacias):
-        raise HTTPException(status_code=409, detail="Farmácia já cadastrada.")
-    next_id = max((int(item.get("id", 0)) for item in db.farmacias), default=0) + 1
-    pharmacy = {
-        "id": next_id,
-        "nome": req.nome.strip(),
-        "endereco": req.endereco.strip(),
-        "telefone": req.telefone.strip() if req.telefone else None,
-        "whatsapp": req.whatsapp.strip() if req.whatsapp else None,
-        "horario_funcionamento": req.horario_funcionamento.strip(),
-        "disponibilidade_farmaco": bool(req.disponibilidade_farmaco),
-        "avaliacao": float(req.avaliacao),
-        "latitude": req.latitude,
-        "longitude": req.longitude,
-        "opening_hours": req.opening_hours,
-        "inv": {},
-    }
-    db.farmacias.append(pharmacy)
-    data_store.save_from(db)
-    return (await listar_farmacias(query_text=pharmacy["nome"], limit=100))[0]
 
 @router_health.get("/medicamentos", response_model=List[MedicamentoCatalogoItem])
 async def listar_medicamentos(
@@ -1908,6 +1746,7 @@ async def listar_medicamentos(
     limit: int = Query(50, ge=1, le=200),
 ):
     """Lista e pesquisa medicamentos cadastrados no catálogo operacional do MVP."""
+    normalized_query = normalize_text(query_text) if query_text else None
     items = []
     for medicamento in db.medicamentos:
         searchable = " ".join([
@@ -1915,7 +1754,7 @@ async def listar_medicamentos(
             medicamento.get("categoria", ""),
             medicamento.get("descricao", ""),
         ])
-        if not text_matches_query(searchable, query_text):
+        if normalized_query and normalized_query not in normalize_text(searchable):
             continue
         items.append(MedicamentoCatalogoItem(
             id=int(medicamento["id"]),
@@ -1926,23 +1765,7 @@ async def listar_medicamentos(
             stock=int(medicamento.get("stock", 0)),
             requires_prescription=bool(medicamento.get("requires_prescription", True)),
         ))
-    items.sort(key=lambda item: item.nome.lower())
     return items[:limit]
-
-@router_health.get("/medicamentos/{medicamento_id}", response_model=MedicamentoCatalogoItem)
-async def obter_medicamento(medicamento_id: int):
-    medicamento = next((m for m in db.medicamentos if int(m.get("id")) == medicamento_id), None)
-    if not medicamento:
-        raise HTTPException(status_code=404, detail="Medicamento não encontrado.")
-    return MedicamentoCatalogoItem(
-        id=int(medicamento["id"]),
-        nome=medicamento["nome"],
-        categoria=medicamento.get("categoria"),
-        descricao=medicamento.get("descricao"),
-        dose_diaria_comprimidos=float(medicamento.get("dose_diaria_comprimidos", 1)),
-        stock=int(medicamento.get("stock", 0)),
-        requires_prescription=bool(medicamento.get("requires_prescription", True)),
-    )
 
 @router_health.post("/medicamentos", response_model=MedicamentoCatalogoItem, status_code=status.HTTP_201_CREATED)
 async def cadastrar_medicamento(req: MedicamentoCreate, current_user: dict = Depends(get_current_user)):
@@ -1964,7 +1787,6 @@ async def cadastrar_medicamento(req: MedicamentoCreate, current_user: dict = Dep
     }
     db.next_medicamento_id += 1
     db.medicamentos.append(med)
-    data_store.save_from(db)
     return MedicamentoCatalogoItem(**med)
 
 @router_estabelecimentos.get("/proximos", response_model=EstabelecimentosSaudeResponse)
@@ -2016,18 +1838,6 @@ async def listar_farmacias_proximas(
         source=source,
     )
 
-@router_farmacias.get("/{farmacia_id}", response_model=FarmaciaDiretorioItem)
-async def obter_farmacia(farmacia_id: int):
-    farmacia = next((item for item in db.farmacias if int(item.get("id")) == farmacia_id), None)
-    if not farmacia:
-        raise HTTPException(status_code=404, detail="Farmácia não encontrada.")
-    results = await listar_farmacias(query_text=farmacia.get("nome"), limit=100)
-    for item in results:
-        if item.id == farmacia_id:
-            return item
-    raise HTTPException(status_code=404, detail="Farmácia não encontrada.")
-
-
 @router_health.post("/consumo/simulacao", response_model=MedicamentoAlerta)
 async def simular_consumo(req: ConsumoSimulacaoRequest, current_user: dict = Depends(get_current_user)):
     med = next((m for m in db.medicamentos if m["id"] == req.medicamento_id), None)
@@ -2061,8 +1871,7 @@ async def criar_entrega(req: SolicitacaoEntrega, current_user: dict = Depends(ge
         "ultimo_update": datetime.now(timezone.utc)
     }
     db.entregas[tracking_id] = entrega
-    data_store.save_from(db)
-    logger.info("Entrega %s criada para o usuário %s.", tracking_id, current_user["id"])
+    logger.info(f"Entrega {tracking_id} criada para o usuário {current_user['id']}.")
     return entrega
 
 @router_logistics.get("/entrega/{tracking_id}", response_model=EntregaStatus)
@@ -2096,7 +1905,7 @@ async def enviar_dispensacao_rnds(req: RndsDispensacaoRequest, current_user: dic
 # =============================================================================
 
 def create_app() -> FastAPI:
-    initialize_persistent_storage()
+    seed_default_user()
 
     application = FastAPI(
         title=settings.PROJECT_NAME,
@@ -2112,7 +1921,7 @@ def create_app() -> FastAPI:
     # Middleware CORS seguro
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
+        allow_origins=[*settings.CORS_ORIGINS, *settings.EXTRA_CORS_ORIGINS],
         allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
         allow_credentials=True,
         allow_methods=["*"],

@@ -271,7 +271,7 @@ Nunca envie esse arquivo JSON para o GitHub.
 
 ### 6.3 OpenStreetMap / Overpass
 
-A funcionalidade de farmácias abertas próximas usa **OpenStreetMap + Overpass API** no backend. O frontend não executa busca, cálculo de distância, filtro de horário nem ordenação. Ele apenas solicita a localização ao navegador e envia latitude/longitude ao FastAPI.
+A funcionalidade de farmácias abertas próximas usa **OpenStreetMap + Overpass API** como fonte gratuita. O fluxo preferencial é backend-first: o frontend solicita a localização ao navegador e envia latitude/longitude ao FastAPI, que consulta Overpass, calcula distância, filtra horário e ordena. Para evitar erro `Failed to fetch` quando o site estiver publicado em hospedagem estática sem backend público configurado, há também um fallback direto ao OpenStreetMap no frontend.
 
 Variáveis disponíveis:
 
@@ -714,46 +714,6 @@ dir .github\workflows
 
 ---
 
-
-## Backend real e otimizações implementadas
-
-A versão atual substitui o comportamento puramente volátil do MVP por uma persistência local gratuita baseada em JSON atômico no backend. O arquivo é criado automaticamente em `Backend/data/conectapharma_db.json` durante a inicialização da API. Essa pasta é ignorada pelo Git para evitar envio de dados operacionais locais.
-
-### Recursos operacionais atuais
-
-- Persistência local de usuários legados, medicamentos cadastrados, farmácias cadastradas e entregas simuladas.
-- Busca de farmácias por nome, endereço, telefone e horário.
-- Filtro opcional de farmácias abertas agora.
-- Cadastro autenticado de farmácias via `POST /api/v1/farmacias`.
-- Catálogo de medicamentos persistente via `GET /api/v1/saude/medicamentos` e `POST /api/v1/saude/medicamentos`.
-- Consulta individual de farmácias e medicamentos.
-- Busca de farmácias próximas via OpenStreetMap/Overpass processada integralmente no backend.
-- Fallback local quando a Overpass API está indisponível ou quando não há farmácias abertas com horário público cadastrado.
-- Cache de consultas externas e reutilização de conexões HTTP para reduzir latência.
-- Página de login otimizada com carregamento preguiçoso do Firebase, reduzindo atraso inicial de renderização.
-
-### Variáveis de persistência local
-
-```env
-CONNECTAPHARMA_DATA_DIR=Backend/data
-CONNECTAPHARMA_DATA_FILE=Backend/data/conectapharma_db.json
-```
-
-### Endpoints principais
-
-```text
-GET  /api/v1/farmacias
-GET  /api/v1/farmacias/{farmacia_id}
-POST /api/v1/farmacias
-GET  /api/v1/farmacias/proximas
-GET  /api/v1/saude/medicamentos
-GET  /api/v1/saude/medicamentos/{medicamento_id}
-POST /api/v1/saude/medicamentos
-GET  /api/v1/estabelecimentos-saude/proximos
-```
-
-O frontend permanece responsável apenas por solicitar a localização autorizada do usuário e renderizar os dados retornados. O cálculo de distância, filtragem de horário, ordenação e fallback são executados pelo backend.
-
 ## 19. Status Atual do Projeto
 
 * Firebase Authentication configurado;
@@ -807,7 +767,7 @@ CONNECTAPHARMA_OVERPASS_MAX_KEEPALIVE_CONNECTIONS=4
 
 ### Observação operacional
 
-A localização do usuário continua sendo solicitada apenas após clique explícito. O frontend envia coordenadas para o backend e apenas renderiza o JSON retornado; cálculo de distância, filtro de abertura, consulta Overpass, cache e ordenação permanecem no backend.
+A localização do usuário continua sendo solicitada apenas após clique explícito. Quando o backend está disponível, ele realiza consulta Overpass, cache, cálculo de distância, filtro de abertura e ordenação. Quando o backend não está configurado para a hospedagem estática, o frontend usa OpenStreetMap diretamente como fallback para não exibir `Failed to fetch`.
 
 ---
 
@@ -819,7 +779,7 @@ A plataforma autenticada (`Frontend/plataforma.html`) foi ampliada com novos mó
 - **Pesquisa de farmácias**: busca por nome, endereço, bairro ou horário.
 - **Catálogo de medicamentos**: listagem e pesquisa de medicamentos operacionais.
 - **Cadastro de medicamentos**: criação de novos itens no catálogo do MVP via backend autenticado.
-- **Farmácias abertas próximas**: o frontend solicita a localização do usuário e o backend consulta OpenStreetMap/Overpass, calcula distância, filtra abertura e ordena resultados.
+- **Farmácias abertas próximas**: o frontend solicita a localização do usuário; o backend consulta OpenStreetMap/Overpass, calcula distância, filtra abertura e ordena resultados. Em ambiente sem backend público, o frontend aciona fallback OpenStreetMap direto.
 - **Estabelecimentos de saúde próximos**: localização de farmácias, hospitais, clínicas e consultórios próximos usando dados abertos processados no backend.
 - **Frontend sem logs de depuração**: foram removidas chamadas `console.*` do frontend; a interface mostra mensagens de estado amigáveis ao usuário.
 
@@ -838,3 +798,20 @@ GET  /api/v1/estabelecimentos-saude/proximos?lat=-19.9191&lng=-43.9386&radius_km
 ### Observação de privacidade
 
 A localização do usuário é solicitada somente após ação explícita na interface. O frontend envia coordenadas ao backend apenas para a busca solicitada. O processamento de distância, horário, filtro, cache e ordenação permanece no backend.
+
+
+## Correção de `Failed to fetch` em hospedagem estática
+
+Quando o frontend roda em `https://conectapharma-33fd7.web.app`, chamadas para `http://localhost:8000` não funcionam porque o backend local não está disponível para o navegador do usuário. Para corrigir isso, a plataforma agora usa a seguinte ordem:
+
+1. Se `window.CONNECTAPHARMA_API_BASE_URL` estiver configurado ou se o frontend estiver em `localhost`, consulta o backend FastAPI.
+2. Se o backend estiver indisponível, consulta OpenStreetMap/Overpass diretamente como fallback gratuito.
+3. Exibe links de rota para **Google Maps, OpenStreetMap e Waze** sem usar APIs pagas.
+
+Para usar um backend público, publique o FastAPI em um provedor compatível e configure antes do carregamento da plataforma:
+
+```html
+<script>
+  window.CONNECTAPHARMA_API_BASE_URL = 'https://sua-api-publica.example.com/api/v1';
+</script>
+```

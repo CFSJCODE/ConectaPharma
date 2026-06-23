@@ -79,3 +79,20 @@ A integração com Overpass foi ajustada para reduzir latência e proteger o ser
 - O frontend possui cache temporário de sessão e apenas renderiza os dados retornados pelo backend.
 
 Esses ajustes mantêm o uso gratuito e respeitoso do OpenStreetMap/Overpass, sem Google Places, sem Google Maps Platform, sem Cloud Functions e sem Cloud SQL.
+
+
+## Correção de `Failed to fetch` em hospedagem estática
+
+Quando o frontend roda em `https://conectapharma-33fd7.web.app`, chamadas para `http://localhost:8000` não funcionam porque o backend local não está disponível para o navegador do usuário. Para corrigir isso, a plataforma agora usa a seguinte ordem:
+
+1. Se `window.CONNECTAPHARMA_API_BASE_URL` estiver configurado ou se o frontend estiver em `localhost`, consulta o backend FastAPI.
+2. Se o backend estiver indisponível, consulta OpenStreetMap/Overpass diretamente como fallback gratuito.
+3. Exibe links de rota para **Google Maps, OpenStreetMap e Waze** sem usar APIs pagas.
+
+Para usar um backend público, publique o FastAPI em um provedor compatível e configure antes do carregamento da plataforma:
+
+```html
+<script>
+  window.CONNECTAPHARMA_API_BASE_URL = 'https://sua-api-publica.example.com/api/v1';
+</script>
+```

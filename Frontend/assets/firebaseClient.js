@@ -1,4 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
+import { getAnalytics, isSupported, logEvent } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js';
 import {
     getAuth,
     GoogleAuthProvider,
@@ -11,6 +12,16 @@ import {
     setPersistence,
     updateProfile,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
+import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    addDoc,
+    collection,
+    serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 // Configuração pública do app Web registrada no Firebase Console.
 // Este é o local correto para a configuração no projeto estático atual.
@@ -28,33 +39,15 @@ export const firebaseConfig = Object.freeze({
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-let firestoreApiPromise = null;
-let firestoreInstance = null;
+export const db = getFirestore(app);
+
 let analyticsInstancePromise = null;
-
-async function getFirestoreApi() {
-    if (!firestoreApiPromise) {
-        firestoreApiPromise = import('https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js');
-    }
-    return firestoreApiPromise;
-}
-
-export async function getDb() {
-    if (!firestoreInstance) {
-        const { getFirestore } = await getFirestoreApi();
-        firestoreInstance = getFirestore(app);
-    }
-    return firestoreInstance;
-}
 
 export function getAnalyticsSafe() {
     if (typeof window === 'undefined') return Promise.resolve(null);
     if (!analyticsInstancePromise) {
-        analyticsInstancePromise = import('https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js')
-            .then(async ({ getAnalytics, isSupported }) => {
-                const supported = await isSupported();
-                return supported ? getAnalytics(app) : null;
-            })
+        analyticsInstancePromise = isSupported()
+            .then((supported) => (supported ? getAnalytics(app) : null))
             .catch(() => null);
     }
     return analyticsInstancePromise;
@@ -89,10 +82,6 @@ export function getFriendlyAuthError(error) {
         'auth/popup-closed-by-user': 'Login com Google cancelado antes da conclusão.',
         'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de autenticação.',
         'auth/network-request-failed': 'Falha de rede. Verifique sua conexão e tente novamente.',
-        'auth/operation-not-allowed': 'Este provedor de autenticação não está habilitado no Firebase.',
-        'auth/unauthorized-domain': 'Este domínio não está autorizado no Firebase Authentication.',
-        'auth/popup-blocked': 'O navegador bloqueou a janela do Google. Permita popups para este site.',
-        'auth/cancelled-popup-request': 'Uma tentativa de login com Google já estava em andamento.',
         'permission-denied': 'Operação bloqueada pelas regras do Firestore. Verifique a publicação das regras de segurança.',
     };
 
@@ -115,8 +104,6 @@ export async function upsertUserDocument(user, provider, name = null) {
         throw new Error('Usuário Firebase inválido para persistência no Firestore.');
     }
 
-    const { doc, getDoc, setDoc, updateDoc, serverTimestamp } = await getFirestoreApi();
-    const db = await getDb();
     const userRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userRef);
     const resolvedName = name || user.displayName || user.email || 'Usuário ConectaPharma';
@@ -148,8 +135,6 @@ export async function upsertUserDocument(user, provider, name = null) {
 }
 
 async function writeLog(collectionName, payload) {
-    const { addDoc, collection, serverTimestamp } = await getFirestoreApi();
-    const db = await getDb();
     await addDoc(collection(db, collectionName), {
         ...payload,
         userId: payload.userId ?? getSafeUserId(),
@@ -261,8 +246,6 @@ function validateRequired(data, fields) {
 
 export async function submitContactForm(data) {
     validateRequired(data, ['name', 'email', 'message']);
-    const { addDoc, collection, serverTimestamp } = await getFirestoreApi();
-    const db = await getDb();
     await addDoc(collection(db, 'contact_forms'), {
         name: data.name.trim(),
         email: data.email.trim(),
@@ -277,8 +260,6 @@ export async function submitContactForm(data) {
 
 export async function submitFeedbackForm(data) {
     validateRequired(data, ['message']);
-    const { addDoc, collection, serverTimestamp } = await getFirestoreApi();
-    const db = await getDb();
     await addDoc(collection(db, 'feedbacks'), {
         message: data.message.trim(),
         category: data.category || 'OTHER',
@@ -291,8 +272,6 @@ export async function submitFeedbackForm(data) {
 
 export async function submitPharmacyInterestForm(data) {
     validateRequired(data, ['pharmacyName', 'responsibleName', 'email', 'phone', 'city', 'state']);
-    const { addDoc, collection, serverTimestamp } = await getFirestoreApi();
-    const db = await getDb();
     await addDoc(collection(db, 'pharmacy_interest_forms'), {
         pharmacyName: data.pharmacyName.trim(),
         responsibleName: data.responsibleName.trim(),
@@ -310,8 +289,6 @@ export async function submitPharmacyInterestForm(data) {
 
 export async function submitMedicineSearchRequest(data) {
     validateRequired(data, ['medicineName']);
-    const { addDoc, collection, serverTimestamp } = await getFirestoreApi();
-    const db = await getDb();
     await addDoc(collection(db, 'medicine_search_requests'), {
         medicineName: data.medicineName.trim(),
         normalizedMedicineName: normalizeSearchTerm(data.medicineName),

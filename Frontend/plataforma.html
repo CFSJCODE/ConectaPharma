@@ -418,7 +418,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Farmácias abertas próximas</h2>
-            <p class="section-subtitle">A localização é solicitada apenas após o clique. O backend consulta OpenStreetMap/Overpass, calcula distância, verifica horário e ordena por proximidade.</p>
+            <p class="section-subtitle">A localização é solicitada apenas após o clique. A busca usa OpenStreetMap/Overpass: preferencialmente via backend FastAPI e, se a API pública não estiver configurada, por fallback direto para evitar falha de conexão.</p>
             <div class="actions">
                 <button id="btn-nearby-pharmacies" class="btn" type="button">Usar minha localização</button>
                 <select id="nearby-radius" class="select" aria-label="Raio de busca">
@@ -472,9 +472,17 @@
             toSessionUser,
         } from './assets/firebaseClient.js';
 
-        const API_BASE_URL = window.CONNECTAPHARMA_API_BASE_URL || 'http://localhost:8000/api/v1';
+        const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '']);
+        const IS_LOCAL_FRONTEND = LOCAL_HOSTS.has(window.location.hostname);
+        const API_BASE_URL = window.CONNECTAPHARMA_API_BASE_URL || (IS_LOCAL_FRONTEND ? 'http://127.0.0.1:8000/api/v1' : '');
         const STORAGE_USER_KEY = 'conectapharma_user';
         const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
+        const BH_CENTER = { lat: -19.9166813, lng: -43.9344931 };
+        const OVERPASS_ENDPOINTS = [
+            'https://overpass-api.de/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter',
+        ];
+
         let currentToken = null;
         let nearbyRequestController = null;
         let healthRequestController = null;
@@ -485,9 +493,46 @@
         ];
 
         const LOCAL_MOCK_FARMACIAS = [
-            { id: 1, nome: 'Farmácia Central BH', endereco: 'Av. Afonso Pena, 1000 - Centro', horario_funcionamento: '08:00 - 22:00', disponibilidade_farmaco: true, avaliacao: 4.8 },
-            { id: 2, nome: 'Drogaria Plantão 24h', endereco: 'Região Centro-Sul, Belo Horizonte - MG', horario_funcionamento: '24 Horas', disponibilidade_farmaco: true, avaliacao: 4.6 },
+            {
+                id: 1,
+                nome: 'Farmácia Central BH',
+                endereco: 'Av. Afonso Pena, 1000 - Centro',
+                horario_funcionamento: '08:00 - 22:00',
+                disponibilidade_farmaco: true,
+                avaliacao: 4.8,
+                latitude: -19.9191,
+                longitude: -43.9386,
+                google_maps_url: 'https://www.google.com/maps/search/?api=1&query=-19.9191,-43.9386',
+                openstreetmap_url: 'https://www.openstreetmap.org/?mlat=-19.9191&mlon=-43.9386#map=17/-19.9191/-43.9386',
+                waze_url: 'https://www.waze.com/ul?ll=-19.9191%2C-43.9386&navigate=yes',
+            },
+            {
+                id: 2,
+                nome: 'Drogaria Plantão 24h',
+                endereco: 'Região Centro-Sul, Belo Horizonte - MG',
+                horario_funcionamento: '24 Horas',
+                disponibilidade_farmaco: true,
+                avaliacao: 4.6,
+                latitude: -19.932,
+                longitude: -43.9378,
+                google_maps_url: 'https://www.google.com/maps/search/?api=1&query=-19.932,-43.9378',
+                openstreetmap_url: 'https://www.openstreetmap.org/?mlat=-19.932&mlon=-43.9378#map=17/-19.932/-43.9378',
+                waze_url: 'https://www.waze.com/ul?ll=-19.932%2C-43.9378&navigate=yes',
+            },
         ];
+
+        const LOCAL_MOCK_MEDICINES = [
+            { id: 1, nome: 'Losartana 50mg', categoria: 'Anti-hipertensivo', descricao: 'Item operacional do MVP.', stock: 3, requires_prescription: true },
+            { id: 2, nome: 'Metformina 850mg', categoria: 'Antidiabético', descricao: 'Item operacional do MVP.', stock: 22, requires_prescription: true },
+            { id: 3, nome: 'Dipirona 500mg', categoria: 'Analgésico', descricao: 'Item operacional do MVP.', stock: 14, requires_prescription: false },
+        ];
+
+        class BackendUnavailableError extends Error {
+            constructor(message) {
+                super(message);
+                this.name = 'BackendUnavailableError';
+            }
+        }
 
         function byId(id) {
             return document.getElementById(id);
@@ -518,6 +563,10 @@
             return token ? { Authorization: `Bearer ${token}` } : {};
         }
 
+        function isBackendUnavailable(error) {
+            return error?.name === 'BackendUnavailableError' || error?.name === 'TypeError' || /failed to fetch|network|backend/i.test(String(error?.message ?? ''));
+        }
+
         function setSessionStatus(message, mode = 'ok') {
             const status = byId('session-status');
             status.innerHTML = message;
@@ -538,22 +587,283 @@
         }
 
         async function apiJson(path, options = {}) {
-            const response = await fetch(`${API_BASE_URL}${path}`, {
-                ...options,
-                headers: {
-                    ...(options.headers || {}),
-                    ...(options.auth ? authHeaders() : {}),
-                },
-            });
-            if (!response.ok) {
-                let detail = `HTTP ${response.status}`;
-                try {
-                    const payload = await response.json();
-                    detail = payload.detail || detail;
-                } catch (_) {}
-                throw new Error(detail);
+            if (!API_BASE_URL) {
+                throw new BackendUnavailableError('Backend público não configurado para esta hospedagem estática.');
             }
-            return response.json();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}${path}`, {
+                    ...options,
+                    headers: {
+                        ...(options.headers || {}),
+                        ...(options.auth ? authHeaders() : {}),
+                    },
+                });
+
+                if (!response.ok) {
+                    let detail = `HTTP ${response.status}`;
+                    try {
+                        const payload = await response.json();
+                        detail = payload.detail || detail;
+                    } catch (_) {}
+                    throw new Error(detail);
+                }
+
+                return response.json();
+            } catch (error) {
+                if (error?.name === 'AbortError') {
+                    throw new BackendUnavailableError('Tempo limite excedido ao consultar o backend.');
+                }
+                if (error instanceof TypeError) {
+                    throw new BackendUnavailableError('Backend indisponível ou bloqueado por CORS.');
+                }
+                throw error;
+            }
+        }
+
+        function normalizeText(value) {
+            return String(value ?? '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function textMatchesQuery(searchable, query) {
+            const normalizedQuery = normalizeText(query);
+            if (!normalizedQuery) return true;
+            const haystack = normalizeText(searchable);
+            return normalizedQuery.split(' ').every((term) => haystack.includes(term));
+        }
+
+        function toRadians(value) {
+            return value * Math.PI / 180;
+        }
+
+        function haversineKm(originLat, originLng, destLat, destLng) {
+            const earthRadiusKm = 6371;
+            const deltaLat = toRadians(destLat - originLat);
+            const deltaLng = toRadians(destLng - originLng);
+            const lat1 = toRadians(originLat);
+            const lat2 = toRadians(destLat);
+            const a = Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
+            return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        function routeLinks(latitude, longitude, label = 'Destino') {
+            const queryLabel = encodeURIComponent(label || 'Destino');
+            return {
+                maps_url: `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
+                google_maps_url: `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
+                openstreetmap_url: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`,
+                waze_url: `https://www.waze.com/ul?ll=${latitude}%2C${longitude}&navigate=yes&q=${queryLabel}`,
+            };
+        }
+
+        function addressFromTags(tags) {
+            const street = tags['addr:street'] || tags['addr:place'];
+            const number = tags['addr:housenumber'];
+            const suburb = tags['addr:suburb'] || tags['addr:neighbourhood'];
+            const city = tags['addr:city'];
+            const state = tags['addr:state'];
+            const parts = [];
+            if (street) parts.push(number ? `${street}, ${number}` : street);
+            if (suburb) parts.push(suburb);
+            if (city) parts.push(city);
+            if (state) parts.push(state);
+            return parts.join(' - ') || 'Endereço não informado no OpenStreetMap';
+        }
+
+        function phoneFromTags(tags) {
+            return tags.phone || tags['contact:phone'] || tags.mobile || tags['contact:mobile'] || null;
+        }
+
+        function buildOverpassPharmacyQuery(lat, lng, radiusKm) {
+            const radiusM = Math.round(radiusKm * 1000);
+            return `
+[out:json][timeout:25];
+(
+  node["amenity"="pharmacy"](around:${radiusM},${lat},${lng});
+  way["amenity"="pharmacy"](around:${radiusM},${lat},${lng});
+  relation["amenity"="pharmacy"](around:${radiusM},${lat},${lng});
+  node["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
+  way["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
+  relation["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
+);
+out center tags;`.trim();
+        }
+
+        function buildOverpassHealthQuery(lat, lng, radiusKm, kind) {
+            const radiusM = Math.round(radiusKm * 1000);
+            const filters = {
+                all: ['["amenity"="pharmacy"]', '["amenity"="hospital"]', '["amenity"="clinic"]', '["amenity"="doctors"]', '["healthcare"="pharmacy"]', '["healthcare"="hospital"]', '["healthcare"="clinic"]', '["healthcare"="doctor"]'],
+                pharmacy: ['["amenity"="pharmacy"]', '["healthcare"="pharmacy"]'],
+                hospital: ['["amenity"="hospital"]', '["healthcare"="hospital"]'],
+                clinic: ['["amenity"="clinic"]', '["healthcare"="clinic"]'],
+                doctors: ['["amenity"="doctors"]', '["healthcare"="doctor"]'],
+            }[kind] || ['["amenity"="pharmacy"]'];
+            const statements = filters.flatMap((filter) => [
+                `node${filter}(around:${radiusM},${lat},${lng});`,
+                `way${filter}(around:${radiusM},${lat},${lng});`,
+                `relation${filter}(around:${radiusM},${lat},${lng});`,
+            ]).join('\n  ');
+            return `[out:json][timeout:25];\n(\n  ${statements}\n);\nout center tags;`;
+        }
+
+        async function overpassRequest(query) {
+            let lastError = null;
+            for (const endpoint of OVERPASS_ENDPOINTS) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                        body: new URLSearchParams({ data: query }),
+                        signal: AbortSignal.timeout(14000),
+                    });
+                    if (!response.ok) throw new Error(`OpenStreetMap respondeu HTTP ${response.status}`);
+                    return response.json();
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            throw lastError || new Error('OpenStreetMap indisponível no momento.');
+        }
+
+        function parseOpenStatus(openingHours) {
+            if (!openingHours) return null;
+            const expression = String(openingHours).trim();
+            if (!expression) return null;
+            if (expression === '24/7') return true;
+
+            const now = new Date();
+            const dayMap = { Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6, Su: 0 };
+            const currentDay = now.getDay();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            const dayTokens = Object.keys(dayMap).join('|');
+
+            for (const rawRule of expression.split(';')) {
+                const rule = rawRule.trim();
+                if (!rule) continue;
+                if (/\boff\b/i.test(rule)) return false;
+                const dayMatch = rule.match(new RegExp(`\\b(${dayTokens})(?:\\s*-\\s*(${dayTokens}))?\\b`));
+                let appliesToday = !dayMatch;
+                if (dayMatch) {
+                    const start = dayMap[dayMatch[1]];
+                    const end = dayMatch[2] ? dayMap[dayMatch[2]] : start;
+                    if (start <= end) appliesToday = currentDay >= start && currentDay <= end;
+                    else appliesToday = currentDay >= start || currentDay <= end;
+                }
+                if (!appliesToday) continue;
+                const ranges = [...rule.matchAll(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2}|24:00)/g)];
+                if (ranges.length === 0) continue;
+                for (const match of ranges) {
+                    const [openH, openM] = match[1].split(':').map(Number);
+                    const [closeH, closeM] = match[2] === '24:00' ? [23, 59] : match[2].split(':').map(Number);
+                    const openMinutes = openH * 60 + openM;
+                    const closeMinutes = closeH * 60 + closeM;
+                    if (openMinutes <= closeMinutes && currentMinutes >= openMinutes && currentMinutes <= closeMinutes) return true;
+                    if (openMinutes > closeMinutes && (currentMinutes >= openMinutes || currentMinutes <= closeMinutes)) return true;
+                }
+                return false;
+            }
+            return null;
+        }
+
+        function pharmacyRecordFromOsm(element, origin = null) {
+            const tags = element.tags || {};
+            const center = element.center || {};
+            const latitude = Number(element.lat ?? center.lat);
+            const longitude = Number(element.lon ?? center.lon);
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+            const name = tags.name || tags.brand || 'Farmácia no OpenStreetMap';
+            const links = routeLinks(latitude, longitude, name);
+            const isOpen = parseOpenStatus(tags.opening_hours);
+            const distanceKm = origin ? haversineKm(origin.lat, origin.lng, latitude, longitude) : null;
+            return {
+                id: `osm-${element.type}-${element.id}`,
+                nome: name,
+                name,
+                source: 'openstreetmap',
+                endereco: addressFromTags(tags),
+                address: addressFromTags(tags),
+                telefone: phoneFromTags(tags),
+                phone: phoneFromTags(tags),
+                whatsapp: (tags['contact:whatsapp'] || tags.whatsapp || '').replace(/\D+/g, '') || null,
+                latitude,
+                longitude,
+                distance_km: distanceKm !== null ? Math.round(distanceKm * 100) / 100 : null,
+                is_open: isOpen,
+                status_label: isOpen === true ? 'Aberta agora' : isOpen === false ? 'Fechada agora' : 'Horário não informado',
+                opening_hours_label: tags.opening_hours || 'Horário não informado',
+                horario_funcionamento: tags.opening_hours || 'Horário não informado',
+                disponibilidade_farmaco: true,
+                avaliacao: 'OSM',
+                ...links,
+            };
+        }
+
+        function healthRecordFromOsm(element, origin) {
+            const record = pharmacyRecordFromOsm(element, origin);
+            if (!record) return null;
+            const tags = element.tags || {};
+            const rawKind = tags.amenity || tags.healthcare || 'healthcare';
+            const labelMap = {
+                pharmacy: 'Farmácia',
+                hospital: 'Hospital',
+                clinic: 'Clínica',
+                doctors: 'Consultório médico',
+                doctor: 'Consultório médico',
+                healthcare: 'Estabelecimento de saúde',
+            };
+            return {
+                ...record,
+                kind: labelMap[rawKind] || rawKind,
+            };
+        }
+
+        async function findOpenStreetMapPharmacies({ lat, lng, radiusKm = 10, limit = 20, openNow = false, queryText = '' }) {
+            const payload = await overpassRequest(buildOverpassPharmacyQuery(lat, lng, radiusKm));
+            const seen = new Set();
+            let items = (payload.elements || [])
+                .map((element) => pharmacyRecordFromOsm(element, { lat, lng }))
+                .filter(Boolean)
+                .filter((item) => {
+                    if (seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    return true;
+                })
+                .filter((item) => textMatchesQuery(`${item.name} ${item.address} ${item.opening_hours_label}`, queryText))
+                .sort((a, b) => Number(a.distance_km ?? 9999) - Number(b.distance_km ?? 9999));
+
+            if (openNow) {
+                const openItems = items.filter((item) => item.is_open === true);
+                if (openItems.length > 0) items = openItems;
+            }
+
+            return items.slice(0, limit);
+        }
+
+        async function findOpenStreetMapHealth({ lat, lng, radiusKm = 5, limit = 12, openNow = false, kind = 'all' }) {
+            const payload = await overpassRequest(buildOverpassHealthQuery(lat, lng, radiusKm, kind));
+            const seen = new Set();
+            let items = (payload.elements || [])
+                .map((element) => healthRecordFromOsm(element, { lat, lng }))
+                .filter(Boolean)
+                .filter((item) => {
+                    if (seen.has(item.id)) return false;
+                    seen.add(item.id);
+                    return true;
+                })
+                .sort((a, b) => Number(a.distance_km ?? 9999) - Number(b.distance_km ?? 9999));
+
+            if (openNow) {
+                const openItems = items.filter((item) => item.is_open === true);
+                if (openItems.length > 0) items = openItems;
+            }
+
+            return items.slice(0, limit);
         }
 
         async function verifySession(user) {
@@ -572,8 +882,11 @@
                 const apiUser = await apiJson('/auth/me', { auth: true, signal: AbortSignal.timeout(2800) });
                 setText('user-name', apiUser.name || sessionUser.name || sessionUser.email || 'Usuário');
                 setSessionStatus('Sessão Firebase validada pelo backend');
-            } catch (_) {
-                setSessionStatus('Sessão Firebase ativa; backend indisponível ou sem Firebase Admin', 'warn');
+            } catch (error) {
+                const modeMessage = API_BASE_URL
+                    ? 'Sessão Firebase ativa; backend indisponível no momento'
+                    : 'Sessão Firebase ativa; usando OpenStreetMap direto para buscas públicas';
+                setSessionStatus(modeMessage, 'warn');
             }
 
             await Promise.allSettled([
@@ -628,8 +941,10 @@
             const links = [];
             if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`);
             if (item.telefone || item.phone) links.push(`<a href="tel:${escapeHtml(item.telefone || item.phone)}">Telefone</a>`);
-            if (item.maps_url) links.push(`<a href="${escapeHtml(item.maps_url)}" target="_blank" rel="noopener">Ver rota</a>`);
-            return links.join('');
+            if (item.google_maps_url || item.maps_url) links.push(`<a href="${escapeHtml(item.google_maps_url || item.maps_url)}" target="_blank" rel="noopener">Google Maps</a>`);
+            if (item.openstreetmap_url) links.push(`<a href="${escapeHtml(item.openstreetmap_url)}" target="_blank" rel="noopener">OpenStreetMap</a>`);
+            if (item.waze_url) links.push(`<a href="${escapeHtml(item.waze_url)}" target="_blank" rel="noopener">Waze</a>`);
+            return links.join(' · ');
         }
 
         function renderPharmacyDirectory(items) {
@@ -642,11 +957,11 @@
                 <div class="item-card">
                     <div class="item-head">
                         <div>
-                            <strong>${escapeHtml(item.nome)}</strong>
-                            <p>${escapeHtml(item.endereco || 'Endereço não informado')}</p>
-                            <p>${escapeHtml(item.horario_funcionamento || 'Horário não informado')} · Avaliação ${escapeHtml(item.avaliacao ?? '—')}</p>
+                            <strong>${escapeHtml(item.nome || item.name)}</strong>
+                            <p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p>
+                            <p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')} · Fonte ${escapeHtml(item.source || 'backend')}</p>
                         </div>
-                        <span class="badge ${item.disponibilidade_farmaco ? 'ok' : 'warn'}">${item.disponibilidade_farmaco ? 'Com disponibilidade' : 'Verificar estoque'}</span>
+                        <span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível para consulta'}</span>
                     </div>
                     <div class="item-actions">${pharmacyActions(item)}</div>
                 </div>
@@ -659,11 +974,23 @@
                 const params = new URLSearchParams({ limit: '30' });
                 if (query) params.set('q', query);
                 const items = await apiJson(`/farmacias?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
-                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s).`, 'success');
+                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s) no backend.`, 'success');
                 renderPharmacyDirectory(items);
             } catch (error) {
+                if (isBackendUnavailable(error)) {
+                    try {
+                        setMessage('pharmacy-directory-status', 'Backend indisponível. Buscando farmácias no OpenStreetMap em Belo Horizonte...', 'warn');
+                        const items = await findOpenStreetMapPharmacies({ ...BH_CENTER, radiusKm: 12, limit: 30, openNow: false, queryText: query });
+                        setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s) no OpenStreetMap.`, 'success');
+                        renderPharmacyDirectory(items);
+                    } catch (_) {
+                        setMessage('pharmacy-directory-status', 'Não foi possível consultar backend nem OpenStreetMap. Exibindo base local mínima.', 'error');
+                        renderPharmacyDirectory(LOCAL_MOCK_FARMACIAS);
+                    }
+                    return;
+                }
                 setMessage('pharmacy-directory-status', `Não foi possível consultar farmácias: ${error.message}`, 'error');
-                renderPharmacyDirectory([]);
+                renderPharmacyDirectory(LOCAL_MOCK_FARMACIAS);
             }
         }
 
@@ -683,7 +1010,7 @@
                             <p>${escapeHtml(item.categoria || 'Categoria não informada')} · Estoque operacional: ${escapeHtml(item.stock ?? 0)}</p>
                             <p>${escapeHtml(item.descricao || 'Sem descrição operacional.')}</p>
                         </div>
-                        <span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Com prescrição' : 'Sem prescrição'}</span>
+                        <span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Prescrição' : 'Livre'}</span>
                     </div>
                 </div>
             `).join('');
@@ -696,7 +1023,8 @@
                 const items = await apiJson(`/saude/medicamentos?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
                 renderMedicines(items);
             } catch (_) {
-                renderMedicines([]);
+                const items = LOCAL_MOCK_MEDICINES.filter((item) => textMatchesQuery(`${item.nome} ${item.categoria} ${item.descricao}`, query));
+                renderMedicines(items);
             }
         }
 
@@ -704,7 +1032,7 @@
             event.preventDefault();
             const button = byId('btn-register-medicine');
             button.disabled = true;
-            setMessage('medicine-form-status', 'Cadastrando medicamento...');
+            setMessage('medicine-form-status', 'Cadastrando...');
             try {
                 const payload = {
                     nome: byId('medicine-name').value.trim(),
@@ -726,7 +1054,10 @@
                 setMessage('medicine-form-status', 'Medicamento cadastrado com sucesso.', 'success');
                 await loadMedicines();
             } catch (error) {
-                setMessage('medicine-form-status', `Falha no cadastro: ${error.message}`, 'error');
+                const message = isBackendUnavailable(error)
+                    ? 'O cadastro exige backend FastAPI ativo. Execute o backend local ou configure uma API pública.'
+                    : `Falha no cadastro: ${error.message}`;
+                setMessage('medicine-form-status', message, 'error');
             } finally {
                 button.disabled = false;
             }
@@ -749,7 +1080,7 @@
         function renderNearbyPharmacies(items) {
             const list = byId('nearby-pharmacy-list');
             if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhuma farmácia aberta encontrada no raio configurado.</p>';
+                list.innerHTML = '<p class="loading-text">Nenhuma farmácia encontrada no raio configurado.</p>';
                 return;
             }
             list.innerHTML = items.map((item) => {
@@ -758,11 +1089,11 @@
                     <div class="item-card">
                         <div class="item-head">
                             <div>
-                                <strong>${escapeHtml(item.name)}</strong>
-                                <p>${escapeHtml(item.address || 'Endereço não informado')}</p>
-                                <p>${distance} km · ${escapeHtml(item.opening_hours_label || 'Horário não informado')}</p>
+                                <strong>${escapeHtml(item.name || item.nome)}</strong>
+                                <p>${escapeHtml(item.address || item.endereco || 'Endereço não informado')}</p>
+                                <p>${distance} km · ${escapeHtml(item.opening_hours_label || item.horario_funcionamento || 'Horário não informado')}</p>
                             </div>
-                            <span class="badge ok">${escapeHtml(item.status_label || 'Aberta agora')}</span>
+                            <span class="badge ${item.is_open === false ? 'warn' : 'ok'}">${escapeHtml(item.status_label || 'Localizada')}</span>
                         </div>
                         <div class="item-actions">${pharmacyActions(item)}</div>
                     </div>
@@ -774,7 +1105,7 @@
             const button = byId('btn-nearby-pharmacies');
             button.disabled = true;
             setMessage('nearby-status', 'Obtendo localização autorizada pelo navegador...');
-            byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Aguardando processamento do backend...</p>';
+            byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Aguardando consulta...</p>';
             try {
                 const location = await getUserLocation();
                 const radiusKm = Number(byId('nearby-radius').value || 10);
@@ -788,15 +1119,22 @@
                     limit: '10',
                     source: 'overpass',
                 });
-                const data = await apiJson(`/farmacias/proximas?${params.toString()}`, {
-                    signal: AbortSignal.any([nearbyRequestController.signal, AbortSignal.timeout(14000)]),
-                });
-                setMessage('nearby-status', `${data.count} farmácia(s) aberta(s) encontrada(s) em até ${data.radius_km} km.`, 'success');
-                renderNearbyPharmacies(data.items);
+                try {
+                    const data = await apiJson(`/farmacias/proximas?${params.toString()}`, {
+                        signal: AbortSignal.any([nearbyRequestController.signal, AbortSignal.timeout(12000)]),
+                    });
+                    setMessage('nearby-status', `${data.count} farmácia(s) localizada(s) via backend/OpenStreetMap em até ${data.radius_km} km.`, 'success');
+                    renderNearbyPharmacies(data.items);
+                } catch (backendError) {
+                    if (!isBackendUnavailable(backendError)) throw backendError;
+                    const items = await findOpenStreetMapPharmacies({ lat: location.lat, lng: location.lng, radiusKm, limit: 10, openNow: true });
+                    setMessage('nearby-status', `${items.length} farmácia(s) localizada(s) diretamente no OpenStreetMap.`, 'success');
+                    renderNearbyPharmacies(items);
+                }
             } catch (error) {
                 if (error?.name !== 'AbortError') {
                     setMessage('nearby-status', error.message || 'Não foi possível consultar farmácias próximas.', 'error');
-                    byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização e a disponibilidade do backend.</p>';
+                    byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>';
                 }
             } finally {
                 button.disabled = false;
@@ -812,7 +1150,7 @@
             list.innerHTML = items.map((item) => {
                 const distance = Number(item.distance_km ?? 0).toFixed(2).replace('.', ',');
                 const phone = item.phone ? `<a href="tel:${escapeHtml(item.phone)}">Telefone</a>` : '';
-                const route = item.maps_url ? `<a href="${escapeHtml(item.maps_url)}" target="_blank" rel="noopener">Ver rota</a>` : '';
+                const routeLinksHtml = pharmacyActions(item);
                 return `
                     <div class="item-card">
                         <div class="item-head">
@@ -822,9 +1160,9 @@
                                 <p>${escapeHtml(item.address || 'Endereço não informado')}</p>
                                 <p>${escapeHtml(item.opening_hours_label || 'Horário não informado')}</p>
                             </div>
-                            <span class="badge ${item.is_open === true ? 'ok' : item.is_open === false ? 'warn' : 'warn'}">${escapeHtml(item.status_label || 'Horário não informado')}</span>
+                            <span class="badge ${item.is_open === false ? 'warn' : 'ok'}">${escapeHtml(item.status_label || 'Localizado')}</span>
                         </div>
-                        <div class="item-actions">${[phone, route].filter(Boolean).join('')}</div>
+                        <div class="item-actions">${[phone, routeLinksHtml].filter(Boolean).join(' · ')}</div>
                     </div>
                 `;
             }).join('');
@@ -834,30 +1172,39 @@
             const button = byId('btn-nearby-health');
             button.disabled = true;
             setMessage('health-status', 'Obtendo localização autorizada pelo navegador...');
-            byId('health-list').innerHTML = '<p class="loading-text">Aguardando processamento do backend...</p>';
+            byId('health-list').innerHTML = '<p class="loading-text">Aguardando consulta...</p>';
             try {
                 const location = await getUserLocation();
                 const radiusKm = Number(byId('health-radius').value || 5);
+                const openNow = byId('health-open-now').value === 'true';
+                const kind = byId('health-kind').value;
                 if (healthRequestController) healthRequestController.abort();
                 healthRequestController = new AbortController();
                 const params = new URLSearchParams({
                     lat: String(location.lat),
                     lng: String(location.lng),
                     radius_km: String(radiusKm),
-                    open_now: byId('health-open-now').value,
+                    open_now: String(openNow),
                     limit: '12',
-                    kind: byId('health-kind').value,
+                    kind,
                     source: 'overpass',
                 });
-                const data = await apiJson(`/estabelecimentos-saude/proximos?${params.toString()}`, {
-                    signal: AbortSignal.any([healthRequestController.signal, AbortSignal.timeout(14000)]),
-                });
-                setMessage('health-status', `${data.count} estabelecimento(s) encontrado(s) em até ${data.radius_km} km.`, 'success');
-                renderHealthEstablishments(data.items);
+                try {
+                    const data = await apiJson(`/estabelecimentos-saude/proximos?${params.toString()}`, {
+                        signal: AbortSignal.any([healthRequestController.signal, AbortSignal.timeout(12000)]),
+                    });
+                    setMessage('health-status', `${data.count} estabelecimento(s) localizado(s) via backend/OpenStreetMap em até ${data.radius_km} km.`, 'success');
+                    renderHealthEstablishments(data.items);
+                } catch (backendError) {
+                    if (!isBackendUnavailable(backendError)) throw backendError;
+                    const items = await findOpenStreetMapHealth({ lat: location.lat, lng: location.lng, radiusKm, limit: 12, openNow, kind });
+                    setMessage('health-status', `${items.length} estabelecimento(s) localizado(s) diretamente no OpenStreetMap.`, 'success');
+                    renderHealthEstablishments(items);
+                }
             } catch (error) {
                 if (error?.name !== 'AbortError') {
                     setMessage('health-status', error.message || 'Não foi possível localizar estabelecimentos de saúde.', 'error');
-                    byId('health-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização e a disponibilidade do backend.</p>';
+                    byId('health-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>';
                 }
             } finally {
                 button.disabled = false;
@@ -885,5 +1232,6 @@
             });
         });
     </script>
+
 </body>
 </html>

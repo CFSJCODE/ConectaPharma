@@ -1,8 +1,6 @@
 import os
-import tempfile
 
 os.environ.setdefault("CONNECTAPHARMA_ALLOW_LEGACY_JWT", "true")
-os.environ.setdefault("CONNECTAPHARMA_DATA_FILE", os.path.join(tempfile.gettempdir(), "conectapharma_test_db.json"))
 
 from fastapi.testclient import TestClient
 
@@ -141,29 +139,3 @@ def test_rnds_dispensacao_builds_fhir_bundle_in_dry_run():
     assert body["sent"] is False
     assert body["request_preview"]["resourceType"] == "Bundle"
     assert body["request_preview"]["type"] == "document"
-
-
-def test_farmacias_search_filters_by_query():
-    response = client.get("/api/v1/farmacias", params={"q": "central", "limit": 10})
-
-    body = response.json()
-    assert response.status_code == 200
-    assert len(body) >= 1
-    assert any("Central" in item["nome"] for item in body)
-    assert {"id", "nome", "endereco", "maps_url", "status_label"} <= set(body[0])
-
-
-def test_medicamentos_catalogo_search():
-    response = client.get("/api/v1/saude/medicamentos", params={"q": "losartana", "limit": 10})
-
-    body = response.json()
-    assert response.status_code == 200
-    assert len(body) >= 1
-    assert body[0]["nome"] == "Losartana 50mg"
-
-
-def test_obter_medicamento_por_id():
-    response = client.get("/api/v1/saude/medicamentos/1")
-
-    assert response.status_code == 200
-    assert response.json()["id"] == 1
