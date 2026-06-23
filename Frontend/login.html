@@ -8,8 +8,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-    <link rel="modulepreload" href="./assets/firebaseClient.js">
     <title>Login - ConectaPharma</title>
     <style>
         /* Variáveis de Cores herdadas do ConectaPharma Design System */
@@ -292,16 +290,16 @@
     </div>
 
     <script type="module">
-        import {
-            getFriendlyAuthError,
-            signInWithEmail,
-            signInWithGoogle,
-            signUpWithEmail,
-            toSessionUser,
-        } from './assets/firebaseClient.js';
-
         const STORAGE_USER_KEY = 'conectapharma_user';
         const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
+        let firebaseModulePromise = null;
+
+        function loadFirebaseAuthModule() {
+            if (!firebaseModulePromise) {
+                firebaseModulePromise = import('./assets/firebaseClient.js');
+            }
+            return firebaseModulePromise;
+        }
 
         function switchView(viewId) {
             document.querySelectorAll('.view').forEach((el) => el.classList.remove('active'));
@@ -338,8 +336,8 @@
             });
         }
 
-        async function persistFirebaseSession(user) {
-            const sessionUser = toSessionUser(user);
+        async function persistFirebaseSession(user, firebaseAuth) {
+            const sessionUser = firebaseAuth.toSessionUser(user);
             const idToken = await user.getIdToken();
 
             sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(sessionUser));
@@ -351,7 +349,13 @@
             showAlert(`Bem-vindo(a), ${user.displayName || user.email}! Redirecionando...`, 'success');
             setTimeout(() => {
                 window.location.href = 'plataforma.html';
-            }, 800);
+            }, 250);
+        }
+
+        function getFriendlyError(firebaseAuth, error) {
+            return firebaseAuth?.getFriendlyAuthError?.(error)
+                || error?.message
+                || 'Não foi possível concluir a operação. Tente novamente.';
         }
 
         async function handleLogin(event) {
@@ -359,14 +363,17 @@
 
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
-            setFormLoading('view-login', true, 'Entrando...');
+            setFormLoading('view-login', true, 'Carregando autenticação...');
+            let firebaseAuth = null;
 
             try {
-                const user = await signInWithEmail(email, password);
-                await persistFirebaseSession(user);
+                firebaseAuth = await loadFirebaseAuthModule();
+                setFormLoading('view-login', true, 'Entrando...');
+                const user = await firebaseAuth.signInWithEmail(email, password);
+                await persistFirebaseSession(user, firebaseAuth);
                 redirectToPlatform(user);
             } catch (error) {
-                showAlert(getFriendlyAuthError(error), 'error');
+                showAlert(getFriendlyError(firebaseAuth, error), 'error');
             } finally {
                 setFormLoading('view-login', false);
             }
@@ -378,14 +385,17 @@
             const name = document.getElementById('reg-name').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const password = document.getElementById('reg-password').value;
-            setFormLoading('view-register', true, 'Cadastrando...');
+            setFormLoading('view-register', true, 'Carregando autenticação...');
+            let firebaseAuth = null;
 
             try {
-                const user = await signUpWithEmail(name, email, password);
-                await persistFirebaseSession(user);
+                firebaseAuth = await loadFirebaseAuthModule();
+                setFormLoading('view-register', true, 'Cadastrando...');
+                const user = await firebaseAuth.signUpWithEmail(name, email, password);
+                await persistFirebaseSession(user, firebaseAuth);
                 redirectToPlatform(user);
             } catch (error) {
-                showAlert(getFriendlyAuthError(error), 'error');
+                showAlert(getFriendlyError(firebaseAuth, error), 'error');
             } finally {
                 setFormLoading('view-register', false);
             }
@@ -393,12 +403,14 @@
 
         async function handleGoogleAuth() {
             setGoogleLoading(true);
+            let firebaseAuth = null;
             try {
-                const user = await signInWithGoogle();
-                await persistFirebaseSession(user);
+                firebaseAuth = await loadFirebaseAuthModule();
+                const user = await firebaseAuth.signInWithGoogle();
+                await persistFirebaseSession(user, firebaseAuth);
                 redirectToPlatform(user);
             } catch (error) {
-                showAlert(getFriendlyAuthError(error), 'error');
+                showAlert(getFriendlyError(firebaseAuth, error), 'error');
             } finally {
                 setGoogleLoading(false);
             }
@@ -409,6 +421,9 @@
         window.handleRegister = handleRegister;
         window.handleGoogleAuth = handleGoogleAuth;
 
+        if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(() => loadFirebaseAuthModule().catch(() => undefined), { timeout: 2500 });
+        }
     </script>
 </body>
 </html>

@@ -569,7 +569,7 @@
             setText('user-name', sessionUser.name || sessionUser.email || 'Usuário');
 
             try {
-                const apiUser = await apiJson('/auth/me', { auth: true, signal: AbortSignal.timeout(5000) });
+                const apiUser = await apiJson('/auth/me', { auth: true, signal: AbortSignal.timeout(2800) });
                 setText('user-name', apiUser.name || sessionUser.name || sessionUser.email || 'Usuário');
                 setSessionStatus('Sessão Firebase validada pelo backend');
             } catch (_) {
@@ -586,8 +586,8 @@
         async function loadDashboardData() {
             try {
                 const [alertas, farmacias] = await Promise.all([
-                    apiJson('/alertas', { signal: AbortSignal.timeout(5000) }),
-                    apiJson('/farmacias/mapa', { signal: AbortSignal.timeout(5000) }),
+                    apiJson('/alertas', { signal: AbortSignal.timeout(2800) }),
+                    apiJson('/farmacias/mapa', { signal: AbortSignal.timeout(2800) }),
                 ]);
                 renderDashboardData(alertas, farmacias);
             } catch (_) {
@@ -658,7 +658,7 @@
             try {
                 const params = new URLSearchParams({ limit: '30' });
                 if (query) params.set('q', query);
-                const items = await apiJson(`/farmacias?${params.toString()}`, { signal: AbortSignal.timeout(7000) });
+                const items = await apiJson(`/farmacias?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
                 setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s).`, 'success');
                 renderPharmacyDirectory(items);
             } catch (error) {
@@ -693,7 +693,7 @@
             try {
                 const params = new URLSearchParams({ limit: '50' });
                 if (query) params.set('q', query);
-                const items = await apiJson(`/saude/medicamentos?${params.toString()}`, { signal: AbortSignal.timeout(7000) });
+                const items = await apiJson(`/saude/medicamentos?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
                 renderMedicines(items);
             } catch (_) {
                 renderMedicines([]);
@@ -789,7 +789,7 @@
                     source: 'overpass',
                 });
                 const data = await apiJson(`/farmacias/proximas?${params.toString()}`, {
-                    signal: AbortSignal.any([nearbyRequestController.signal, AbortSignal.timeout(18000)]),
+                    signal: AbortSignal.any([nearbyRequestController.signal, AbortSignal.timeout(14000)]),
                 });
                 setMessage('nearby-status', `${data.count} farmácia(s) aberta(s) encontrada(s) em até ${data.radius_km} km.`, 'success');
                 renderNearbyPharmacies(data.items);
@@ -850,7 +850,7 @@
                     source: 'overpass',
                 });
                 const data = await apiJson(`/estabelecimentos-saude/proximos?${params.toString()}`, {
-                    signal: AbortSignal.any([healthRequestController.signal, AbortSignal.timeout(18000)]),
+                    signal: AbortSignal.any([healthRequestController.signal, AbortSignal.timeout(14000)]),
                 });
                 setMessage('health-status', `${data.count} estabelecimento(s) encontrado(s) em até ${data.radius_km} km.`, 'success');
                 renderHealthEstablishments(data.items);

@@ -36,20 +36,14 @@ certs/
 .DS_Store
 Thumbs.db
 
-.env
 *.env
-!.env.example
-.venv/
-venv/
-__pycache__/
-.pytest_cache/
 node_modules/
 dist/
 build/
-*.log
 *service-account*.json
 *firebase-adminsdk*.json
 credentials.json
 secrets/
 .firebase/
-.firebase/
+Backend/data/*.json
+Backend/data/*.tmp

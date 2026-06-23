@@ -714,6 +714,46 @@ dir .github\workflows
 
 ---
 
+
+## Backend real e otimizações implementadas
+
+A versão atual substitui o comportamento puramente volátil do MVP por uma persistência local gratuita baseada em JSON atômico no backend. O arquivo é criado automaticamente em `Backend/data/conectapharma_db.json` durante a inicialização da API. Essa pasta é ignorada pelo Git para evitar envio de dados operacionais locais.
+
+### Recursos operacionais atuais
+
+- Persistência local de usuários legados, medicamentos cadastrados, farmácias cadastradas e entregas simuladas.
+- Busca de farmácias por nome, endereço, telefone e horário.
+- Filtro opcional de farmácias abertas agora.
+- Cadastro autenticado de farmácias via `POST /api/v1/farmacias`.
+- Catálogo de medicamentos persistente via `GET /api/v1/saude/medicamentos` e `POST /api/v1/saude/medicamentos`.
+- Consulta individual de farmácias e medicamentos.
+- Busca de farmácias próximas via OpenStreetMap/Overpass processada integralmente no backend.
+- Fallback local quando a Overpass API está indisponível ou quando não há farmácias abertas com horário público cadastrado.
+- Cache de consultas externas e reutilização de conexões HTTP para reduzir latência.
+- Página de login otimizada com carregamento preguiçoso do Firebase, reduzindo atraso inicial de renderização.
+
+### Variáveis de persistência local
+
+```env
+CONNECTAPHARMA_DATA_DIR=Backend/data
+CONNECTAPHARMA_DATA_FILE=Backend/data/conectapharma_db.json
+```
+
+### Endpoints principais
+
+```text
+GET  /api/v1/farmacias
+GET  /api/v1/farmacias/{farmacia_id}
+POST /api/v1/farmacias
+GET  /api/v1/farmacias/proximas
+GET  /api/v1/saude/medicamentos
+GET  /api/v1/saude/medicamentos/{medicamento_id}
+POST /api/v1/saude/medicamentos
+GET  /api/v1/estabelecimentos-saude/proximos
+```
+
+O frontend permanece responsável apenas por solicitar a localização autorizada do usuário e renderizar os dados retornados. O cálculo de distância, filtragem de horário, ordenação e fallback são executados pelo backend.
+
 ## 19. Status Atual do Projeto
 
 * Firebase Authentication configurado;
