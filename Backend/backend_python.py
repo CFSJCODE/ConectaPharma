@@ -190,12 +190,18 @@ class FarmaciaProximaItem(BaseModel):
     address: str
     phone: Optional[str] = None
     whatsapp: Optional[str] = None
+    website: Optional[str] = None
+    email: Optional[str] = None
+    operator: Optional[str] = None
+    brand: Optional[str] = None
     latitude: float
     longitude: float
     distance_km: float
     is_open: Optional[bool] = None
     status_label: str
     opening_hours_label: str
+    opening_hours_raw: Optional[str] = None
+    address_quality: str = "osm_structured_or_fallback"
     maps_url: str
     google_maps_url: str
     openstreetmap_url: str
@@ -248,12 +254,17 @@ class EstabelecimentoSaudeItem(BaseModel):
     kind: str
     address: str
     phone: Optional[str] = None
+    website: Optional[str] = None
+    email: Optional[str] = None
+    operator: Optional[str] = None
     latitude: float
     longitude: float
     distance_km: float
     is_open: Optional[bool] = None
     status_label: str
     opening_hours_label: str
+    opening_hours_raw: Optional[str] = None
+    address_quality: str = "osm_structured_or_fallback"
     maps_url: str
     google_maps_url: str
     openstreetmap_url: str
@@ -430,7 +441,7 @@ class MockDatabase:
             {
                 "id": "mock-health-1",
                 "name": "Unidade Básica de Saúde Centro-Sul",
-                "kind": "HEALTH_CENTER",
+                "kind": "primary_care",
                 "address": "Região Centro-Sul, Belo Horizonte - MG",
                 "phone": "(31) 3277-0000",
                 "latitude": -19.9287,
@@ -447,8 +458,8 @@ class MockDatabase:
             },
             {
                 "id": "mock-health-2",
-                "name": "Hospital Metropolitano 24h",
-                "kind": "HOSPITAL",
+                "name": "UPA Barreiro 24h",
+                "kind": "urgent_care",
                 "address": "Belo Horizonte - MG",
                 "phone": "(31) 3277-1111",
                 "latitude": -19.9227,
@@ -879,11 +890,13 @@ class OpeningHoursService:
     def label(record: Dict[str, Any], now: datetime) -> str:
         osm_label = record.get("osm_opening_hours")
         if osm_label:
+            if osm_label.strip() == "24/7":
+                return "Aberto 24 horas"
             return osm_label
 
         opening_hours = record.get("opening_hours")
         if not opening_hours:
-            return "Horário não informado"
+            return "Horário não informado pelo OpenStreetMap"
 
         day_key = WEEK_DAYS[now.weekday()]
         periods = opening_hours.get(day_key, [])
@@ -894,6 +907,15 @@ class OpeningHoursService:
             f"{period.get('open', '--:--')} - {period.get('close', '--:--')}"
             for period in periods
         )
+
+    @staticmethod
+    def raw(record: Dict[str, Any]) -> Optional[str]:
+        if record.get("osm_opening_hours"):
+            return str(record.get("osm_opening_hours"))
+        opening_hours = record.get("opening_hours")
+        if not opening_hours:
+            return None
+        return str(opening_hours)
 
 
 class OverpassPharmacyService:
@@ -971,29 +993,61 @@ class OverpassPharmacyService:
   node["healthcare"="pharmacy"](around:{radius_m},{lat},{lng});
   way["healthcare"="pharmacy"](around:{radius_m},{lat},{lng});
   relation["healthcare"="pharmacy"](around:{radius_m},{lat},{lng});
+  node["shop"="chemist"](around:{radius_m},{lat},{lng});
+  way["shop"="chemist"](around:{radius_m},{lat},{lng});
+  relation["shop"="chemist"](around:{radius_m},{lat},{lng});
 );
 out center tags;
 """.strip()
 
     @staticmethod
     def _address_from_tags(tags: Dict[str, str]) -> str:
-        street = tags.get("addr:street") or tags.get("addr:place")
-        number = tags.get("addr:housenumber")
-        suburb = tags.get("addr:suburb") or tags.get("addr:neighbourhood")
-        city = tags.get("addr:city")
+        full_address = tags.get("addr:full") or tags.get("contact:address")
+        if full_address:
+            return full_address
+
+        street = tags.get("addr:street") or tags.get("contact:street") or tags.get("addr:place")
+        number = tags.get("addr:housenumber") or tags.get("contact:housenumber")
+        unit = tags.get("addr:unit") or tags.get("addr:door")
+        suburb = tags.get("addr:suburb") or tags.get("addr:neighbourhood") or tags.get("addr:district")
+        city = tags.get("addr:city") or tags.get("addr:town") or tags.get("addr:municipality")
         state = tags.get("addr:state")
+        postcode = tags.get("addr:postcode")
 
         address_parts = []
         if street:
-            address_parts.append(f"{street}, {number}" if number else street)
+            line = f"{street}, {number}" if number else street
+            if unit:
+                line = f"{line}, {unit}"
+            address_parts.append(line)
         if suburb:
             address_parts.append(suburb)
         if city:
             address_parts.append(city)
         if state:
             address_parts.append(state)
+        if postcode:
+            address_parts.append(f"CEP {postcode}")
 
         return " - ".join(address_parts) if address_parts else "Endereço não informado no OpenStreetMap"
+
+    @staticmethod
+    def _address_quality(tags: Dict[str, str]) -> str:
+        if tags.get("addr:full") or tags.get("contact:address"):
+            return "osm_full_address"
+        if tags.get("addr:street") or tags.get("contact:street"):
+            return "osm_structured_address"
+        if tags.get("addr:city") or tags.get("addr:suburb") or tags.get("addr:neighbourhood"):
+            return "osm_partial_address"
+        return "missing_address"
+
+    @staticmethod
+    def _website_from_tags(tags: Dict[str, str]) -> Optional[str]:
+        return tags.get("website") or tags.get("contact:website") or tags.get("url")
+
+    @staticmethod
+    def _email_from_tags(tags: Dict[str, str]) -> Optional[str]:
+        return tags.get("email") or tags.get("contact:email")
 
     @staticmethod
     def _phone_from_tags(tags: Dict[str, str]) -> Optional[str]:
@@ -1029,9 +1083,14 @@ out center tags;
             "address": OverpassPharmacyService._address_from_tags(tags),
             "phone": OverpassPharmacyService._phone_from_tags(tags),
             "whatsapp": OverpassPharmacyService._whatsapp_from_tags(tags),
+            "website": OverpassPharmacyService._website_from_tags(tags),
+            "email": OverpassPharmacyService._email_from_tags(tags),
+            "operator": tags.get("operator") or tags.get("operator:name"),
+            "brand": tags.get("brand"),
             "latitude": float(lat),
             "longitude": float(lng),
             "osm_opening_hours": tags.get("opening_hours"),
+            "address_quality": OverpassPharmacyService._address_quality(tags),
         }
 
     @classmethod
@@ -1092,6 +1151,10 @@ out center tags;
                 "address": farmacia.get("endereco", "Endereço não informado"),
                 "phone": farmacia.get("telefone"),
                 "whatsapp": farmacia.get("whatsapp"),
+                "website": farmacia.get("website"),
+                "email": farmacia.get("email"),
+                "operator": farmacia.get("operator"),
+                "brand": farmacia.get("brand"),
                 "latitude": float(farmacia["latitude"]),
                 "longitude": float(farmacia["longitude"]),
                 "opening_hours": farmacia.get("opening_hours"),
@@ -1163,12 +1226,18 @@ out center tags;
                     address=record.get("address"),
                     phone=record.get("phone"),
                     whatsapp=record.get("whatsapp"),
+                    website=record.get("website"),
+                    email=record.get("email"),
+                    operator=record.get("operator"),
+                    brand=record.get("brand"),
                     latitude=float(record["latitude"]),
                     longitude=float(record["longitude"]),
                     distance_km=round(distance_km, 2),
                     is_open=open_state,
                     status_label=status_label,
                     opening_hours_label=OpeningHoursService.label(record, now),
+                    opening_hours_raw=OpeningHoursService.raw(record),
+                    address_quality=record.get("address_quality", "osm_structured_or_fallback"),
                     source=record.get("source", used_source),
                     maps_url=RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia")["google_maps_url"],
                     **RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Farmácia"),
@@ -1201,15 +1270,20 @@ class HealthEstablishmentService:
     _locks: Dict[str, asyncio.Lock] = {}
 
     KIND_LABELS = {
-        "pharmacy": "Farmácia",
-        "hospital": "Hospital",
-        "clinic": "Clínica",
-        "doctors": "Consultório médico",
-        "dentist": "Odontologia",
-        "health_center": "Centro de saúde",
-        "laboratory": "Laboratório",
-        "unknown": "Estabelecimento de saúde",
+        "primary_care": "Posto de saúde / UBS",
+        "urgent_care": "UPA / pronto atendimento",
+        "community_health_center": "Centro de saúde comunitário",
+        "similar_public_health": "Estabelecimento público similar",
+        "unknown": "Posto de saúde ou UPA",
     }
+
+    PUBLIC_HEALTH_KEYWORDS = (
+        "ubs", "upa", "unidade basica", "unidade básica", "posto de saude", "posto de saúde",
+        "centro de saude", "centro de saúde", "unidade de saude", "unidade de saúde",
+        "pronto atendimento", "unidade de pronto atendimento", "policlinica", "policlínica",
+        "psf", "esf", "estrategia saude da familia", "estratégia saúde da família",
+        "saude da familia", "saúde da família"
+    )
 
     @staticmethod
     def _cache_key(lat: float, lng: float, radius_km: float, kind: str) -> str:
@@ -1222,36 +1296,75 @@ class HealthEstablishmentService:
     @staticmethod
     def _build_query(lat: float, lng: float, radius_km: float, kind: str) -> str:
         radius_m = int(radius_km * 1000)
-        kind_filters = {
+        base_filters = {
             "all": [
-                '["amenity"="pharmacy"]', '["amenity"="hospital"]', '["amenity"="clinic"]', '["amenity"="doctors"]', '["amenity"="dentist"]',
-                '["healthcare"="pharmacy"]', '["healthcare"="hospital"]', '["healthcare"="clinic"]', '["healthcare"="doctor"]', '["healthcare"="laboratory"]',
+                '["amenity"~"^(clinic|hospital|doctors)$"]',
+                '["healthcare"~"^(clinic|centre|doctor|hospital)$"]',
+                '["name"~"(UBS|UPA|Unidade Básica|Unidade Basica|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade de Saúde|Unidade de Saude|Pronto Atendimento|Policlínica|Policlinica|PSF|ESF)",i]',
             ],
-            "pharmacy": ['["amenity"="pharmacy"]', '["healthcare"="pharmacy"]'],
-            "hospital": ['["amenity"="hospital"]', '["healthcare"="hospital"]'],
-            "clinic": ['["amenity"="clinic"]', '["healthcare"="clinic"]'],
-            "doctors": ['["amenity"="doctors"]', '["healthcare"="doctor"]'],
+            "primary_care": [
+                '["amenity"~"^(clinic|doctors)$"]',
+                '["healthcare"~"^(clinic|centre|doctor)$"]',
+                '["name"~"(UBS|Unidade Básica|Unidade Basica|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade de Saúde|Unidade de Saude|PSF|ESF)",i]',
+            ],
+            "urgent_care": [
+                '["amenity"~"^(clinic|hospital)$"]',
+                '["healthcare"~"^(clinic|hospital)$"]',
+                '["emergency"="yes"]',
+                '["name"~"(UPA|Pronto Atendimento|Unidade de Pronto Atendimento|PA 24|24h)",i]',
+            ],
         }
-        filters = kind_filters.get(kind, kind_filters["all"])
-        lines = []
+        filters = base_filters.get(kind, base_filters["all"])
+        statements: List[str] = []
         for selector in filters:
-            lines.append(f"node{selector}(around:{radius_m},{lat},{lng});")
-            lines.append(f"way{selector}(around:{radius_m},{lat},{lng});")
-            lines.append(f"relation{selector}(around:{radius_m},{lat},{lng});")
-        return "\n".join(["[out:json][timeout:25];", "(", *lines, ");", "out center tags;"])
+            statements.append(f"node{selector}(around:{radius_m},{lat},{lng});")
+            statements.append(f"way{selector}(around:{radius_m},{lat},{lng});")
+            statements.append(f"relation{selector}(around:{radius_m},{lat},{lng});")
+        return "\n".join(["[out:json][timeout:25];", "(", *statements, ");", "out center tags;"])
 
     @staticmethod
-    def _kind_from_tags(tags: Dict[str, str]) -> str:
-        amenity = tags.get("amenity")
-        healthcare = tags.get("healthcare")
-        raw = amenity or healthcare or "unknown"
-        if raw == "doctor":
-            return "doctors"
-        return raw
+    def _clean_text(value: str) -> str:
+        return normalize_text(value or "")
+
+    @classmethod
+    def _kind_from_tags(cls, tags: Dict[str, str]) -> str:
+        searchable = cls._clean_text(" ".join(str(tags.get(key, "")) for key in ("name", "official_name", "operator", "description")))
+        if any(term in searchable for term in ("upa", "pronto atendimento", "unidade de pronto atendimento", "pa 24", "24h")) or tags.get("emergency") == "yes":
+            return "urgent_care"
+        if any(term in searchable for term in ("ubs", "unidade basica", "unidade básica", "posto de saude", "posto de saúde", "psf", "esf", "saude da familia", "saúde da família")):
+            return "primary_care"
+        if any(term in searchable for term in ("centro de saude", "centro de saúde", "unidade de saude", "unidade de saúde", "policlinica", "policlínica")):
+            return "community_health_center"
+        return "similar_public_health"
+
+    @classmethod
+    def _is_allowed_public_health_facility(cls, tags: Dict[str, str]) -> bool:
+        amenity = cls._clean_text(tags.get("amenity", ""))
+        healthcare = cls._clean_text(tags.get("healthcare", ""))
+        searchable = cls._clean_text(" ".join(str(tags.get(key, "")) for key in ("name", "official_name", "operator", "description", "healthcare:speciality")))
+
+        excluded_values = {"pharmacy", "dentist", "veterinary", "laboratory", "optician"}
+        if amenity in excluded_values or healthcare in excluded_values:
+            return False
+
+        if any(keyword in searchable for keyword in cls.PUBLIC_HEALTH_KEYWORDS):
+            return True
+
+        # Permite serviços públicos de atenção primária/urgência quando o OSM não tem nome padronizado.
+        if healthcare in {"centre", "clinic"} or amenity in {"clinic", "doctors"}:
+            return any(public_hint in searchable for public_hint in ("municipal", "prefeitura", "sus", "publico", "público", "saude", "saúde"))
+
+        if (amenity == "hospital" or healthcare == "hospital") and ("upa" in searchable or "pronto atendimento" in searchable or tags.get("emergency") == "yes"):
+            return True
+
+        return False
 
     @classmethod
     def _record_from_element(cls, element: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         tags = element.get("tags", {}) or {}
+        if not cls._is_allowed_public_health_facility(tags):
+            return None
+
         center = element.get("center") or {}
         lat = element.get("lat", center.get("lat"))
         lng = element.get("lon", center.get("lon"))
@@ -1260,34 +1373,41 @@ class HealthEstablishmentService:
         kind = cls._kind_from_tags(tags)
         return {
             "id": f"osm-health-{element.get('type', 'node')}-{element.get('id')}",
-            "name": tags.get("name") or tags.get("brand") or cls.KIND_LABELS.get(kind, "Estabelecimento de saúde"),
+            "name": tags.get("name") or tags.get("official_name") or cls.KIND_LABELS.get(kind, "Posto de saúde ou UPA"),
             "kind": kind,
             "source": "openstreetmap",
             "address": OverpassPharmacyService._address_from_tags(tags),
             "phone": OverpassPharmacyService._phone_from_tags(tags),
+            "website": OverpassPharmacyService._website_from_tags(tags),
+            "email": OverpassPharmacyService._email_from_tags(tags),
+            "operator": tags.get("operator") or tags.get("operator:name"),
             "latitude": float(lat),
             "longitude": float(lng),
             "osm_opening_hours": tags.get("opening_hours"),
+            "address_quality": OverpassPharmacyService._address_quality(tags),
         }
 
     @classmethod
     def fallback_records(cls) -> List[Dict[str, Any]]:
-        records = []
-        for farmacia in db.farmacias:
-            if farmacia.get("latitude") is None or farmacia.get("longitude") is None:
+        records: List[Dict[str, Any]] = []
+        for item in db.estabelecimentos_saude:
+            if item.get("latitude") is None or item.get("longitude") is None:
                 continue
             records.append({
-                "id": f"mock-pharmacy-{farmacia['id']}",
-                "name": farmacia["nome"],
-                "kind": "pharmacy",
+                "id": item.get("id"),
+                "name": item.get("name"),
+                "kind": item.get("kind", "similar_public_health"),
                 "source": "local_mock",
-                "address": farmacia.get("endereco", "Endereço não informado"),
-                "phone": farmacia.get("telefone"),
-                "latitude": float(farmacia["latitude"]),
-                "longitude": float(farmacia["longitude"]),
-                "opening_hours": farmacia.get("opening_hours"),
+                "address": item.get("address", "Endereço não informado"),
+                "phone": item.get("phone"),
+                "website": item.get("website"),
+                "email": item.get("email"),
+                "operator": item.get("operator"),
+                "latitude": float(item["latitude"]),
+                "longitude": float(item["longitude"]),
+                "opening_hours": item.get("opening_hours"),
+                "address_quality": "local_mock_address",
             })
-        records.extend(db.estabelecimentos_saude)
         return records
 
     @classmethod
@@ -1305,12 +1425,22 @@ class HealthEstablishmentService:
             now_monotonic = time.monotonic()
             if cached and now_monotonic - cached[0] <= settings.OVERPASS_CACHE_TTL_SECONDS:
                 return cached[1]
-            response = await OverpassPharmacyService.get_client().post(
-                settings.OVERPASS_URL,
-                data={"data": cls._build_query(lat, lng, radius_km, kind)},
-            )
-            response.raise_for_status()
-            payload = response.json()
+            query = cls._build_query(lat, lng, radius_km, kind)
+            last_error: Optional[Exception] = None
+            payload: Dict[str, Any] = {}
+            endpoints = settings.OVERPASS_URLS or [settings.OVERPASS_URL]
+            for endpoint in endpoints:
+                try:
+                    response = await OverpassPharmacyService.get_client().post(endpoint, data={"data": query})
+                    response.raise_for_status()
+                    payload = response.json()
+                    last_error = None
+                    break
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning("Falha no endpoint Overpass de saúde %s: %s", endpoint, exc)
+            if last_error is not None:
+                raise last_error
             records = []
             seen: set[str] = set()
             for element in payload.get("elements", []):
@@ -1372,12 +1502,17 @@ class HealthEstablishmentService:
                 kind=cls.KIND_LABELS.get(record_kind, record_kind),
                 address=record.get("address") or "Endereço não informado",
                 phone=record.get("phone"),
+                website=record.get("website"),
+                email=record.get("email"),
+                operator=record.get("operator"),
                 latitude=float(record["latitude"]),
                 longitude=float(record["longitude"]),
                 distance_km=round(distance_km, 2),
                 is_open=open_state,
                 status_label=status_label,
                 opening_hours_label=OpeningHoursService.label(record, now),
+                opening_hours_raw=OpeningHoursService.raw(record),
+                address_quality=record.get("address_quality", "osm_structured_or_fallback"),
                 maps_url=RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde")["google_maps_url"],
                 **RouteLinkService.build(float(record["latitude"]), float(record["longitude"]), record.get("name") or "Estabelecimento de saúde"),
             ))
@@ -1796,12 +1931,13 @@ async def listar_estabelecimentos_saude_proximos(
     radius_km: float = Query(10.0, gt=0, le=50),
     open_now: bool = Query(False),
     limit: int = Query(10, ge=1, le=50),
-    kind: str = Query("all", pattern="^(all|pharmacy|hospital|clinic|doctors)$"),
+    kind: str = Query("all", pattern="^(all|primary_care|urgent_care)$"),
     source: str = Query("overpass", pattern="^(overpass|mock)$"),
 ):
-    """Localiza estabelecimentos de saúde próximos via backend.
+    """Localiza postos de saúde, UBSs, UPAs e serviços públicos similares próximos.
 
     Suporta OpenStreetMap/Overpass gratuito, fallback local e processamento integral no servidor.
+    O filtro exclui farmácias, laboratórios, dentistas e consultórios privados genéricos.
     """
     return await HealthEstablishmentService.search_nearby(
         lat=lat,

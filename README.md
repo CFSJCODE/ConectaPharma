@@ -780,7 +780,7 @@ A plataforma autenticada (`Frontend/plataforma.html`) foi ampliada com novos mó
 - **Catálogo de medicamentos**: listagem e pesquisa de medicamentos operacionais.
 - **Cadastro de medicamentos**: criação de novos itens no catálogo do MVP via backend autenticado.
 - **Farmácias abertas próximas**: o frontend solicita a localização do usuário; o backend consulta OpenStreetMap/Overpass, calcula distância, filtra abertura e ordena resultados. Em ambiente sem backend público, o frontend aciona fallback OpenStreetMap direto.
-- **Estabelecimentos de saúde próximos**: localização de farmácias, hospitais, clínicas e consultórios próximos usando dados abertos processados no backend.
+- **Postos de saúde e UPAs próximos**: localização de postos de saúde, UBSs, centros de saúde, UPAs e serviços públicos similares usando dados abertos processados no backend. O filtro exclui farmácias, laboratórios, dentistas e consultórios privados genéricos.
 - **Frontend sem logs de depuração**: foram removidas chamadas `console.*` do frontend; a interface mostra mensagens de estado amigáveis ao usuário.
 
 ### Novos endpoints principais
@@ -815,3 +815,16 @@ Para usar um backend público, publique o FastAPI em um provedor compatível e c
   window.CONNECTAPHARMA_API_BASE_URL = 'https://sua-api-publica.example.com/api/v1';
 </script>
 ```
+
+
+### Filtro de estabelecimentos públicos de saúde
+
+O endpoint `GET /api/v1/estabelecimentos-saude/proximos` foi limitado a estabelecimentos compatíveis com o escopo social da plataforma: postos de saúde, UBSs, centros de saúde, UPAs, pronto atendimento e unidades públicas similares. Os valores aceitos para `kind` são:
+
+```text
+all
+primary_care
+urgent_care
+```
+
+A busca usa dados abertos do OpenStreetMap/Overpass e filtra nomes/tags como `UBS`, `UPA`, `Posto de Saúde`, `Centro de Saúde`, `Unidade Básica`, `Pronto Atendimento`, `PSF` e `ESF`. Farmácias, laboratórios, dentistas e consultórios privados genéricos são removidos desse fluxo.

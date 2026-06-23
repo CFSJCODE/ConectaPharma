@@ -105,8 +105,40 @@ def test_farmacias_proximas_processa_no_backend_com_fallback_mock():
         "is_open",
         "status_label",
         "opening_hours_label",
+        "opening_hours_raw",
+        "address_quality",
         "maps_url",
+        "google_maps_url",
+        "openstreetmap_url",
+        "waze_url",
     } <= set(body["items"][0])
+
+
+def test_estabelecimentos_saude_limita_a_postos_upas_e_similares():
+    response = client.get(
+        "/api/v1/estabelecimentos-saude/proximos",
+        params={
+            "lat": -19.9191,
+            "lng": -43.9386,
+            "radius_km": 20,
+            "open_now": False,
+            "limit": 10,
+            "source": "mock",
+            "kind": "all",
+        },
+    )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["count"] >= 1
+    allowed_kinds = {
+        "Posto de saúde / UBS",
+        "UPA / pronto atendimento",
+        "Centro de saúde comunitário",
+        "Estabelecimento público similar",
+    }
+    assert all(item["kind"] in allowed_kinds for item in body["items"])
+    assert all("Farmácia" not in item["kind"] for item in body["items"])
 
 
 def test_rnds_status_defaults_to_dry_run():

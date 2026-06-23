@@ -435,16 +435,14 @@
         </section>
 
         <section class="card card-wide">
-            <h2 class="section-title">Estabelecimentos de saúde próximos</h2>
-            <p class="section-subtitle">Localize farmácias, hospitais, clínicas e consultórios próximos usando dados abertos do OpenStreetMap processados no backend.</p>
+            <h2 class="section-title">Postos de saúde e UPAs próximos</h2>
+            <p class="section-subtitle">Localize UBSs, postos de saúde, centros de saúde e UPAs próximos usando dados abertos do OpenStreetMap processados no backend.</p>
             <div class="actions">
                 <button id="btn-nearby-health" class="btn" type="button">Localizar estabelecimentos</button>
                 <select id="health-kind" class="select" aria-label="Tipo de estabelecimento">
-                    <option value="all" selected>Todos</option>
-                    <option value="pharmacy">Farmácias</option>
-                    <option value="hospital">Hospitais</option>
-                    <option value="clinic">Clínicas</option>
-                    <option value="doctors">Consultórios</option>
+                    <option value="all" selected>Postos, UBSs e UPAs</option>
+                    <option value="primary_care">Postos/UBS/Centros de saúde</option>
+                    <option value="urgent_care">UPAs/Pronto atendimento</option>
                 </select>
                 <select id="health-radius" class="select" aria-label="Raio de busca de saúde">
                     <option value="3">Raio de 3 km</option>
@@ -459,7 +457,7 @@
             </div>
             <p id="health-status" class="message">Nenhuma busca executada.</p>
             <div id="health-list" class="list-grid">
-                <p class="loading-text">Clique no botão para localizar estabelecimentos de saúde.</p>
+                <p class="loading-text">Clique no botão para localizar postos de saúde, UBSs e UPAs próximos.</p>
             </div>
         </section>
     </main>
@@ -663,21 +661,46 @@
         }
 
         function addressFromTags(tags) {
-            const street = tags['addr:street'] || tags['addr:place'];
-            const number = tags['addr:housenumber'];
-            const suburb = tags['addr:suburb'] || tags['addr:neighbourhood'];
-            const city = tags['addr:city'];
+            const fullAddress = tags['addr:full'] || tags['contact:address'];
+            if (fullAddress) return fullAddress;
+
+            const street = tags['addr:street'] || tags['contact:street'] || tags['addr:place'];
+            const number = tags['addr:housenumber'] || tags['contact:housenumber'];
+            const unit = tags['addr:unit'] || tags['addr:door'];
+            const suburb = tags['addr:suburb'] || tags['addr:neighbourhood'] || tags['addr:district'];
+            const city = tags['addr:city'] || tags['addr:town'] || tags['addr:municipality'];
             const state = tags['addr:state'];
+            const postcode = tags['addr:postcode'];
             const parts = [];
-            if (street) parts.push(number ? `${street}, ${number}` : street);
+            if (street) {
+                let line = number ? `${street}, ${number}` : street;
+                if (unit) line += `, ${unit}`;
+                parts.push(line);
+            }
             if (suburb) parts.push(suburb);
             if (city) parts.push(city);
             if (state) parts.push(state);
+            if (postcode) parts.push(`CEP ${postcode}`);
             return parts.join(' - ') || 'Endereço não informado no OpenStreetMap';
+        }
+
+        function addressQualityFromTags(tags) {
+            if (tags['addr:full'] || tags['contact:address']) return 'osm_full_address';
+            if (tags['addr:street'] || tags['contact:street']) return 'osm_structured_address';
+            if (tags['addr:city'] || tags['addr:suburb'] || tags['addr:neighbourhood']) return 'osm_partial_address';
+            return 'missing_address';
         }
 
         function phoneFromTags(tags) {
             return tags.phone || tags['contact:phone'] || tags.mobile || tags['contact:mobile'] || null;
+        }
+
+        function websiteFromTags(tags) {
+            return tags.website || tags['contact:website'] || tags.url || null;
+        }
+
+        function emailFromTags(tags) {
+            return tags.email || tags['contact:email'] || null;
         }
 
         function buildOverpassPharmacyQuery(lat, lng, radiusKm) {
@@ -691,6 +714,9 @@
   node["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
   way["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
   relation["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
+  node["shop"="chemist"](around:${radiusM},${lat},${lng});
+  way["shop"="chemist"](around:${radiusM},${lat},${lng});
+  relation["shop"="chemist"](around:${radiusM},${lat},${lng});
 );
 out center tags;`.trim();
         }
@@ -698,12 +724,23 @@ out center tags;`.trim();
         function buildOverpassHealthQuery(lat, lng, radiusKm, kind) {
             const radiusM = Math.round(radiusKm * 1000);
             const filters = {
-                all: ['["amenity"="pharmacy"]', '["amenity"="hospital"]', '["amenity"="clinic"]', '["amenity"="doctors"]', '["healthcare"="pharmacy"]', '["healthcare"="hospital"]', '["healthcare"="clinic"]', '["healthcare"="doctor"]'],
-                pharmacy: ['["amenity"="pharmacy"]', '["healthcare"="pharmacy"]'],
-                hospital: ['["amenity"="hospital"]', '["healthcare"="hospital"]'],
-                clinic: ['["amenity"="clinic"]', '["healthcare"="clinic"]'],
-                doctors: ['["amenity"="doctors"]', '["healthcare"="doctor"]'],
-            }[kind] || ['["amenity"="pharmacy"]'];
+                all: [
+                    '["amenity"~"^(clinic|hospital|doctors)$"]',
+                    '["healthcare"~"^(clinic|centre|doctor|hospital)$"]',
+                    '["name"~"(UBS|UPA|Unidade Básica|Unidade Basica|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade de Saúde|Unidade de Saude|Pronto Atendimento|Policlínica|Policlinica|PSF|ESF)",i]',
+                ],
+                primary_care: [
+                    '["amenity"~"^(clinic|doctors)$"]',
+                    '["healthcare"~"^(clinic|centre|doctor)$"]',
+                    '["name"~"(UBS|Unidade Básica|Unidade Basica|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade de Saúde|Unidade de Saude|PSF|ESF)",i]',
+                ],
+                urgent_care: [
+                    '["amenity"~"^(clinic|hospital)$"]',
+                    '["healthcare"~"^(clinic|hospital)$"]',
+                    '["emergency"="yes"]',
+                    '["name"~"(UPA|Pronto Atendimento|Unidade de Pronto Atendimento|PA 24|24h)",i]',
+                ],
+            }[kind] || [];
             const statements = filters.flatMap((filter) => [
                 `node${filter}(around:${radiusM},${lat},${lng});`,
                 `way${filter}(around:${radiusM},${lat},${lng});`,
@@ -791,35 +828,64 @@ out center tags;`.trim();
                 telefone: phoneFromTags(tags),
                 phone: phoneFromTags(tags),
                 whatsapp: (tags['contact:whatsapp'] || tags.whatsapp || '').replace(/\D+/g, '') || null,
+                website: websiteFromTags(tags),
+                email: emailFromTags(tags),
+                operator: tags.operator || tags['operator:name'] || null,
+                brand: tags.brand || null,
                 latitude,
                 longitude,
                 distance_km: distanceKm !== null ? Math.round(distanceKm * 100) / 100 : null,
                 is_open: isOpen,
                 status_label: isOpen === true ? 'Aberta agora' : isOpen === false ? 'Fechada agora' : 'Horário não informado',
-                opening_hours_label: tags.opening_hours || 'Horário não informado',
-                horario_funcionamento: tags.opening_hours || 'Horário não informado',
+                opening_hours_label: tags.opening_hours === '24/7' ? 'Aberto 24 horas' : (tags.opening_hours || 'Horário não informado pelo OpenStreetMap'),
+                opening_hours_raw: tags.opening_hours || null,
+                horario_funcionamento: tags.opening_hours === '24/7' ? 'Aberto 24 horas' : (tags.opening_hours || 'Horário não informado pelo OpenStreetMap'),
+                address_quality: addressQualityFromTags(tags),
                 disponibilidade_farmaco: true,
                 avaliacao: 'OSM',
                 ...links,
             };
         }
 
+        const PUBLIC_HEALTH_KEYWORDS = [
+            'ubs', 'upa', 'unidade basica', 'unidade básica', 'posto de saude', 'posto de saúde',
+            'centro de saude', 'centro de saúde', 'unidade de saude', 'unidade de saúde',
+            'pronto atendimento', 'unidade de pronto atendimento', 'policlinica', 'policlínica',
+            'psf', 'esf', 'estrategia saude da familia', 'estratégia saúde da família',
+            'saude da familia', 'saúde da família',
+        ];
+
+        function isAllowedPublicHealth(tags) {
+            const amenity = normalizeText(tags.amenity || '');
+            const healthcare = normalizeText(tags.healthcare || '');
+            const searchable = normalizeText(`${tags.name || ''} ${tags.official_name || ''} ${tags.operator || ''} ${tags.description || ''} ${tags['healthcare:speciality'] || ''}`);
+            if (['pharmacy', 'dentist', 'veterinary', 'laboratory', 'optician'].includes(amenity) || ['pharmacy', 'dentist', 'laboratory'].includes(healthcare)) {
+                return false;
+            }
+            if (PUBLIC_HEALTH_KEYWORDS.some((keyword) => searchable.includes(normalizeText(keyword)))) return true;
+            if ((['centre', 'clinic'].includes(healthcare) || ['clinic', 'doctors'].includes(amenity)) && ['municipal', 'prefeitura', 'sus', 'publico', 'público', 'saude', 'saúde'].some((hint) => searchable.includes(normalizeText(hint)))) {
+                return true;
+            }
+            if ((amenity === 'hospital' || healthcare === 'hospital') && (searchable.includes('upa') || searchable.includes('pronto atendimento') || tags.emergency === 'yes')) return true;
+            return false;
+        }
+
+        function healthKindFromTags(tags) {
+            const searchable = normalizeText(`${tags.name || ''} ${tags.official_name || ''} ${tags.operator || ''} ${tags.description || ''}`);
+            if (searchable.includes('upa') || searchable.includes('pronto atendimento') || searchable.includes('unidade de pronto atendimento') || tags.emergency === 'yes') return 'UPA / pronto atendimento';
+            if (searchable.includes('ubs') || searchable.includes('unidade basica') || searchable.includes('posto de saude') || searchable.includes('psf') || searchable.includes('esf')) return 'Posto de saúde / UBS';
+            if (searchable.includes('centro de saude') || searchable.includes('unidade de saude') || searchable.includes('policlinica')) return 'Centro de saúde comunitário';
+            return 'Estabelecimento público similar';
+        }
+
         function healthRecordFromOsm(element, origin) {
+            const tags = element.tags || {};
+            if (!isAllowedPublicHealth(tags)) return null;
             const record = pharmacyRecordFromOsm(element, origin);
             if (!record) return null;
-            const tags = element.tags || {};
-            const rawKind = tags.amenity || tags.healthcare || 'healthcare';
-            const labelMap = {
-                pharmacy: 'Farmácia',
-                hospital: 'Hospital',
-                clinic: 'Clínica',
-                doctors: 'Consultório médico',
-                doctor: 'Consultório médico',
-                healthcare: 'Estabelecimento de saúde',
-            };
             return {
                 ...record,
-                kind: labelMap[rawKind] || rawKind,
+                kind: healthKindFromTags(tags),
             };
         }
 
@@ -1092,6 +1158,8 @@ out center tags;`.trim();
                                 <strong>${escapeHtml(item.name || item.nome)}</strong>
                                 <p>${escapeHtml(item.address || item.endereco || 'Endereço não informado')}</p>
                                 <p>${distance} km · ${escapeHtml(item.opening_hours_label || item.horario_funcionamento || 'Horário não informado')}</p>
+                                ${item.brand || item.operator ? `<p>${escapeHtml([item.brand, item.operator].filter(Boolean).join(' · '))}</p>` : ''}
+                                ${item.website || item.email ? `<p>${item.website ? `<a href="${escapeHtml(item.website)}" target="_blank" rel="noopener">Site</a>` : ''}${item.website && item.email ? ' · ' : ''}${item.email ? `<a href="mailto:${escapeHtml(item.email)}">E-mail</a>` : ''}</p>` : ''}
                             </div>
                             <span class="badge ${item.is_open === false ? 'warn' : 'ok'}">${escapeHtml(item.status_label || 'Localizada')}</span>
                         </div>
@@ -1144,7 +1212,7 @@ out center tags;`.trim();
         function renderHealthEstablishments(items) {
             const list = byId('health-list');
             if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhum estabelecimento encontrado no raio configurado.</p>';
+                list.innerHTML = '<p class="loading-text">Nenhum posto de saúde, UBS ou UPA encontrado no raio configurado.</p>';
                 return;
             }
             list.innerHTML = items.map((item) => {
@@ -1193,17 +1261,17 @@ out center tags;`.trim();
                     const data = await apiJson(`/estabelecimentos-saude/proximos?${params.toString()}`, {
                         signal: AbortSignal.any([healthRequestController.signal, AbortSignal.timeout(12000)]),
                     });
-                    setMessage('health-status', `${data.count} estabelecimento(s) localizado(s) via backend/OpenStreetMap em até ${data.radius_km} km.`, 'success');
+                    setMessage('health-status', `${data.count} posto(s)/UPA(s) localizado(s) via backend/OpenStreetMap em até ${data.radius_km} km.`, 'success');
                     renderHealthEstablishments(data.items);
                 } catch (backendError) {
                     if (!isBackendUnavailable(backendError)) throw backendError;
                     const items = await findOpenStreetMapHealth({ lat: location.lat, lng: location.lng, radiusKm, limit: 12, openNow, kind });
-                    setMessage('health-status', `${items.length} estabelecimento(s) localizado(s) diretamente no OpenStreetMap.`, 'success');
+                    setMessage('health-status', `${items.length} posto(s)/UPA(s) localizado(s) diretamente no OpenStreetMap.`, 'success');
                     renderHealthEstablishments(items);
                 }
             } catch (error) {
                 if (error?.name !== 'AbortError') {
-                    setMessage('health-status', error.message || 'Não foi possível localizar estabelecimentos de saúde.', 'error');
+                    setMessage('health-status', error.message || 'Não foi possível localizar postos de saúde ou UPAs.', 'error');
                     byId('health-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>';
                 }
             } finally {
