@@ -28,8 +28,10 @@ A versão publicada **não depende de FastAPI, Cloud Functions, Cloud Run, Googl
 
 - Removidas chamadas obrigatórias para `http://localhost:8000` e `API_BASE_URL` no frontend.
 - A plataforma autenticada consulta farmácias cadastradas diretamente na coleção `farmacias` do Firestore.
+- Foi adicionada a subpágina `Frontend/cadastrar-farmacias.html` para cadastro manual de farmácias pelo administrador.
+- O botão **Cadastrar Farmácias Manualmente** aparece somente na sessão administrativa.
 - O catálogo de medicamentos usa diretamente a coleção `medications` do Firestore.
-- O cadastro de medicamentos é feito diretamente no Firestore e fica restrito ao administrador.
+- O cadastro de farmácias e medicamentos é feito diretamente no Firestore e fica restrito ao administrador.
 - A conta `claudiofranciscojunior2006@gmail.com` é administradora bootstrap.
 - Usuários comuns acessam somente funcionalidades de uso comum.
 - A busca de farmácias próximas, UBSs, postos de saúde e UPAs usa OpenStreetMap/Overpass diretamente no frontend.
@@ -73,11 +75,16 @@ Documento com ID igual ao UID do Firebase Auth:
   "bairro": "Centro",
   "cidade": "Belo Horizonte",
   "telefone": "(31) 99999-9999",
+  "whatsapp": "5531999999999",
+  "email": "contato@farmacia.com.br",
+  "website": "https://www.farmacia.com.br",
   "horario_funcionamento": "Segunda a sexta, 08:00 às 18:00",
   "latitude": -19.9191,
   "longitude": -43.9386,
+  "openstreetmap_url": "https://www.openstreetmap.org/?mlat=-19.9191&mlon=-43.9386#map=17/-19.9191/-43.9386",
   "ativo": true,
   "disponibilidade_farmaco": true,
+  "origem": "manual_firestore",
   "createdAt": "serverTimestamp",
   "updatedAt": "serverTimestamp"
 }
@@ -129,6 +136,7 @@ Após publicar, teste com cache busting:
 
 ```text
 https://conectapharma-33fd7.web.app/login.html?v=firebase-only
+https://conectapharma-33fd7.web.app/cadastrar-farmacias.html?v=firebase-only
 ```
 
 ## Executar localmente

@@ -82,3 +82,8 @@ Ao autenticar, o frontend grava/atualiza o documento correspondente em `users/{u
 - Criação, edição e exclusão de dados operacionais são restritas a admin.
 - Usuários comuns não acessam gestão operacional.
 - Chaves privadas, service accounts, senhas e arquivos `.env` não devem ser versionados.
+
+
+## Cadastro manual de farmácias
+
+A página `Frontend/cadastrar-farmacias.html` permite que a conta administradora `claudiofranciscojunior2006@gmail.com` cadastre farmácias diretamente na coleção `farmacias` do Firestore. A escrita continua protegida por `Firebase/firestore.rules`, com `create`, `update` e `delete` permitidos somente para administrador.

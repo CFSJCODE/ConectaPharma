@@ -159,12 +159,17 @@
             display: inline-flex;
         }
 
-        .admin-management {
+        .admin-management,
+        .admin-actions {
             display: none;
         }
 
         body.is-admin .admin-management {
             display: grid;
+        }
+
+        body.is-admin .admin-actions {
+            display: flex;
         }
 
         body.is-admin #medicine-admin-note {
@@ -377,6 +382,9 @@
             <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. A sessão é autenticada pelo Firebase e os dados operacionais são consultados no Firestore.</p>
             <div class="status-pill" id="session-status">Carregando sessão...</div>
             <div class="status-pill admin" id="admin-status">Administrador da plataforma</div>
+            <div class="actions admin-actions" aria-label="Ações administrativas">
+                <a class="btn btn-accent" href="cadastrar-farmacias.html">Cadastrar Farmácias Manualmente</a>
+            </div>
             <div class="grid-summary">
                 <div class="summary-card">
                     <h3>Alertas</h3>
@@ -408,6 +416,7 @@
                 <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
                 <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
                 <button id="btn-list-pharmacies" class="btn btn-secondary" type="button">Listar todas</button>
+                <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html">Cadastrar Farmácias Manualmente</a>
             </div>
             <p id="pharmacy-directory-status" class="message">Aguardando consulta.</p>
             <div id="pharmacy-directory-list" class="list-grid">

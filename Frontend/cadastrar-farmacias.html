@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="./assets/firebaseClient.js">
+    <title>Cadastrar Farmácias | ConectaPharma</title>
+    <style>
+        :root {
+            --color-primary: #0A2254;
+            --color-sus-blue: #005DAA;
+            --color-accent: #10B981;
+            --color-bg: #F8FAFC;
+            --color-card: #FFFFFF;
+            --color-text: #1E293B;
+            --color-muted: #475569;
+            --color-border: rgba(15, 23, 42, 0.10);
+            --color-danger: #B91C1C;
+            --transition-smooth: all 0.25s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+        }
+
+        header {
+            background: var(--color-card);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+            color: var(--color-primary);
+        }
+
+        .header-title p {
+            color: var(--color-muted);
+            margin-top: 0.35rem;
+        }
+
+        .header-actions, .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            align-items: center;
+        }
+
+        .page-body {
+            max-width: 1180px;
+            margin: 2rem auto;
+            padding: 0 2rem 3rem;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--color-card);
+            border-radius: 24px;
+            padding: 1.8rem;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(15, 23, 42, 0.04);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            margin-bottom: 0.75rem;
+            color: var(--color-primary);
+        }
+
+        .section-subtitle, .muted {
+            color: var(--color-muted);
+            line-height: 1.55;
+        }
+
+        .btn {
+            border: none;
+            background: var(--color-sus-blue);
+            color: white;
+            padding: 0.85rem 1.25rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            font-weight: 800;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            background: #004a87;
+        }
+
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #E2E8F0;
+            color: var(--color-primary);
+        }
+
+        .btn-secondary:hover {
+            background: #CBD5E1;
+        }
+
+        .btn-accent {
+            background: var(--color-accent);
+        }
+
+        .btn-accent:hover {
+            background: #059669;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .span-2 {
+            grid-column: 1 / -1;
+        }
+
+        .input, .select, textarea {
+            border: 1px solid #CBD5E1;
+            border-radius: 14px;
+            padding: 0.82rem 1rem;
+            background: #FFFFFF;
+            color: var(--color-text);
+            outline: none;
+            width: 100%;
+            font-size: 0.98rem;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        label {
+            display: grid;
+            gap: 0.42rem;
+            font-weight: 800;
+            color: var(--color-primary);
+        }
+
+        label span {
+            font-size: 0.92rem;
+        }
+
+        .input:focus, .select:focus, textarea:focus {
+            border-color: var(--color-sus-blue);
+            box-shadow: 0 0 0 4px rgba(0, 93, 170, 0.10);
+        }
+
+        .message {
+            margin-top: 0.85rem;
+            color: var(--color-muted);
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .message.success {
+            color: #166534;
+        }
+
+        .message.warn {
+            color: #92400E;
+        }
+
+        .message.error {
+            color: var(--color-danger);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            padding: 0.45rem 0.85rem;
+            border-radius: 999px;
+            font-weight: 800;
+            color: #166534;
+            background: #DCFCE7;
+            margin-top: 1rem;
+        }
+
+        .status-pill.warn {
+            color: #92400E;
+            background: #FEF3C7;
+        }
+
+        .list-grid {
+            display: grid;
+            gap: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .item-card {
+            padding: 1rem;
+            border-radius: 18px;
+            background: #F8FAFC;
+            border: 1px solid var(--color-border);
+        }
+
+        .item-card strong {
+            display: block;
+            color: var(--color-primary);
+            margin-bottom: 0.35rem;
+        }
+
+        .item-card p {
+            margin-top: 0.35rem;
+            color: var(--color-muted);
+            line-height: 1.45;
+        }
+
+        .badge {
+            display: inline-flex;
+            padding: 0.42rem 0.78rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            white-space: nowrap;
+            background: #DCFCE7;
+            color: #166534;
+            margin-top: 0.65rem;
+        }
+
+        .badge.warn {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 920px) {
+            .page-body {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .page-body {
+                padding: 0 1rem 2rem;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .span-2 {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1>Cadastrar Farmácias</h1>
+            <p>Cadastro manual de farmácias na base operacional do ConectaPharma</p>
+        </div>
+        <div class="header-actions">
+            <a class="btn btn-secondary" href="plataforma.html">Voltar à plataforma</a>
+            <button class="btn" onclick="logout()" type="button">Sair</button>
+        </div>
+    </header>
+
+    <main class="page-body">
+        <section class="card">
+            <h2 class="section-title">Formulário administrativo</h2>
+            <p class="section-subtitle">Preencha os dados da farmácia. Os campos de nome e endereço são obrigatórios. O registro será salvo diretamente na coleção <strong>farmacias</strong> do Cloud Firestore.</p>
+            <div class="status-pill warn" id="access-status">Validando permissão administrativa...</div>
+
+            <form id="pharmacy-form" class="form-grid" autocomplete="off">
+                <label>
+                    <span>Nome da farmácia *</span>
+                    <input id="pharmacy-name" class="input" type="text" placeholder="Ex.: Farmácia Central BH" required maxlength="120">
+                </label>
+
+                <label>
+                    <span>Telefone</span>
+                    <input id="pharmacy-phone" class="input" type="tel" placeholder="Ex.: (31) 99999-9999" maxlength="40">
+                </label>
+
+                <label class="span-2">
+                    <span>Endereço completo *</span>
+                    <input id="pharmacy-address" class="input" type="text" placeholder="Ex.: Av. Afonso Pena, 1000 - Centro" required maxlength="220">
+                </label>
+
+                <label>
+                    <span>Bairro</span>
+                    <input id="pharmacy-neighborhood" class="input" type="text" placeholder="Ex.: Centro" maxlength="80">
+                </label>
+
+                <label>
+                    <span>Cidade</span>
+                    <input id="pharmacy-city" class="input" type="text" value="Belo Horizonte" maxlength="80">
+                </label>
+
+                <label>
+                    <span>Estado</span>
+                    <input id="pharmacy-state" class="input" type="text" value="MG" maxlength="2">
+                </label>
+
+                <label>
+                    <span>CEP</span>
+                    <input id="pharmacy-cep" class="input" type="text" placeholder="Ex.: 30130-003" maxlength="20">
+                </label>
+
+                <label>
+                    <span>WhatsApp</span>
+                    <input id="pharmacy-whatsapp" class="input" type="tel" placeholder="Ex.: 5531999999999" maxlength="40">
+                </label>
+
+                <label>
+                    <span>E-mail</span>
+                    <input id="pharmacy-email" class="input" type="email" placeholder="Ex.: contato@farmacia.com.br" maxlength="120">
+                </label>
+
+                <label class="span-2">
+                    <span>Site</span>
+                    <input id="pharmacy-website" class="input" type="url" placeholder="Ex.: https://www.farmacia.com.br" maxlength="180">
+                </label>
+
+                <label class="span-2">
+                    <span>Horário de funcionamento</span>
+                    <input id="pharmacy-hours" class="input" type="text" placeholder="Ex.: Segunda a sexta, 08:00 às 18:00" maxlength="180">
+                </label>
+
+                <label>
+                    <span>Latitude opcional</span>
+                    <input id="pharmacy-latitude" class="input" type="number" step="0.000001" placeholder="Ex.: -19.919100">
+                </label>
+
+                <label>
+                    <span>Longitude opcional</span>
+                    <input id="pharmacy-longitude" class="input" type="number" step="0.000001" placeholder="Ex.: -43.938600">
+                </label>
+
+                <label>
+                    <span>Status de consulta</span>
+                    <select id="pharmacy-availability" class="select">
+                        <option value="true" selected>Disponível para consulta</option>
+                        <option value="false">Verificar estoque</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Status do cadastro</span>
+                    <select id="pharmacy-active" class="select">
+                        <option value="true" selected>Ativo</option>
+                        <option value="false">Inativo</option>
+                    </select>
+                </label>
+
+                <label class="span-2">
+                    <span>Observações internas</span>
+                    <textarea id="pharmacy-notes" rows="4" placeholder="Observações administrativas opcionais"></textarea>
+                </label>
+
+                <div class="span-2 actions">
+                    <button id="btn-save-pharmacy" class="btn btn-accent" type="submit">Salvar farmácia no sistema</button>
+                    <button id="btn-clear-form" class="btn btn-secondary" type="button">Limpar formulário</button>
+                </div>
+                <p id="form-status" class="message span-2">Aguardando validação da conta administradora.</p>
+            </form>
+        </section>
+
+        <aside class="card">
+            <h2 class="section-title">Últimas farmácias cadastradas</h2>
+            <p class="section-subtitle">Lista lida diretamente do Firestore após o login administrativo.</p>
+            <div id="pharmacy-list" class="list-grid">
+                <p class="message">Carregando...</p>
+            </div>
+        </aside>
+    </main>
+
+    <script type="module">
+        import {
+            createFarmacia,
+            listFarmacias,
+            onAuthStateChange,
+            resolveUserRole,
+            signOutUser,
+            toSessionUser,
+        } from './assets/firebaseClient.js';
+
+        let currentSessionUser = null;
+        let isAdminSession = false;
+
+        function byId(id) {
+            return document.getElementById(id);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function setMessage(id, value, type = '') {
+            const element = byId(id);
+            if (!element) return;
+            element.innerText = value;
+            element.className = `message ${type}`.trim();
+        }
+
+        function setAccessStatus(value, mode = 'warn') {
+            const element = byId('access-status');
+            if (!element) return;
+            element.innerText = value;
+            element.className = `status-pill ${mode === 'ok' ? '' : 'warn'}`.trim();
+        }
+
+        function setFormEnabled(enabled) {
+            byId('pharmacy-form').querySelectorAll('input, select, textarea, button').forEach((element) => {
+                element.disabled = !enabled;
+            });
+        }
+
+        function parseOptionalCoordinate(value, label) {
+            const text = String(value ?? '').trim();
+            if (!text) return null;
+            const numeric = Number(text.replace(',', '.'));
+            if (!Number.isFinite(numeric)) throw new Error(`${label} deve ser um número válido.`);
+            return numeric;
+        }
+
+        function buildPayloadFromForm() {
+            const latitude = parseOptionalCoordinate(byId('pharmacy-latitude').value, 'Latitude');
+            const longitude = parseOptionalCoordinate(byId('pharmacy-longitude').value, 'Longitude');
+            if ((latitude === null && longitude !== null) || (latitude !== null && longitude === null)) {
+                throw new Error('Informe latitude e longitude juntas, ou deixe os dois campos vazios.');
+            }
+
+            return {
+                nome: byId('pharmacy-name').value.trim(),
+                endereco: byId('pharmacy-address').value.trim(),
+                bairro: byId('pharmacy-neighborhood').value.trim(),
+                cidade: byId('pharmacy-city').value.trim() || 'Belo Horizonte',
+                estado: byId('pharmacy-state').value.trim() || 'MG',
+                cep: byId('pharmacy-cep').value.trim(),
+                telefone: byId('pharmacy-phone').value.trim(),
+                whatsapp: byId('pharmacy-whatsapp').value.trim(),
+                email: byId('pharmacy-email').value.trim(),
+                website: byId('pharmacy-website').value.trim(),
+                horario_funcionamento: byId('pharmacy-hours').value.trim(),
+                latitude,
+                longitude,
+                disponibilidade_farmaco: byId('pharmacy-availability').value === 'true',
+                ativo: byId('pharmacy-active').value === 'true',
+                observacoes: byId('pharmacy-notes').value.trim(),
+            };
+        }
+
+        function renderPharmacies(items) {
+            const list = byId('pharmacy-list');
+            if (!Array.isArray(items) || items.length === 0) {
+                list.innerHTML = '<p class="message">Nenhuma farmácia cadastrada ainda.</p>';
+                return;
+            }
+
+            list.innerHTML = items.slice(0, 12).map((item) => `
+                <div class="item-card">
+                    <strong>${escapeHtml(item.nome || item.name || 'Farmácia sem nome')}</strong>
+                    <p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p>
+                    <p>${escapeHtml([item.bairro, item.cidade, item.estado].filter(Boolean).join(' - ') || 'Localidade não informada')}</p>
+                    <p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')}</p>
+                    <span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : ''}">${item.ativo === false ? 'Inativa' : item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Ativa'}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadRegisteredPharmacies() {
+            try {
+                const items = await listFarmacias({ max: 100 });
+                renderPharmacies(items);
+            } catch (error) {
+                byId('pharmacy-list').innerHTML = `<p class="message error">Falha ao carregar farmácias: ${escapeHtml(error.message)}</p>`;
+            }
+        }
+
+        async function savePharmacy(event) {
+            event.preventDefault();
+            if (!isAdminSession) {
+                setMessage('form-status', 'Apenas a conta administradora pode cadastrar farmácias.', 'error');
+                return;
+            }
+
+            const button = byId('btn-save-pharmacy');
+            button.disabled = true;
+            setMessage('form-status', 'Salvando farmácia no Cloud Firestore...');
+            try {
+                const payload = buildPayloadFromForm();
+                const result = await createFarmacia(payload);
+                byId('pharmacy-form').reset();
+                byId('pharmacy-city').value = 'Belo Horizonte';
+                byId('pharmacy-state').value = 'MG';
+                byId('pharmacy-availability').value = 'true';
+                byId('pharmacy-active').value = 'true';
+                setMessage('form-status', `Farmácia cadastrada com sucesso. ID do documento: ${result.id}`, 'success');
+                await loadRegisteredPharmacies();
+            } catch (error) {
+                setMessage('form-status', `Falha no cadastro: ${error.message}`, 'error');
+            } finally {
+                button.disabled = !isAdminSession;
+            }
+        }
+
+        function clearForm() {
+            byId('pharmacy-form').reset();
+            byId('pharmacy-city').value = 'Belo Horizonte';
+            byId('pharmacy-state').value = 'MG';
+            byId('pharmacy-availability').value = 'true';
+            byId('pharmacy-active').value = 'true';
+            setMessage('form-status', 'Formulário limpo.');
+        }
+
+        async function logout() {
+            await signOutUser();
+            sessionStorage.removeItem('conectapharma_user');
+            sessionStorage.removeItem('conectapharma_firebase_id_token');
+            window.location.href = 'login.html';
+        }
+
+        function redirectToLogin() {
+            sessionStorage.removeItem('conectapharma_user');
+            sessionStorage.removeItem('conectapharma_firebase_id_token');
+            window.location.href = 'login.html';
+        }
+
+        async function verifyAdmin(user) {
+            if (!user) {
+                redirectToLogin();
+                return;
+            }
+
+            const sessionUser = toSessionUser(user);
+            currentSessionUser = {
+                ...sessionUser,
+                role: resolveUserRole(sessionUser.email, sessionUser.role),
+            };
+            isAdminSession = String(currentSessionUser.role || 'USER').toUpperCase() === 'ADMIN';
+            sessionStorage.setItem('conectapharma_user', JSON.stringify(currentSessionUser));
+
+            if (!isAdminSession) {
+                setAccessStatus('Acesso bloqueado: esta página é exclusiva da conta administradora.', 'warn');
+                setMessage('form-status', 'Entre com claudiofranciscojunior2006@gmail.com para cadastrar farmácias.', 'error');
+                setFormEnabled(false);
+                await loadRegisteredPharmacies();
+                return;
+            }
+
+            setAccessStatus(`Sessão administrativa ativa: ${currentSessionUser.email}`, 'ok');
+            setMessage('form-status', 'Permissão validada. Preencha o formulário para cadastrar uma farmácia.', 'success');
+            setFormEnabled(true);
+            await loadRegisteredPharmacies();
+        }
+
+        window.logout = logout;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setFormEnabled(false);
+            byId('pharmacy-form').addEventListener('submit', savePharmacy);
+            byId('btn-clear-form').addEventListener('click', clearForm);
+            onAuthStateChange((user) => {
+                verifyAdmin(user).catch((error) => {
+                    setAccessStatus('Não foi possível validar a sessão administrativa.', 'warn');
+                    setMessage('form-status', error.message || 'Falha ao validar sessão.', 'error');
+                    setFormEnabled(false);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

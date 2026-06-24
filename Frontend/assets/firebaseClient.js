@@ -264,7 +264,7 @@ export async function listFarmacias({ q = '', max = 100 } = {}) {
     const snapshot = await getDocs(query(collection(db, 'farmacias'), limitQuery(max)));
     return snapshotToRecords(snapshot)
         .filter((item) => item.ativo !== false)
-        .filter((item) => matchesQuery(item, q, ['nome', 'name', 'endereco', 'address', 'bairro', 'cidade', 'horario_funcionamento', 'opening_hours_label']))
+        .filter((item) => matchesQuery(item, q, ['nome', 'name', 'endereco', 'address', 'bairro', 'cidade', 'estado', 'cep', 'telefone', 'phone', 'email', 'website', 'horario_funcionamento', 'opening_hours_label', 'observacoes']))
         .sort((a, b) => String(a.nome || a.name || '').localeCompare(String(b.nome || b.name || ''), 'pt-BR'))
         .slice(0, max);
 }
@@ -272,15 +272,40 @@ export async function listFarmacias({ q = '', max = 100 } = {}) {
 export async function createFarmacia(data) {
     validateRequired(data, ['nome', 'endereco']);
     const userId = getSafeUserId();
+    const latitude = Number(data.latitude);
+    const longitude = Number(data.longitude);
+    const hasValidCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+    const openstreetmapUrl = hasValidCoordinates
+        ? `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`
+        : null;
+    const normalizedWhatsapp = String(data.whatsapp || '').replace(/\D+/g, '') || null;
+    const horario = data.horario_funcionamento?.trim() || 'Horário não informado';
+    const nome = data.nome.trim();
+    const endereco = data.endereco.trim();
+
     const payload = {
-        nome: data.nome.trim(),
-        endereco: data.endereco.trim(),
+        nome,
+        name: nome,
+        endereco,
+        address: endereco,
         bairro: data.bairro?.trim() || null,
         cidade: data.cidade?.trim() || 'Belo Horizonte',
+        estado: data.estado?.trim() || 'MG',
+        cep: data.cep?.trim() || null,
         telefone: data.telefone?.trim() || null,
-        horario_funcionamento: data.horario_funcionamento?.trim() || 'Horário não informado',
-        latitude: Number.isFinite(Number(data.latitude)) ? Number(data.latitude) : null,
-        longitude: Number.isFinite(Number(data.longitude)) ? Number(data.longitude) : null,
+        phone: data.telefone?.trim() || null,
+        whatsapp: normalizedWhatsapp,
+        email: data.email?.trim() || null,
+        website: data.website?.trim() || null,
+        horario_funcionamento: horario,
+        opening_hours_label: horario,
+        latitude: hasValidCoordinates ? latitude : null,
+        longitude: hasValidCoordinates ? longitude : null,
+        openstreetmap_url: openstreetmapUrl,
+        maps_url: openstreetmapUrl,
+        observacoes: data.observacoes?.trim() || null,
+        origem: 'manual_firestore',
+        source: 'manual_firestore',
         ativo: data.ativo !== false,
         disponibilidade_farmaco: data.disponibilidade_farmaco !== false,
         createdBy: userId,
