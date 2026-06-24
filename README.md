@@ -38,6 +38,21 @@ A versão publicada **não depende de FastAPI, Cloud Functions, Cloud Run, Googl
 - Google Maps/Google Places foi removido como fonte de dados.
 - O backend Python permanece apenas como referência local/opcional, sem dependência para a versão online.
 
+
+## Página inicial corporativa
+
+A página `Frontend/index.html` foi redesenhada com uma diretriz visual corporativa e empresarial. A nova página inicial apresenta:
+
+- posicionamento institucional do ConectaPharma;
+- proposta de valor do MVP;
+- missão, visão e valores;
+- modelo de operação da plataforma;
+- públicos atendidos;
+- governança, segurança e uso gratuito com Firebase + OpenStreetMap;
+- CTA direto para acesso à plataforma.
+
+O indicador de farmácias cadastradas na página inicial consulta a coleção `farmacias` do Firestore quando disponível.
+
 ## Conta administradora
 
 A conta abaixo possui acesso administrativo:

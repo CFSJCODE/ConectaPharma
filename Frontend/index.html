@@ -3,606 +3,1190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ConectaPharma: plataforma digital para facilitar a consulta de farmácias cadastradas, apoio à adesão ao tratamento e organização de informações de acesso a medicamentos.">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="modulepreload" href="./assets/firebaseClient.js">
-    <title>ConectaPharma - Hub Inteligente de Saúde</title>
+    <title>ConectaPharma | Ecossistema Digital de Acesso a Medicamentos</title>
     <style>
-        /* ==========================================================================
-           1. VARIÁVEIS DE SISTEMA E TIPOGRAFIA (Design System)
-           ========================================================================== */
         :root {
-            --color-primary: #0A2254; /* Azul Marinho ConectaPharma */
-            --color-sus-blue: #005DAA; /* Azul SUS */
-            --color-accent: #10B981; /* Verde Alerta/Ação */
-            --color-bg-light: #F8FAFC;
-            --color-text-dark: #1E293B;
-            --color-text-muted: #64748B;
-            --color-white: #FFFFFF;
-            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --primary-950: #071B3A;
+            --primary-900: #0A2254;
+            --primary-800: #10316F;
+            --primary-700: #005DAA;
+            --primary-100: #EAF3FF;
+            --primary-50: #F5F9FF;
+            --accent-600: #0F9F75;
+            --accent-500: #10B981;
+            --accent-100: #DFF9EE;
+            --danger-600: #C2410C;
+            --slate-950: #0F172A;
+            --slate-800: #1E293B;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748B;
+            --slate-200: #E2E8F0;
+            --slate-100: #F1F5F9;
+            --slate-50: #F8FAFC;
+            --white: #FFFFFF;
+            --shadow-soft: 0 24px 70px rgba(15, 23, 42, 0.10);
+            --shadow-card: 0 18px 50px rgba(15, 23, 42, 0.08);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --max-width: 1180px;
+            --transition: 180ms ease;
         }
 
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        html {
             scroll-behavior: smooth;
         }
 
         body {
-            background-color: var(--color-bg-light);
-            color: var(--color-text-dark);
-            line-height: 1.6;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--slate-50);
+            color: var(--slate-800);
+            line-height: 1.65;
         }
 
-        main {
-            padding-top: 5rem;
+        a {
+            color: inherit;
         }
 
-        .fade-in,
-        .slide-up {
-            opacity: 1;
-            transform: translateY(0);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        .skip-link {
+            position: absolute;
+            top: -48px;
+            left: 16px;
+            background: var(--primary-900);
+            color: var(--white);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            z-index: 9999;
+            transition: top var(--transition);
         }
 
-        /* ==========================================================================
-           2. NAVEGAÇÃO (Header)
-           ========================================================================== */
-        header {
-            position: fixed;
+        .skip-link:focus {
+            top: 16px;
+        }
+
+        .site-header {
+            position: sticky;
             top: 0;
-            width: 100%;
-            background-color: var(--color-white);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             z-index: 1000;
-            transition: var(--transition-smooth);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(18px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
         }
 
         .nav-container {
-            max-width: 1200px;
+            max-width: var(--max-width);
             margin: 0 auto;
-            padding: 1rem 2rem;
+            padding: 1rem 1.5rem;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
         }
 
         .brand {
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 12px;
+            gap: 0.8rem;
             text-decoration: none;
+            min-width: fit-content;
         }
 
-        .brand-logo {
-            width: 40px;
-            height: 40px;
-            background-color: var(--color-primary);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary-900), var(--primary-700));
+            display: grid;
+            place-items: center;
+            box-shadow: 0 12px 28px rgba(0, 93, 170, 0.26);
             position: relative;
-            overflow: hidden;
         }
 
-        .brand-logo::before, .brand-logo::after {
-            content: '';
+        .brand-mark::before,
+        .brand-mark::after {
+            content: "";
             position: absolute;
-            background: var(--color-white);
+            background: var(--white);
+            border-radius: 3px;
         }
-        .brand-logo::before { width: 20px; height: 6px; border-radius: 2px; }
-        .brand-logo::after { width: 6px; height: 20px; border-radius: 2px; }
 
-        .brand-text h1 {
-            color: var(--color-primary);
-            font-size: 1.5rem;
-            font-weight: 800;
+        .brand-mark::before {
+            width: 22px;
+            height: 6px;
+        }
+
+        .brand-mark::after {
+            width: 6px;
+            height: 22px;
+        }
+
+        .brand-title {
+            font-size: 1.22rem;
+            font-weight: 850;
+            color: var(--primary-900);
+            letter-spacing: -0.03em;
             line-height: 1;
-            letter-spacing: -0.5px;
         }
 
-        .brand-text span {
-            color: var(--color-sus-blue);
-            font-size: 0.75rem;
-            font-weight: 600;
+        .brand-subtitle {
+            display: block;
+            margin-top: 0.2rem;
+            color: var(--primary-700);
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
         .nav-links {
             display: flex;
-            gap: 2rem;
+            align-items: center;
+            gap: 1.4rem;
             list-style: none;
+            color: var(--slate-600);
+            font-size: 0.94rem;
+            font-weight: 650;
         }
 
         .nav-links a {
-            color: var(--color-text-dark);
             text-decoration: none;
-            font-weight: 500;
-            transition: var(--transition-smooth);
+            transition: color var(--transition);
         }
 
-        .nav-links a:hover {
-            color: var(--color-sus-blue);
+        .nav-links a:hover,
+        .nav-links a:focus {
+            color: var(--primary-700);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            padding: 0.82rem 1.25rem;
+            font-weight: 750;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform var(--transition), background var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition);
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
         }
 
         .btn-primary {
-            background-color: var(--color-primary);
-            color: var(--color-white);
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: var(--transition-smooth);
-            border: 2px solid transparent;
-            cursor: pointer;
+            background: var(--primary-900);
+            color: var(--white);
+            box-shadow: 0 12px 28px rgba(10, 34, 84, 0.22);
         }
 
-        .btn-primary:hover {
-            background-color: transparent;
-            color: var(--color-primary);
-            border-color: var(--color-primary);
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background: var(--primary-800);
         }
 
-        /* ==========================================================================
-           3. HERO SECTION
-           ========================================================================== */
-        .hero {
-            padding: 8rem 2rem 4rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
-            align-items: center;
-            min-height: 90vh;
+        .btn-secondary {
+            background: var(--white);
+            color: var(--primary-900);
+            border-color: var(--slate-200);
         }
 
-        .hero-content h2 {
-            font-size: 3.5rem;
-            color: var(--color-primary);
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-            letter-spacing: -1px;
+        .btn-secondary:hover,
+        .btn-secondary:focus {
+            border-color: var(--primary-700);
+            color: var(--primary-700);
         }
 
-        .hero-content p {
-            font-size: 1.25rem;
-            color: var(--color-text-muted);
-            margin-bottom: 2rem;
-        }
-
-        .hero-badges {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .badge {
-            background: rgba(0, 93, 170, 0.1);
-            color: var(--color-sus-blue);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        /* ==========================================================================
-           4. MOCKUP UI (Demonstração Funcional)
-           ========================================================================== */
-        .hero-image {
-            position: relative;
-            width: 100%;
-            min-height: 520px;
-            height: auto;
-            padding: 3rem 1rem;
-            background: linear-gradient(180deg, #F8FBFF 0%, #F4F7F9 100%);
-            border-radius: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        main {
             overflow: hidden;
         }
 
-        .hero-image::before, .hero-image::after {
-            content: '';
+        .hero {
+            position: relative;
+            background:
+                radial-gradient(circle at 78% 14%, rgba(16, 185, 129, 0.16), transparent 28%),
+                radial-gradient(circle at 18% 10%, rgba(0, 93, 170, 0.14), transparent 34%),
+                linear-gradient(180deg, #FFFFFF 0%, #F5F9FF 100%);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        }
+
+        .hero::after {
+            content: "";
             position: absolute;
+            inset: auto -12% -24% auto;
+            width: 540px;
+            height: 540px;
+            background: rgba(10, 34, 84, 0.06);
             border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 6.5rem 1.5rem 5rem;
+            display: grid;
+            grid-template-columns: minmax(0, 1.02fr) minmax(360px, 0.88fr);
+            gap: 3.8rem;
+            align-items: center;
+            position: relative;
             z-index: 1;
         }
 
-        .hero-image::before {
-            width: 420px; height: 420px;
-            background: rgba(10, 34, 84, 0.08);
-            top: -150px; right: -120px;
-        }
-
-        .hero-image::after {
-            width: 260px; height: 260px;
-            background: rgba(16, 185, 129, 0.12);
-            bottom: -80px; left: -80px;
-        }
-
-        .mockup-ui {
-            width: min(100%, 1000px);
-            max-width: 920px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(250,250,252,0.95) 100%);
-            border-radius: 32px;
-            padding: 1.8rem;
-            box-shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            gap: 1.5rem;
-            position: relative;
-            z-index: 2;
-        }
-
-        .dashboard-panel {
-            background: #FFFFFF;
-            border-radius: 24px;
-            padding: 1.5rem;
-            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.03);
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .mockup-right-col {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .dashboard-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--color-primary);
-        }
-
-        .status-pill {
+        .eyebrow {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 0.9rem;
+            gap: 0.55rem;
+            padding: 0.48rem 0.8rem;
+            border: 1px solid rgba(0, 93, 170, 0.14);
             border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            transition: var(--transition-smooth);
+            background: rgba(234, 243, 255, 0.75);
+            color: var(--primary-700);
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
 
-        .status-pill.online {
-            color: #166534;
-            background: #DCFCE7;
+        .eyebrow-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-500);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
         }
 
-        .status-pill.offline {
-            color: #92400E;
-            background: #FEF3C7;
+        .hero h1 {
+            margin-top: 1.25rem;
+            color: var(--primary-950);
+            font-size: clamp(2.45rem, 5vw, 4.8rem);
+            line-height: 0.98;
+            letter-spacing: -0.065em;
+            max-width: 740px;
         }
 
-        .metric-list {
+        .hero-lead {
+            margin-top: 1.45rem;
+            color: var(--slate-600);
+            font-size: clamp(1.06rem, 2vw, 1.28rem);
+            max-width: 660px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 0.9rem;
+            flex-wrap: wrap;
+            margin-top: 2.2rem;
+        }
+
+        .hero-proof {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0,1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.85rem;
+            margin-top: 2.4rem;
+            max-width: 710px;
         }
 
-        .metric-card {
-            background: #F8FAFC;
+        .proof-card {
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid rgba(226, 232, 240, 0.92);
             border-radius: 18px;
-            padding: 1rem 1.25rem;
-            min-height: 100px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 10px 35px rgba(15, 23, 42, 0.05);
         }
 
-        .metric-label { color: #64748B; font-size: 0.85rem; font-weight: 600; }
-        .metric-value { color: var(--color-primary); font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; }
+        .proof-card strong {
+            display: block;
+            color: var(--primary-900);
+            font-size: 1.15rem;
+            line-height: 1.2;
+        }
 
-        .panel-body { display: grid; gap: 1rem; }
-        .alert-list { display: grid; gap: 0.9rem; }
+        .proof-card span {
+            display: block;
+            margin-top: 0.25rem;
+            color: var(--slate-500);
+            font-size: 0.82rem;
+            font-weight: 650;
+        }
 
-        .alert-item {
-            background: #F8FAFC;
-            border-radius: 16px;
-            padding: 0.95rem 1rem;
+        .executive-panel {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-soft);
+            padding: 1.35rem;
+            backdrop-filter: blur(20px);
+        }
+
+        .panel-topbar {
+            height: 48px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            gap: 0.75rem;
-            border: 1px solid rgba(15, 23, 42, 0.05);
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0 0.4rem 1rem;
+            border-bottom: 1px solid var(--slate-200);
         }
 
-        .alert-item strong { color: var(--color-primary); font-size: 0.95rem; }
-        .alert-status { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #0F172A; }
-        .alert-status.critico { color: #DC2626; }
-        .alert-status.atencao { color: #92400E; }
-        .alert-status.ok { color: #16A34A; }
+        .panel-title {
+            color: var(--primary-900);
+            font-weight: 850;
+            letter-spacing: -0.02em;
+        }
 
-        /* ==========================================================================
-           5. SEÇÕES (Problema, Funcionalidades, Footer)
-           ========================================================================== */
-        .section-problem {
-            background-color: var(--color-primary);
-            color: var(--color-white);
-            padding: 5rem 2rem;
+        .panel-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.42rem 0.7rem;
+            border-radius: 999px;
+            background: var(--accent-100);
+            color: #047857;
+            font-size: 0.72rem;
+            font-weight: 850;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-500);
+        }
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .dashboard-card {
+            background: var(--slate-50);
+            border: 1px solid rgba(226, 232, 240, 0.92);
+            border-radius: 18px;
+            padding: 1rem;
+            min-height: 118px;
+        }
+
+        .dashboard-card.wide {
+            grid-column: 1 / -1;
+        }
+
+        .dashboard-label {
+            color: var(--slate-500);
+            font-size: 0.78rem;
+            font-weight: 750;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .dashboard-value {
+            margin-top: 0.55rem;
+            color: var(--primary-950);
+            font-size: 2rem;
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+        }
+
+        .dashboard-note {
+            margin-top: 0.45rem;
+            color: var(--slate-500);
+            font-size: 0.86rem;
+        }
+
+        .workflow-list {
+            display: grid;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .workflow-item {
+            display: flex;
+            gap: 0.78rem;
+            align-items: flex-start;
+            padding: 0.9rem;
+            background: var(--white);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            border-radius: 16px;
+        }
+
+        .workflow-index {
+            flex: 0 0 32px;
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: var(--primary-100);
+            color: var(--primary-700);
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+        }
+
+        .workflow-item strong {
+            display: block;
+            color: var(--slate-900, #111827);
+            font-size: 0.94rem;
+        }
+
+        .workflow-item span {
+            display: block;
+            margin-top: 0.15rem;
+            color: var(--slate-500);
+            font-size: 0.84rem;
+        }
+
+        .section {
+            padding: 5.5rem 1.5rem;
+        }
+
+        .section.alt {
+            background: var(--white);
+        }
+
+        .section.dark {
+            background:
+                linear-gradient(135deg, rgba(7, 27, 58, 0.98), rgba(10, 34, 84, 0.95)),
+                radial-gradient(circle at 90% 5%, rgba(16, 185, 129, 0.16), transparent 30%);
+            color: var(--white);
+        }
+
+        .section-container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .section-header {
+            max-width: 780px;
+            margin-bottom: 2.8rem;
+        }
+
+        .section-header.center {
+            margin-left: auto;
+            margin-right: auto;
             text-align: center;
         }
 
-        .problem-grid {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 2rem; max-width: 1200px; margin: 3rem auto 0;
+        .section-kicker {
+            color: var(--primary-700);
+            font-size: 0.78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
         }
 
-        .problem-card {
-            background: rgba(255, 255, 255, 0.05); padding: 2rem;
-            border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+        .dark .section-kicker {
+            color: #8DECCB;
         }
 
-        .problem-card h3 { color: #F87171; margin-bottom: 1rem; font-size: 1.25rem; }
-
-        .section-features { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
-        .section-title { text-align: center; font-size: 2.5rem; color: var(--color-primary); margin-bottom: 3rem; }
-
-        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-        .feature-card {
-            background: var(--color-white); padding: 2.5rem 2rem;
-            border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            transition: var(--transition-smooth); border-bottom: 4px solid transparent;
+        .section-title {
+            margin-top: 0.65rem;
+            color: var(--primary-950);
+            font-size: clamp(2rem, 3.2vw, 3.15rem);
+            line-height: 1.08;
+            letter-spacing: -0.05em;
         }
-        .feature-card:hover { transform: translateY(-5px); border-bottom-color: var(--color-accent); }
-        .feature-icon {
-            width: 60px; height: 60px; background: rgba(16, 185, 129, 0.1);
-            border-radius: 12px; display: flex; align-items: center;
-            justify-content: center; margin-bottom: 1.5rem; font-size: 1.5rem;
-        }
-        .feature-card h3 { color: var(--color-primary); margin-bottom: 1rem; font-size: 1.5rem; }
 
-        footer { background-color: var(--color-text-dark); color: var(--color-white); padding: 3rem 2rem; text-align: center; }
-        .footer-logo { filter: grayscale(1) brightness(2); margin-bottom: 1rem; }
-
-        @media (max-width: 1024px) {
-            .mockup-ui { grid-template-columns: 1fr; }
-            .metric-list { grid-template-columns: 1fr 1fr; }
+        .dark .section-title {
+            color: var(--white);
         }
-        @media (max-width: 768px) {
-            .hero { grid-template-columns: 1fr; text-align: center; padding-top: 6rem; }
-            .hero-badges { justify-content: center; flex-wrap: wrap; }
-            .nav-links { display: none; }
-            .problem-grid { grid-template-columns: 1fr; }
-            .hero-image { height: auto; padding: 2rem 0; }
-            .mockup-ui { padding: 1.5rem; }
-            .dashboard-header { flex-direction: column; align-items: flex-start; }
+
+        .section-description {
+            margin-top: 1rem;
+            color: var(--slate-600);
+            font-size: 1.05rem;
+        }
+
+        .dark .section-description {
+            color: #CBD5E1;
+        }
+
+        .corporate-grid,
+        .values-grid,
+        .feature-grid,
+        .audience-grid {
+            display: grid;
+            gap: 1.1rem;
+        }
+
+        .corporate-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .values-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .feature-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .audience-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .card {
+            background: var(--white);
+            border: 1px solid rgba(226, 232, 240, 0.92);
+            border-radius: var(--radius-lg);
+            padding: 1.45rem;
+            box-shadow: var(--shadow-card);
+        }
+
+        .dark .card {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: none;
+        }
+
+        .card-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: var(--primary-100);
+            color: var(--primary-700);
+            font-weight: 900;
+            margin-bottom: 1rem;
+        }
+
+        .card h3 {
+            color: var(--primary-950);
+            font-size: 1.18rem;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+        }
+
+        .dark .card h3 {
+            color: var(--white);
+        }
+
+        .card p {
+            margin-top: 0.72rem;
+            color: var(--slate-600);
+            font-size: 0.96rem;
+        }
+
+        .dark .card p {
+            color: #CBD5E1;
+        }
+
+        .mission-card {
+            padding: 1.75rem;
+        }
+
+        .mission-label {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.42rem 0.7rem;
+            border-radius: 999px;
+            background: var(--primary-100);
+            color: var(--primary-700);
+            font-size: 0.72rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+        }
+
+        .value-card {
+            min-height: 220px;
+        }
+
+        .value-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--primary-100), var(--accent-100));
+            color: var(--primary-900);
+            display: grid;
+            place-items: center;
+            font-size: 1.32rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+        }
+
+        .process-rail {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0;
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            background: var(--white);
+            box-shadow: var(--shadow-card);
+        }
+
+        .process-step {
+            padding: 1.45rem;
+            border-right: 1px solid rgba(226, 232, 240, 0.95);
+        }
+
+        .process-step:last-child {
+            border-right: 0;
+        }
+
+        .process-step strong {
+            display: block;
+            color: var(--primary-900);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            margin-bottom: 0.85rem;
+        }
+
+        .process-step h3 {
+            color: var(--primary-950);
+            font-size: 1.12rem;
+            line-height: 1.25;
+        }
+
+        .process-step p {
+            margin-top: 0.6rem;
+            color: var(--slate-600);
+            font-size: 0.93rem;
+        }
+
+        .governance-panel {
+            display: grid;
+            grid-template-columns: 0.92fr 1.08fr;
+            gap: 1.2rem;
+            align-items: stretch;
+        }
+
+        .governance-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .governance-item {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            padding: 1rem;
+            background: var(--slate-50);
+            border-radius: 16px;
+            border: 1px solid rgba(226, 232, 240, 0.95);
+        }
+
+        .governance-check {
+            flex: 0 0 24px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-100);
+            color: var(--accent-600);
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .cta-section {
+            padding: 5rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary-950), var(--primary-800));
+            color: var(--white);
+        }
+
+        .cta-box {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .cta-box h2 {
+            font-size: clamp(2rem, 3vw, 3rem);
+            line-height: 1.05;
+            letter-spacing: -0.05em;
+            max-width: 760px;
+        }
+
+        .cta-box p {
+            margin-top: 0.85rem;
+            color: #CBD5E1;
+            max-width: 700px;
+        }
+
+        .site-footer {
+            background: var(--slate-950);
+            color: var(--white);
+            padding: 2.4rem 1.5rem;
+        }
+
+        .footer-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            color: #CBD5E1;
+            font-size: 0.92rem;
+        }
+
+        .footer-inner strong {
+            color: var(--white);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity 520ms ease, transform 520ms ease;
+        }
+
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1080px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero-inner {
+                grid-template-columns: 1fr;
+                padding-top: 4.5rem;
+            }
+
+            .executive-panel {
+                max-width: 760px;
+            }
+
+            .feature-grid,
+            .audience-grid,
+            .values-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .process-rail {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .process-step:nth-child(2) {
+                border-right: 0;
+            }
+
+            .process-step:nth-child(-n+2) {
+                border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+            }
+
+            .governance-panel,
+            .corporate-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-box {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .nav-container {
+                padding: 0.85rem 1rem;
+            }
+
+            .brand-subtitle {
+                display: none;
+            }
+
+            .nav-container > .btn {
+                display: none;
+            }
+
+            .hero-inner,
+            .section,
+            .cta-section {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .hero-proof,
+            .panel-grid,
+            .values-grid,
+            .feature-grid,
+            .audience-grid,
+            .process-rail {
+                grid-template-columns: 1fr;
+            }
+
+            .process-step,
+            .process-step:nth-child(2) {
+                border-right: 0;
+                border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+            }
+
+            .process-step:last-child {
+                border-bottom: 0;
+            }
+
+            .panel-topbar {
+                height: auto;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .footer-inner {
+                align-items: flex-start;
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo principal</a>
 
-    <!-- Header -->
-    <header id="main-header">
-        <div class="nav-container">
-            <a href="#" class="brand">
-                <div class="brand-logo"></div>
-                <div class="brand-text">
-                    <h1>ConectaPharma</h1>
-                    <span>Assistência Farmacêutica em Rede</span>
-                </div>
+    <header class="site-header" id="site-header">
+        <nav class="nav-container" aria-label="Navegação principal">
+            <a href="index.html" class="brand" aria-label="Página inicial do ConectaPharma">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span>
+                    <span class="brand-title">ConectaPharma</span>
+                    <span class="brand-subtitle">Ecossistema digital de saúde</span>
+                </span>
             </a>
+
             <ul class="nav-links">
-                <li><a href="#problema">O Desafio</a></li>
-                <li><a href="#funcionalidades">Recursos</a></li>
+                <li><a href="#sobre">Sobre</a></li>
+                <li><a href="#solucao">Solução</a></li>
+                <li><a href="#missao">Missão, visão e valores</a></li>
+                <li><a href="#governanca">Governança</a></li>
             </ul>
-            <!-- Alterado para redirecionar para a página de login -->
-            <button onclick="acessarPlataforma()" class="btn-primary">Acessar Plataforma</button>
-        </div>
+
+            <a class="btn btn-primary" href="login.html">Acessar Plataforma</a>
+        </nav>
     </header>
 
-    <!-- Hero Section -->
-    <main class="hero">
-        <div class="hero-content fade-in">
-            <div class="hero-badges">
-                <div class="badge">✦ Hub Inteligente de Saúde</div>
-                <div class="badge">⛑️ Integrado ao SUS</div>
-            </div>
-            <h2>Garantindo que o seu medicamento chegue até você.</h2>
-            <p>Uma plataforma unificada que transforma dados complexos em informações acionáveis para o cidadão, conectando pacientes, farmácias e agentes comunitários.</p>
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <a href="#funcionalidades" class="btn-primary" style="background-color: var(--color-sus-blue);">Conheça as Funcionalidades</a>
-            </div>
-        </div>
+    <main id="conteudo">
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-inner">
+                <div class="hero-copy">
+                    <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Plataforma de impacto social em saúde</span>
+                    <h1 id="hero-title">Tecnologia para ampliar o acesso a medicamentos.</h1>
+                    <p class="hero-lead">
+                        O ConectaPharma organiza informações de farmácias cadastradas, medicamentos, alertas de consumo e pontos de atendimento próximos para reduzir incertezas, deslocamentos desnecessários e falhas na continuidade do tratamento.
+                    </p>
 
-        <!-- Mockup Visual (Live Demo Integrado com a API) -->
-        <div class="hero-image slide-up">
-            <div class="mockup-ui">
-                <!-- Coluna Esquerda: Métricas Principais -->
-                <div class="dashboard-panel">
-                    <div class="dashboard-header">
+                    <div class="hero-actions" aria-label="Ações principais">
+                        <a class="btn btn-primary" href="login.html">Entrar na plataforma</a>
+                        <a class="btn btn-secondary" href="#missao">Conhecer posicionamento institucional</a>
+                    </div>
+
+                    <div class="hero-proof" aria-label="Diferenciais estratégicos">
+                        <div class="proof-card reveal">
+                            <strong>Sem backend obrigatório</strong>
+                            <span>Firebase, Firestore e OpenStreetMap</span>
+                        </div>
+                        <div class="proof-card reveal">
+                            <strong>Gestão administrativa</strong>
+                            <span>Cadastro e atualização por perfil autorizado</span>
+                        </div>
+                        <div class="proof-card reveal">
+                            <strong>Foco no usuário</strong>
+                            <span>Consulta simples para pacientes e cuidadores</span>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="executive-panel reveal" aria-label="Resumo operacional da plataforma">
+                    <div class="panel-topbar">
                         <div>
-                            <div class="dashboard-title">Live Demo: Assistência</div>
-                            <p style="color:#475569; font-size:0.85rem; margin-top:0.2rem;">Dados públicos conectados ao Firestore e OpenStreetMap.</p>
+                            <div class="panel-title">Painel Executivo do MVP</div>
+                            <p style="color: var(--slate-500); font-size: 0.84rem; margin-top: 0.15rem;">Visão institucional da operação digital.</p>
                         </div>
-                        <span id="api-status" class="status-pill offline">Sincronizando...</span>
+                        <span class="panel-status" id="firestore-status"><span class="status-dot" aria-hidden="true"></span> Verificando base</span>
                     </div>
 
-                    <div class="metric-list">
-                        <div class="metric-card">
-                            <div class="metric-label">Alertas de Estoque</div>
-                            <div class="metric-value" id="demo-alert-count">0</div>
+                    <div class="panel-grid">
+                        <div class="dashboard-card">
+                            <div class="dashboard-label">Farmácias cadastradas</div>
+                            <div class="dashboard-value" id="farmacias-count">0</div>
+                            <p class="dashboard-note">Base operacional consultável pelo usuário.</p>
                         </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Rotas de Entrega</div>
-                            <div class="metric-value">4</div>
+                        <div class="dashboard-card">
+                            <div class="dashboard-label">Origem geográfica</div>
+                            <div class="dashboard-value">OSM</div>
+                            <p class="dashboard-note">OpenStreetMap/Overpass para localização pública.</p>
                         </div>
-                        <div class="metric-card" style="grid-column: 1 / -1;">
-                            <div class="metric-label">Farmácias Mapeadas na Região</div>
-                            <div class="metric-value" id="demo-farm-count">0</div>
+                        <div class="dashboard-card wide">
+                            <div class="dashboard-label">Fluxo da solução</div>
+                            <div class="workflow-list">
+                                <div class="workflow-item">
+                                    <span class="workflow-index">1</span>
+                                    <div><strong>Consulta</strong><span>Usuário localiza farmácias e informações úteis.</span></div>
+                                </div>
+                                <div class="workflow-item">
+                                    <span class="workflow-index">2</span>
+                                    <div><strong>Organização</strong><span>Administra dados cadastrados e disponibilidade.</span></div>
+                                </div>
+                                <div class="workflow-item">
+                                    <span class="workflow-index">3</span>
+                                    <div><strong>Continuidade</strong><span>Alertas apoiam planejamento do tratamento.</span></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </aside>
+            </div>
+        </section>
+
+        <section class="section alt" id="sobre" aria-labelledby="sobre-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Posicionamento institucional</span>
+                    <h2 class="section-title" id="sobre-title">Uma plataforma para conectar informação, cuidado e tomada de decisão.</h2>
+                    <p class="section-description">
+                        O ConectaPharma nasce como um MVP de base digital para apoiar a jornada de pessoas que dependem de medicamentos de uso contínuo, cuidadores, administradores da plataforma e instituições que desejam organizar informações de acesso à assistência farmacêutica.
+                    </p>
                 </div>
 
-                <!-- Coluna Direita -->
-                <div class="mockup-right-col">
-                    <div class="dashboard-panel">
-                        <div class="dashboard-header">
-                            <div class="dashboard-title">Alertas de Consumo</div>
+                <div class="corporate-grid">
+                    <article class="card mission-card reveal">
+                        <span class="mission-label">O que pretendemos fazer</span>
+                        <h3>Reduzir a assimetria de informação no acesso a medicamentos.</h3>
+                        <p>
+                            A proposta é centralizar dados operacionais de farmácias cadastradas, apoiar a consulta por localização, registrar informações de disponibilidade e facilitar a orientação inicial do usuário dentro de um ambiente digital simples e seguro.
+                        </p>
+                    </article>
+
+                    <article class="card mission-card reveal">
+                        <span class="mission-label">Diretriz empresarial</span>
+                        <h3>Construir uma operação escalável, auditável e orientada a dados.</h3>
+                        <p>
+                            A plataforma foi estruturada para separar perfis comuns e administrativos, proteger operações sensíveis por regras do Firestore e viabilizar evolução futura para parcerias, indicadores de impacto e processos de melhoria contínua.
+                        </p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="solucao" aria-labelledby="solucao-title">
+            <div class="section-container">
+                <div class="section-header reveal">
+                    <span class="section-kicker">Solução</span>
+                    <h2 class="section-title" id="solucao-title">Funcionalidades desenhadas para uma operação objetiva.</h2>
+                    <p class="section-description">
+                        A arquitetura prioriza simplicidade, baixo custo, dados consultáveis e governança mínima para um MVP funcional publicado no Firebase Hosting.
+                    </p>
+                </div>
+
+                <div class="feature-grid">
+                    <article class="card reveal">
+                        <span class="card-number">01</span>
+                        <h3>Consulta de farmácias cadastradas</h3>
+                        <p>Usuários acessam uma base organizada de farmácias, endereços, contatos, horários e observações de atendimento.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="card-number">02</span>
+                        <h3>Mapeamento por localização</h3>
+                        <p>O sistema utiliza OpenStreetMap/Overpass para apoiar a busca de farmácias, postos, UBSs, UPAs e serviços similares.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="card-number">03</span>
+                        <h3>Alertas e acompanhamento</h3>
+                        <p>Recursos de alerta ajudam o usuário a acompanhar consumo, necessidade de reposição e continuidade do tratamento.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="card-number">04</span>
+                        <h3>Administração da plataforma</h3>
+                        <p>Usuários administradores podem cadastrar farmácias manualmente e gerir informações operacionais da base.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section dark" id="missao" aria-labelledby="missao-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Missão, visão e valores</span>
+                    <h2 class="section-title" id="missao-title">Base institucional do ConectaPharma.</h2>
+                    <p class="section-description">
+                        A plataforma adota uma diretriz corporativa orientada a impacto social, confiabilidade operacional, acessibilidade e responsabilidade no uso de dados.
+                    </p>
+                </div>
+
+                <div class="values-grid">
+                    <article class="card value-card reveal">
+                        <div class="value-icon" aria-hidden="true">M</div>
+                        <h3>Missão</h3>
+                        <p>Facilitar o acesso à informação sobre medicamentos e pontos de atendimento, conectando usuários, farmácias cadastradas e recursos digitais para apoiar a continuidade do cuidado.</p>
+                    </article>
+                    <article class="card value-card reveal">
+                        <div class="value-icon" aria-hidden="true">V</div>
+                        <h3>Visão</h3>
+                        <p>Ser uma referência em soluções digitais de apoio à assistência farmacêutica, com operação escalável, transparente e centrada nas necessidades reais da população.</p>
+                    </article>
+                    <article class="card value-card reveal">
+                        <div class="value-icon" aria-hidden="true">+</div>
+                        <h3>Valores</h3>
+                        <p>Acessibilidade, responsabilidade social, segurança da informação, transparência, simplicidade operacional, colaboração comunitária e melhoria contínua baseada em evidências.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section alt" aria-labelledby="processo-title">
+            <div class="section-container">
+                <div class="section-header reveal">
+                    <span class="section-kicker">Modelo de operação</span>
+                    <h2 class="section-title" id="processo-title">Como a plataforma pretende atuar na prática.</h2>
+                </div>
+
+                <div class="process-rail reveal">
+                    <article class="process-step">
+                        <strong>Etapa 1</strong>
+                        <h3>Cadastro e curadoria</h3>
+                        <p>Administra-se a base de farmácias, informações de funcionamento, contatos e dados úteis para consulta.</p>
+                    </article>
+                    <article class="process-step">
+                        <strong>Etapa 2</strong>
+                        <h3>Consulta do usuário</h3>
+                        <p>Pacientes e cuidadores consultam farmácias cadastradas e serviços próximos de forma direta.</p>
+                    </article>
+                    <article class="process-step">
+                        <strong>Etapa 3</strong>
+                        <h3>Apoio à decisão</h3>
+                        <p>A plataforma organiza dados para reduzir deslocamentos desnecessários e orientar próximos passos.</p>
+                    </article>
+                    <article class="process-step">
+                        <strong>Etapa 4</strong>
+                        <h3>Evolução por indicadores</h3>
+                        <p>Logs e métricas de uso podem indicar melhorias de usabilidade, cobertura e comunicação.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" aria-labelledby="publico-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Público atendido</span>
+                    <h2 class="section-title" id="publico-title">Uma solução pensada para diferentes agentes do ecossistema.</h2>
+                </div>
+
+                <div class="audience-grid">
+                    <article class="card reveal">
+                        <h3>Pacientes</h3>
+                        <p>Pessoas que precisam localizar informações de acesso a medicamentos e pontos de atendimento.</p>
+                    </article>
+                    <article class="card reveal">
+                        <h3>Cuidadores e familiares</h3>
+                        <p>Usuários que apoiam idosos, pacientes crônicos ou pessoas com mobilidade reduzida.</p>
+                    </article>
+                    <article class="card reveal">
+                        <h3>Administradores</h3>
+                        <p>Responsáveis por manter a base operacional, cadastrar farmácias e acompanhar o funcionamento da plataforma.</p>
+                    </article>
+                    <article class="card reveal">
+                        <h3>Instituições parceiras</h3>
+                        <p>Organizações que futuramente podem colaborar com validação, expansão da base e ações de impacto social.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section alt" id="governanca" aria-labelledby="governanca-title">
+            <div class="section-container governance-panel">
+                <div class="section-header reveal" style="margin-bottom: 0;">
+                    <span class="section-kicker">Governança e confiança</span>
+                    <h2 class="section-title" id="governanca-title">Segurança e clareza como princípios de operação.</h2>
+                    <p class="section-description">
+                        O MVP foi orientado para uso gratuito, regras de acesso por perfil, base consultável no Firestore e integração pública com OpenStreetMap. A versão atual não exige backend Python obrigatório em produção.
+                    </p>
+                </div>
+
+                <div class="card reveal">
+                    <div class="governance-list">
+                        <div class="governance-item">
+                            <span class="governance-check" aria-hidden="true">✓</span>
+                            <div><strong>Controle por perfil</strong><p>Administrador possui funções de gestão; usuários comuns mantêm acesso às funcionalidades de consulta.</p></div>
                         </div>
-                        <div class="panel-body alert-list" id="demo-alert-list">
-                            <p style="font-size: 0.8rem; color: #888;">Carregando dados demonstrativos...</p>
+                        <div class="governance-item">
+                            <span class="governance-check" aria-hidden="true">✓</span>
+                            <div><strong>Sem chave paga de mapas</strong><p>O projeto usa OpenStreetMap/Overpass como fonte geográfica gratuita.</p></div>
+                        </div>
+                        <div class="governance-item">
+                            <span class="governance-check" aria-hidden="true">✓</span>
+                            <div><strong>Dados sensíveis minimizados</strong><p>O MVP deve evitar armazenar diagnósticos, prescrições, CPF, CNS ou documentos clínicos.</p></div>
+                        </div>
+                        <div class="governance-item">
+                            <span class="governance-check" aria-hidden="true">✓</span>
+                            <div><strong>Escalabilidade gradual</strong><p>A arquitetura permite evoluir funcionalidades sem elevar complexidade técnica na fase inicial.</p></div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <section class="cta-section" aria-labelledby="cta-title">
+            <div class="cta-box">
+                <div>
+                    <h2 id="cta-title">Acesse o ecossistema digital de saúde do ConectaPharma.</h2>
+                    <p>Consulte farmácias cadastradas, explore recursos da plataforma e acompanhe a evolução do MVP.</p>
+                </div>
+                <a class="btn btn-secondary" href="login.html">Entrar na plataforma</a>
+            </div>
+        </section>
     </main>
 
-    <!-- O Problema -->
-    <section id="problema" class="section-problem">
-        <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">O desafio do acesso à saúde</h2>
-        <p style="max-width: 700px; margin: 0 auto; color: #94A3B8;">A ineficiência logística e as barreiras geográficas criam um cenário de assimetria de dados e abandono de tratamentos no Brasil.</p>
-        
-        <div class="problem-grid">
-            <div class="problem-card">
-                <h3>Estoque Zero</h3>
-                <p>Interrupção frequente da cadeia de suprimentos, gerando falta de medicamentos essenciais em postos e farmácias.</p>
-            </div>
-            <div class="problem-card">
-                <h3>Barreiras Geográficas</h3>
-                <p>Longas distâncias e infraestrutura precária dificultam a localização e retirada de insumos vitais.</p>
-            </div>
-            <div class="problem-card">
-                <h3>Mobilidade Reduzida</h3>
-                <p>Pacientes idosos ou acamados enfrentam dificuldades extremas para a retirada física de suas prescrições mensais.</p>
-            </div>
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div><strong>ConectaPharma</strong> — Assistência farmacêutica em rede.</div>
+            <div>MVP acadêmico de impacto social em saúde · 2026</div>
         </div>
-    </section>
-
-    <!-- Funcionalidades -->
-    <section id="funcionalidades" class="section-features">
-        <h2 class="section-title">Funcionalidades Essenciais</h2>
-        
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">🔔</div>
-                <h3>Inteligência de Uso</h3>
-                <p><strong>Alertas de Interrupção:</strong> O algoritmo calcula o tempo médio de consumo baseado na dosagem prescrita e emite alertas automáticos.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🗺️</div>
-                <h3>Onde Há?</h3>
-                <p><strong>Mapa da Saúde:</strong> Localização dinâmica de Farmácias Populares próximas com filtros em tempo real de disponibilidade.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🤝</div>
-                <h3>Entrega Solidária</h3>
-                <p><strong>Compromisso Social:</strong> Plataforma colaborativa que aciona voluntários da comunidade para realizar entregas a quem não tem mobilidade.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer>
-        <div class="brand" style="justify-content: center; margin-bottom: 1rem;">
-            <div class="brand-logo footer-logo"></div>
-            <div class="brand-text">
-                <h1 style="color: white;">ConectaPharma</h1>
-            </div>
-        </div>
-        <p style="color: #94A3B8;">&copy; 2026 ConectaPharma. Assistência Farmacêutica em Rede.</p>
     </footer>
 
-    <!-- Lógica JavaScript -->
     <script type="module">
-        import { listFarmacias } from './assets/firebaseClient.js';
-
-        const header = document.getElementById('main-header');
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 10) {
-                header.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
-                header.style.padding = '0.5rem 0';
-            } else {
-                header.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.05)';
-                header.style.padding = '0';
-            }
-        });
-
-        const observerOptions = { root: null, rootMargin: '0px', threshold: 0.1 };
-        const observer = new IntersectionObserver((entries, observerInstance) => {
+        const revealElements = document.querySelectorAll('.reveal');
+        const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
-                    observerInstance.unobserve(entry.target);
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
                 }
             });
-        }, observerOptions);
+        }, { threshold: 0.12 });
 
-        document.querySelectorAll('.feature-card, .problem-card').forEach((element) => {
-            element.style.opacity = '0';
-            element.style.transform = 'translateY(20px)';
-            element.style.transition = 'all 0.6s ease-out';
-            observer.observe(element);
-        });
+        revealElements.forEach((element) => observer.observe(element));
 
-        const LOCAL_MOCK_ALERTAS = [
-            { id: 1, nome: 'Losartana 50mg', dias_restantes: 3, status: 'CRITICO' },
-            { id: 2, nome: 'Metformina 850mg', dias_restantes: 15, status: 'OK' },
-        ];
-
-        function renderAlertas(alertas) {
-            const boxAlertas = document.getElementById('demo-alert-list');
-            boxAlertas.innerHTML = alertas.slice(0, 2).map((item) => {
-                const corStatus = item.status === 'CRITICO' ? 'critico' : item.status === 'ATENCAO' ? 'atencao' : 'ok';
-                const labelStatus = item.status === 'CRITICO' ? 'Crítico' : item.status === 'ATENCAO' ? 'Atenção' : 'OK';
-                return `
-                    <div class="alert-item">
-                        <div>
-                            <strong>${item.nome}</strong>
-                            <div style="color:#94A3B8; font-size:0.82rem;">Termina em ${item.dias_restantes} dias</div>
-                        </div>
-                        <div class="alert-status ${corStatus}">${labelStatus}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function renderizarLiveDemo() {
-            const statusIndicator = document.getElementById('api-status');
-            let farmacias = [];
+        async function atualizarIndicadores() {
+            const status = document.getElementById('firestore-status');
+            const count = document.getElementById('farmacias-count');
 
             try {
-                farmacias = await listFarmacias({ max: 100 });
-                statusIndicator.className = 'status-pill online';
-                statusIndicator.innerHTML = '🟢 Firestore ativo';
-            } catch (_) {
-                statusIndicator.className = 'status-pill offline';
-                statusIndicator.innerHTML = '🟠 Modo Simulação';
+                const { listFarmacias } = await import('./assets/firebaseClient.js');
+                const farmacias = await listFarmacias({ max: 100 });
+                count.textContent = String(farmacias.length);
+                status.innerHTML = '<span class="status-dot" aria-hidden="true"></span> Firestore ativo';
+            } catch (error) {
+                count.textContent = '0';
+                status.innerHTML = '<span class="status-dot" aria-hidden="true"></span> Modo demonstrativo';
+                status.style.background = '#FEF3C7';
+                status.style.color = '#92400E';
             }
-
-            document.getElementById('demo-alert-count').innerText = LOCAL_MOCK_ALERTAS.length;
-            document.getElementById('demo-farm-count').innerText = farmacias.length;
-            renderAlertas(LOCAL_MOCK_ALERTAS);
         }
 
-        function acessarPlataforma() {
-            window.location.href = 'login.html';
-        }
-
-        window.acessarPlataforma = acessarPlataforma;
-        window.addEventListener('load', renderizarLiveDemo);
+        window.addEventListener('load', atualizarIndicadores);
     </script>
 </body>
 </html>
