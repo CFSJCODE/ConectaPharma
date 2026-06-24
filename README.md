@@ -193,9 +193,44 @@ https://github.com/CFSJCODE/ConectaPharma/actions
 
 ## Observação sobre o backend Python
 
-A pasta `Backend/` foi mantida para histórico, testes locais e prototipagem. A aplicação online hospedada no Firebase Hosting não depende dela. Para um MVP gratuito, a regra é:
+A pasta `Backend/` foi mantida para histórico, testes locais e prototipagem. A aplicação online hospedada no Firebase Hosting não depende dela. Para um modelo gratuito, a regra é:
 
 ```text
 Produção: Firebase Hosting + Auth + Firestore + OpenStreetMap
 Local/opcional: Backend Python somente para simulações e estudos
 ```
+
+## Rede de parceiros e jornadas de uso
+
+A página inicial foi ampliada para incorporar uma visão institucional e social da plataforma, sem expor termos técnicos ao usuário final. Foram adicionadas seções para:
+
+- Prefeitura e Secretaria Municipal de Saúde;
+- universidades e projetos de extensão;
+- UBSs, postos de saúde, centros de saúde e UPAs;
+- empresas privadas interessadas em impacto social;
+- associações comunitárias e organizações sociais;
+- personas representativas: paciente idosa, voluntário local, estudante de Enfermagem, estudante de tecnologia e gestão municipal de saúde.
+
+Esses conteúdos foram adaptados para uma linguagem acessível, com foco em pacientes, cuidadores, familiares, comunidade e instituições parceiras. A interface evita apresentar a solução como protótipo técnico e comunica a proposta como um serviço de apoio ao acesso a medicamentos e à organização do cuidado.
+
+## Commit sugerido para esta versão
+
+```powershell
+cd "D:\Acadêmico\Faculdade - PUC\3º Semestre - 01 2026\Introdução A Inovação Tecnológica\ConectaPharma"
+
+git status
+git add .
+git commit -m "feat(home): adiciona rede de parceiros e personas da plataforma"
+git push origin main
+```
+
+## Organização pública em múltiplas páginas
+
+A experiência pública foi reorganizada para reduzir sobrecarga de informação no primeiro acesso. A página inicial agora funciona como porta de entrada objetiva e encaminha o usuário para páginas específicas:
+
+- `Frontend/index.html`: apresentação simples, missão, visão, valores, segurança e entrada na plataforma.
+- `Frontend/parceiros.html`: rede de parceiros, incluindo gestão pública, universidades, unidades de saúde, empresas e organizações comunitárias.
+- `Frontend/jornadas.html`: personas e jornadas de uso para pacientes, cuidadores, voluntários, estudantes e gestão pública.
+- `Frontend/impacto-social.html`: exemplo de impacto municipal, ganhos esperados e apoio ao planejamento preventivo.
+
+A linguagem visível ao público evita termos técnicos e prioriza clareza para pacientes, idosos, familiares e cuidadores.

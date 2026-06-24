@@ -201,6 +201,32 @@
             color: var(--color-primary);
         }
 
+        .support-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .support-card {
+            padding: 1rem;
+            border-radius: 18px;
+            background: #F8FAFC;
+            border: 1px solid var(--color-border);
+        }
+
+        .support-card strong {
+            color: var(--color-primary);
+            display: block;
+            margin-bottom: 0.35rem;
+        }
+
+        .support-card span {
+            color: var(--color-muted);
+            line-height: 1.45;
+            display: block;
+        }
+
         .list-grid {
             display: grid;
             gap: 0.9rem;
@@ -342,7 +368,7 @@
             .page-body {
                 grid-template-columns: 1fr;
             }
-            .grid-summary {
+            .grid-summary, .support-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
@@ -355,7 +381,7 @@
             .page-body {
                 padding: 0 1rem 2rem;
             }
-            .grid-summary, .form-grid {
+            .grid-summary, .support-grid, .form-grid {
                 grid-template-columns: 1fr;
             }
             .form-grid .span-2 {
@@ -383,7 +409,7 @@
             <div class="status-pill" id="session-status">Verificando seu acesso...</div>
             <div class="status-pill admin" id="admin-status">Perfil responsável</div>
             <div class="actions admin-actions" aria-label="Ações administrativas">
-                <a class="btn btn-accent" href="cadastrar-farmacias.html">Cadastrar farmácias</a>
+                <a class="btn btn-accent" href="cadastrar-farmacias.html">Cadastrar farmácias manualmente</a>
             </div>
             <div class="grid-summary">
                 <div class="summary-card">
@@ -410,13 +436,37 @@
         </section>
 
         <section class="card card-wide">
+            <h2 class="section-title">Rede de cuidado</h2>
+            <p class="section-subtitle">O ConectaPharma aproxima pacientes, cuidadores, comunidade, instituições de ensino e serviços de saúde para facilitar a orientação antes do deslocamento.</p>
+            <div class="support-grid">
+                <div class="support-card">
+                    <strong>Para pacientes e famílias</strong>
+                    <span>Consulta de farmácias, horários, contatos e serviços próximos com linguagem simples.</span>
+                </div>
+                <div class="support-card">
+                    <strong>Para a comunidade</strong>
+                    <span>Apoio a ações solidárias, voluntariado local e cuidado com idosos e pessoas com mobilidade reduzida.</span>
+                </div>
+                <div class="support-card">
+                    <strong>Para instituições</strong>
+                    <span>Organização de informações úteis para planejamento, extensão universitária e ações preventivas.</span>
+                </div>
+            </div>
+            <div class="actions" style="margin-top: 1rem;">
+                <a class="btn btn-secondary" href="parceiros.html">Conhecer parceiros</a>
+                <a class="btn btn-secondary" href="jornadas.html">Ver pessoas atendidas</a>
+                <a class="btn btn-secondary" href="impacto-social.html">Ver impacto social</a>
+            </div>
+        </section>
+
+        <section class="card card-wide">
             <h2 class="section-title">Consulta de farmácias cadastradas</h2>
             <p class="section-subtitle">Consulte as farmácias cadastradas.</p>
             <div class="actions">
                 <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
                 <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
                 <button id="btn-list-pharmacies" class="btn btn-secondary" type="button">Listar todas</button>
-                <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html">Cadastrar farmácias</a>
+                <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html">Cadastrar farmácias manualmente</a>
             </div>
             <p id="pharmacy-directory-status" class="message">Pronto para consulta.</p>
             <div id="pharmacy-directory-list" class="list-grid">
