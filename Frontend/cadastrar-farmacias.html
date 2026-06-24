@@ -57,6 +57,30 @@
             margin-top: 0.35rem;
         }
 
+        .header-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .header-nav a {
+            color: var(--color-primary);
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 999px;
+            padding: 0.55rem 0.8rem;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .header-nav a:hover {
+            color: var(--color-sus-blue);
+            border-color: var(--color-sus-blue);
+        }
+
         .header-actions, .actions {
             display: flex;
             flex-wrap: wrap;
@@ -287,10 +311,17 @@
             <h1>Cadastrar Farmácias</h1>
             <p>Área para responsáveis autorizados manterem as farmácias cadastradas</p>
         </div>
-        <div class="header-actions">
+        <nav class="header-nav header-actions" aria-label="Navegação complementar">
+            <a href="index.html">Início</a>
+            <a href="como-funciona.html">Como funciona</a>
+            <a href="sobre.html">Sobre</a>
+            <a href="seguranca.html">Segurança</a>
+            <a href="parceiros.html">Parceiros</a>
+            <a href="jornadas.html">Pessoas atendidas</a>
+            <a href="impacto-social.html">Impacto social</a>
             <a class="btn btn-secondary" href="plataforma.html">Voltar à plataforma</a>
             <button class="btn" onclick="logout()" type="button">Sair</button>
-        </div>
+        </nav>
     </header>
 
     <main class="page-body">

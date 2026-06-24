@@ -39,19 +39,21 @@ A versão publicada **não depende de FastAPI, Cloud Functions, Cloud Run, Googl
 - O backend Python permanece apenas como referência local/opcional, sem dependência para a versão online.
 
 
-## Página inicial corporativa
+## Experiência pública multipágina
 
-A página `Frontend/index.html` foi redesenhada com uma diretriz visual corporativa e empresarial. A nova página inicial apresenta:
+A experiência pública deixou de seguir o modelo **single page**. A página `Frontend/index.html` agora funciona como porta de entrada objetiva, mantendo a apresentação principal, o painel de resumo e cartões de navegação para páginas independentes.
 
-- posicionamento institucional do ConectaPharma;
-- proposta de valor da plataforma;
-- missão, visão e valores;
-- modelo de operação da plataforma;
-- públicos atendidos;
-- governança, segurança e uso gratuito com Firebase + OpenStreetMap;
-- CTA direto para acesso à plataforma.
+Rotas públicas principais:
 
-O indicador de farmácias cadastradas na página inicial consulta a coleção `farmacias` do Firestore quando disponível.
+- `Frontend/index.html`: entrada institucional e direcionamento para as demais páginas.
+- `Frontend/como-funciona.html`: fluxo de uso, consulta, organização e recursos centrais.
+- `Frontend/sobre.html`: missão, visão, valores e posicionamento do MVP.
+- `Frontend/seguranca.html`: controle de acesso, privacidade, localização opcional e separação por perfis.
+- `Frontend/parceiros.html`: rede de parceiros, incluindo gestão pública, universidades, unidades de saúde, empresas e organizações comunitárias.
+- `Frontend/jornadas.html`: personas e jornadas de uso para pacientes, cuidadores, voluntários, estudantes e gestão pública.
+- `Frontend/impacto-social.html`: exemplo de impacto municipal, ganhos esperados e apoio ao planejamento preventivo.
+
+O menu público foi padronizado para exibir todas as páginas principais em `index.html`, `como-funciona.html`, `sobre.html`, `seguranca.html`, `parceiros.html`, `jornadas.html` e `impacto-social.html`. O indicador de farmácias cadastradas permanece na página inicial e consulta a coleção `farmacias` do Firestore quando disponível.
 
 
 ## Adequação textual corporativa
@@ -170,6 +172,12 @@ Abra:
 
 ```text
 http://127.0.0.1:5500/index.html
+http://127.0.0.1:5500/como-funciona.html
+http://127.0.0.1:5500/sobre.html
+http://127.0.0.1:5500/seguranca.html
+http://127.0.0.1:5500/parceiros.html
+http://127.0.0.1:5500/jornadas.html
+http://127.0.0.1:5500/impacto-social.html
 http://127.0.0.1:5500/login.html
 http://127.0.0.1:5500/plataforma.html
 ```
@@ -220,17 +228,12 @@ cd "D:\Acadêmico\Faculdade - PUC\3º Semestre - 01 2026\Introdução A Inovaç�
 
 git status
 git add .
-git commit -m "feat(home): adiciona rede de parceiros e personas da plataforma"
+git commit -m "refactor(frontend): separa apresentacao publica em multiplas paginas"
 git push origin main
 ```
 
 ## Organização pública em múltiplas páginas
 
-A experiência pública foi reorganizada para reduzir sobrecarga de informação no primeiro acesso. A página inicial agora funciona como porta de entrada objetiva e encaminha o usuário para páginas específicas:
-
-- `Frontend/index.html`: apresentação simples, missão, visão, valores, segurança e entrada na plataforma.
-- `Frontend/parceiros.html`: rede de parceiros, incluindo gestão pública, universidades, unidades de saúde, empresas e organizações comunitárias.
-- `Frontend/jornadas.html`: personas e jornadas de uso para pacientes, cuidadores, voluntários, estudantes e gestão pública.
-- `Frontend/impacto-social.html`: exemplo de impacto municipal, ganhos esperados e apoio ao planejamento preventivo.
+A experiência pública foi reorganizada para reduzir sobrecarga de informação no primeiro acesso. A página inicial agora direciona o usuário para páginas específicas, sem depender de âncoras internas extensas.
 
 A linguagem visível ao público evita termos técnicos e prioriza clareza para pacientes, idosos, familiares e cuidadores.

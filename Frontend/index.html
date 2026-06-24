@@ -20,12 +20,16 @@
                 </span>
             </a>
             <ul class="nav-links">
-                <li><a href="#como-funciona">Como funciona</a></li>
+                <li><a href="index.html" aria-current="page">Início</a></li>
+                <li><a href="como-funciona.html">Como funciona</a></li>
+                <li><a href="sobre.html">Sobre</a></li>
+                <li><a href="seguranca.html">Segurança</a></li>
                 <li><a href="parceiros.html">Parceiros</a></li>
                 <li><a href="jornadas.html">Pessoas atendidas</a></li>
                 <li><a href="impacto-social.html">Impacto social</a></li>
+                <li class="nav-login-mobile"><a href="login.html">Entrar</a></li>
             </ul>
-            <a class="btn btn-primary" href="login.html">Entrar</a>
+            <a class="btn btn-primary nav-cta" href="login.html">Entrar</a>
         </nav>
     </header>
 
@@ -40,7 +44,7 @@
                     </p>
                     <div class="hero-actions" aria-label="Ações principais">
                         <a class="btn btn-primary" href="login.html">Entrar na plataforma</a>
-                        <a class="btn btn-secondary" href="#como-funciona">Entender como funciona</a>
+                        <a class="btn btn-secondary" href="como-funciona.html">Entender como funciona</a>
                         <button type="button" class="btn btn-audio" id="listen-summary" hidden data-summary="O ConectaPharma ajuda pacientes, familiares e cuidadores a consultar farmácias cadastradas, horários de atendimento, contatos e serviços de saúde próximos. A plataforma também aproxima comunidade, universidades e instituições parceiras para facilitar o cuidado.">Ouvir resumo</button>
                     </div>
 
@@ -101,110 +105,53 @@
             </div>
         </section>
 
-        <section class="section alt" id="como-funciona" aria-labelledby="como-title">
+        <section class="section alt" aria-labelledby="paginas-title">
             <div class="section-container">
                 <div class="section-header center reveal">
-                    <span class="section-kicker">Como funciona</span>
-                    <h2 class="section-title" id="como-title">Uma experiência pensada para quem precisa de informação rápida e clara.</h2>
+                    <span class="section-kicker">Navegação por páginas</span>
+                    <h2 class="section-title" id="paginas-title">A apresentação agora está organizada por assuntos independentes.</h2>
                     <p class="section-description">
-                        A plataforma evita sobrecarregar o usuário com detalhes técnicos. O foco é mostrar o que importa: onde consultar, como entrar em contato e como se organizar melhor.
+                        O conteúdo institucional foi separado em páginas próprias para evitar uma página inicial excessivamente longa e facilitar a apresentação do MVP.
                     </p>
                 </div>
 
-                <div class="step-grid">
-                    <article class="card reveal">
-                        <span class="card-icon">1</span>
-                        <h3>Você consulta informações</h3>
-                        <p>Pesquise farmácias cadastradas, horários de funcionamento, contatos e serviços próximos.</p>
-                    </article>
-                    <article class="card reveal">
-                        <span class="card-icon">2</span>
-                        <h3>Responsáveis mantêm os dados</h3>
-                        <p>Usuários autorizados podem cadastrar e atualizar informações para manter a plataforma organizada.</p>
-                    </article>
-                    <article class="card reveal">
-                        <span class="card-icon">3</span>
-                        <h3>A rede de cuidado se aproxima</h3>
-                        <p>Famílias, comunidade, universidades e instituições podem atuar de forma mais coordenada.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <section class="section" aria-labelledby="direcionamento-title">
-            <div class="section-container">
-                <div class="section-header center reveal">
-                    <span class="section-kicker">Conheça melhor</span>
-                    <h2 class="section-title" id="direcionamento-title">Informações divididas para facilitar sua leitura.</h2>
-                    <p class="section-description">
-                        Para evitar excesso de informação em uma única página, os detalhes foram organizados por assunto.
-                    </p>
-                </div>
-
-                <div class="card-grid">
+                <div class="card-grid page-directory">
+                    <a class="card link-card reveal" href="como-funciona.html">
+                        <span class="tag">Fluxo</span>
+                        <h3>Como funciona</h3>
+                        <p>Entenda o fluxo de consulta, organização e apoio ao cuidado.</p>
+                        <span class="btn-text">Abrir página →</span>
+                    </a>
+                    <a class="card link-card reveal" href="sobre.html">
+                        <span class="tag green">Institucional</span>
+                        <h3>Sobre o projeto</h3>
+                        <p>Veja missão, visão, valores e posicionamento do ConectaPharma.</p>
+                        <span class="btn-text">Abrir página →</span>
+                    </a>
+                    <a class="card link-card reveal" href="seguranca.html">
+                        <span class="tag amber">Confiança</span>
+                        <h3>Segurança</h3>
+                        <p>Conheça as regras de acesso, privacidade e uso responsável das informações.</p>
+                        <span class="btn-text">Abrir página →</span>
+                    </a>
                     <a class="card link-card reveal" href="parceiros.html">
-                        <span class="tag">Rede de parceiros</span>
-                        <h3>Prefeituras, universidades, unidades de saúde, empresas e associações.</h3>
-                        <p>Veja como cada instituição pode contribuir para ampliar o acesso à informação e fortalecer o cuidado comunitário.</p>
-                        <span class="btn-text">Conhecer parceiros →</span>
+                        <span class="tag">Rede</span>
+                        <h3>Parceiros</h3>
+                        <p>Veja como instituições públicas, universidades e comunidade se conectam.</p>
+                        <span class="btn-text">Abrir página →</span>
                     </a>
                     <a class="card link-card reveal" href="jornadas.html">
-                        <span class="tag green">Pessoas atendidas</span>
-                        <h3>Pacientes, cuidadores, voluntários, estudantes e gestores.</h3>
-                        <p>Entenda como a plataforma pode ajudar pessoas reais em situações comuns do dia a dia.</p>
-                        <span class="btn-text">Ver jornadas →</span>
+                        <span class="tag green">Usuários</span>
+                        <h3>Pessoas atendidas</h3>
+                        <p>Explore as jornadas de pacientes, cuidadores, estudantes e gestores.</p>
+                        <span class="btn-text">Abrir página →</span>
                     </a>
                     <a class="card link-card reveal" href="impacto-social.html">
-                        <span class="tag amber">Impacto social</span>
-                        <h3>Organização, prevenção e planejamento para comunidades.</h3>
-                        <p>Conheça um exemplo de impacto municipal e como a plataforma pode apoiar ações preventivas.</p>
-                        <span class="btn-text">Ver impacto →</span>
+                        <span class="tag amber">Resultados</span>
+                        <h3>Impacto social</h3>
+                        <p>Entenda os ganhos esperados para pacientes, comunidade e instituições.</p>
+                        <span class="btn-text">Abrir página →</span>
                     </a>
-                </div>
-            </div>
-        </section>
-
-        <section class="section alt" aria-labelledby="missao-title">
-            <div class="section-container">
-                <div class="section-header center reveal">
-                    <span class="section-kicker">Missão, visão e valores</span>
-                    <h2 class="section-title" id="missao-title">Cuidado acessível começa com informação compreensível.</h2>
-                </div>
-                <div class="card-grid">
-                    <article class="card reveal">
-                        <span class="tag">Missão</span>
-                        <h3>Facilitar o acesso à informação sobre medicamentos e serviços de saúde.</h3>
-                        <p>Reduzir incertezas, apoiar pacientes e aproximar a comunidade de canais de cuidado.</p>
-                    </article>
-                    <article class="card reveal">
-                        <span class="tag">Visão</span>
-                        <h3>Ser uma ponte confiável entre pessoas, instituições e território.</h3>
-                        <p>Contribuir para que mais pessoas encontrem orientação antes de se deslocar ou interromper um tratamento.</p>
-                    </article>
-                    <article class="card reveal">
-                        <span class="tag">Valores</span>
-                        <h3>Clareza, responsabilidade, inclusão, colaboração e segurança.</h3>
-                        <p>A plataforma prioriza linguagem simples, uso responsável das informações e apoio ao cuidado coletivo.</p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <section class="section" aria-labelledby="seguranca-title">
-            <div class="section-container split-panel">
-                <div class="section-header reveal" style="margin-bottom: 0;">
-                    <span class="section-kicker">Segurança e confiança</span>
-                    <h2 class="section-title" id="seguranca-title">Você consulta o que precisa, com respeito às suas informações.</h2>
-                    <p class="section-description">
-                        A plataforma foi organizada para diferenciar consulta comum de funções de gestão. Assim, pacientes e cuidadores acessam informações, enquanto responsáveis autorizados cuidam dos cadastros.
-                    </p>
-                </div>
-                <div class="soft-panel reveal">
-                    <div class="workflow-list">
-                        <div class="workflow-item"><span class="workflow-index">✓</span><div><strong>Acesso conforme o perfil</strong><span>Usuários comuns consultam; responsáveis autorizados gerenciam dados.</span></div></div>
-                        <div class="workflow-item"><span class="workflow-index">✓</span><div><strong>Localização com autorização</strong><span>A busca por proximidade só acontece quando você permite.</span></div></div>
-                        <div class="workflow-item"><span class="workflow-index">✓</span><div><strong>Somente o necessário</strong><span>Consultas comuns não exigem diagnóstico, prescrição, CPF, CNS ou documentos clínicos.</span></div></div>
-                    </div>
                 </div>
             </div>
         </section>
@@ -212,8 +159,8 @@
         <section class="cta-section" aria-labelledby="cta-title">
             <div class="cta-box">
                 <div>
-                    <h2 id="cta-title">Entre no ConectaPharma e consulte informações de saúde com mais facilidade.</h2>
-                    <p>Acesse a plataforma para consultar farmácias cadastradas, serviços próximos, contatos e horários de atendimento.</p>
+                    <h2 id="cta-title">Acesse o ambiente da plataforma para consultar farmácias, medicamentos e serviços próximos.</h2>
+                    <p>A área interna concentra busca, alertas, cadastro autorizado e recursos de apoio ao cuidado.</p>
                 </div>
                 <a class="btn btn-secondary" href="login.html">Entrar na plataforma</a>
             </div>
@@ -223,7 +170,7 @@
     <footer class="site-footer">
         <div class="footer-inner">
             <div><strong>ConectaPharma</strong> — Apoio ao acesso a medicamentos.</div>
-            <div>Iniciativa de impacto social em saúde · 2026</div>
+            <div class="footer-links"><a href="como-funciona.html">Como funciona</a> · <a href="sobre.html">Sobre</a> · <a href="seguranca.html">Segurança</a> · <a href="parceiros.html">Parceiros</a> · <a href="jornadas.html">Pessoas atendidas</a> · <a href="impacto-social.html">Impacto social</a></div>
         </div>
     </footer>
 

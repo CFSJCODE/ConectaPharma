@@ -6,20 +6,12 @@
     "indexes": "Firebase/firestore.indexes.json"
   },
   "hosting": {
+    "site": "conectapharma-33fd7",
     "public": "Frontend",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ]
-  },
-  "auth": {
-    "providers": {
-      "emailPassword": true,
-      "googleSignIn": {
-        "oAuthBrandDisplayName": "ConectaPharma",
-        "supportEmail": "claudiofranciscojunior2006@gmail.com"
-      }
-    }
   }
 }

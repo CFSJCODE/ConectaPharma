@@ -214,6 +214,36 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        .auth-public-menu {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            left: 18px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            z-index: 5;
+        }
+
+        .auth-public-menu a {
+            color: var(--color-primary);
+            background: rgba(255, 255, 255, 0.86);
+            border: 1px solid #E2E8F0;
+            border-radius: 999px;
+            padding: 0.45rem 0.7rem;
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+
+        .auth-public-menu a:hover { color: var(--color-sus-blue); border-color: var(--color-sus-blue); }
+
+        @media (max-width: 720px) {
+            body { align-items: flex-start; padding-top: 7.5rem; }
+            .auth-public-menu { top: 10px; }
+        }
+
         /* Botão de voltar */
         .back-link {
             position: absolute;
@@ -231,6 +261,16 @@
     </style>
 </head>
 <body>
+
+    <nav class="auth-public-menu" aria-label="Navegação pública">
+        <a href="index.html">Início</a>
+        <a href="como-funciona.html">Como funciona</a>
+        <a href="sobre.html">Sobre</a>
+        <a href="seguranca.html">Segurança</a>
+        <a href="parceiros.html">Parceiros</a>
+        <a href="jornadas.html">Pessoas atendidas</a>
+        <a href="impacto-social.html">Impacto social</a>
+    </nav>
 
     <a href="index.html" class="back-link">← Voltar</a>
 
