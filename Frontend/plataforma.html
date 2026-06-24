@@ -36,34 +36,37 @@
 
         header {
             background: var(--color-card);
-            padding: 1rem 1.5rem;
+            padding: 0.9rem 1rem;
             box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
             display: grid;
-            grid-template-columns: minmax(260px, max-content) minmax(0, 1fr);
+            grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
             align-items: center;
-            gap: 1rem;
+            gap: 0.75rem;
             position: sticky;
             top: 0;
             z-index: 10;
             width: 100%;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .header-title {
             min-width: 0;
             white-space: nowrap;
+            overflow: hidden;
         }
 
         .header-title h1 {
-            font-size: clamp(1.25rem, 1.75vw, 1.75rem);
+            font-size: clamp(1.18rem, 1.55vw, 1.65rem);
             line-height: 1.05;
             color: var(--color-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .header-title p {
             color: var(--color-muted);
-            margin-top: 0.25rem;
-            font-size: clamp(0.72rem, 0.9vw, 0.95rem);
+            margin-top: 0.2rem;
+            font-size: clamp(0.68rem, 0.78vw, 0.88rem);
             overflow: hidden;
             text-overflow: ellipsis;
         }
@@ -73,29 +76,27 @@
             width: 100%;
             display: flex;
             flex-wrap: nowrap;
-            gap: 0.38rem;
+            gap: 0.26rem;
             align-items: center;
             justify-content: flex-end;
             white-space: nowrap;
-            overflow-x: auto;
-            overflow-y: hidden;
-            scrollbar-width: thin;
-            padding: 0.15rem 0.1rem;
+            overflow: visible;
+            padding: 0.12rem 0;
         }
 
         .header-nav a,
         .header-nav .btn {
-            flex: 0 0 auto;
+            flex: 0 1 auto;
             color: var(--color-primary);
             background: #F8FAFC;
             border: 1px solid #E2E8F0;
             border-radius: 999px;
-            padding: 0.48rem 0.68rem;
+            padding: 0.44rem clamp(0.38rem, 0.52vw, 0.62rem);
             text-decoration: none;
-            font-size: clamp(0.68rem, 0.72vw, 0.82rem);
+            font-size: clamp(0.62rem, 0.68vw, 0.78rem);
             font-weight: 800;
             line-height: 1;
-            min-height: 34px;
+            min-height: 32px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -107,10 +108,12 @@
         }
 
         .header-nav .btn {
+            flex: 0 0 auto;
             background: var(--color-sus-blue);
             color: #fff;
             border-color: var(--color-sus-blue);
-            min-width: 58px;
+            min-width: 62px;
+            padding-inline: 0.75rem;
         }
 
         .btn {
@@ -174,20 +177,9 @@
             border: 1px solid rgba(15, 23, 42, 0.04);
         }
 
-        .card-wide {
-            grid-column: 1 / -1;
-        }
-
-        .section-title {
-            font-size: 1.4rem;
-            margin-bottom: 0.75rem;
-            color: var(--color-primary);
-        }
-
-        .section-subtitle, .muted {
-            color: var(--color-muted);
-            line-height: 1.55;
-        }
+        .card-wide { grid-column: 1 / -1; }
+        .section-title { font-size: 1.4rem; margin-bottom: 0.75rem; color: var(--color-primary); }
+        .section-subtitle, .muted { color: var(--color-muted); line-height: 1.55; }
 
         .status-pill {
             display: inline-flex;
@@ -211,23 +203,9 @@
             margin-top: 1.5rem;
         }
 
-        .summary-card {
-            padding: 1.25rem;
-            border-radius: 20px;
-            background: #EEF2FF;
-        }
-
-        .summary-card h3 {
-            margin-bottom: 0.5rem;
-            font-size: 0.88rem;
-            color: var(--color-muted);
-        }
-
-        .summary-card p {
-            font-size: 1.65rem;
-            font-weight: 900;
-            color: var(--color-primary);
-        }
+        .summary-card { padding: 1.25rem; border-radius: 20px; background: #EEF2FF; }
+        .summary-card h3 { margin-bottom: 0.5rem; font-size: 0.88rem; color: var(--color-muted); }
+        .summary-card p { font-size: 1.65rem; font-weight: 900; color: var(--color-primary); }
 
         .support-grid {
             display: grid;
@@ -236,72 +214,20 @@
             margin-top: 1rem;
         }
 
-        .support-card, .item-card {
-            padding: 1rem;
-            border-radius: 18px;
-            background: #F8FAFC;
-            border: 1px solid var(--color-border);
-        }
+        .support-card, .item-card { padding: 1rem; border-radius: 18px; background: #F8FAFC; border: 1px solid var(--color-border); }
+        .support-card strong, .item-card strong { color: var(--color-primary); display: block; margin-bottom: 0.35rem; }
+        .support-card span, .item-card p { color: var(--color-muted); line-height: 1.45; display: block; margin-top: 0.35rem; }
 
-        .support-card strong, .item-card strong {
-            color: var(--color-primary);
-            display: block;
-            margin-bottom: 0.35rem;
-        }
-
-        .support-card span, .item-card p {
-            color: var(--color-muted);
-            line-height: 1.45;
-            display: block;
-            margin-top: 0.35rem;
-        }
-
-        .list-grid {
-            display: grid;
-            gap: 0.9rem;
-            margin-top: 1rem;
-        }
-
-        .item-head {
-            display: flex;
-            justify-content: space-between;
-            gap: 1rem;
-            align-items: flex-start;
-        }
-
-        .badge {
-            padding: 0.42rem 0.78rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 800;
-            white-space: nowrap;
-        }
-
+        .list-grid { display: grid; gap: 0.9rem; margin-top: 1rem; }
+        .item-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+        .badge { padding: 0.42rem 0.78rem; border-radius: 999px; font-size: 0.78rem; font-weight: 800; white-space: nowrap; }
         .badge.ok { background: #DCFCE7; color: #166534; }
         .badge.warn { background: #FEF3C7; color: var(--color-warn); }
         .badge.danger { background: #FEE2E2; color: var(--color-danger); }
 
-        .actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.65rem;
-            align-items: center;
-            margin-top: 1rem;
-        }
-
-        .item-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.6rem;
-            margin-top: 0.75rem;
-        }
-
-        .item-actions a {
-            color: var(--color-sus-blue);
-            text-decoration: none;
-            font-weight: 800;
-            font-size: 0.9rem;
-        }
+        .actions { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; margin-top: 1rem; }
+        .item-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.75rem; }
+        .item-actions a { color: var(--color-sus-blue); text-decoration: none; font-weight: 800; font-size: 0.9rem; }
 
         .input, .select, textarea {
             border: 1px solid #CBD5E1;
@@ -314,37 +240,14 @@
             font-size: 0.98rem;
         }
 
-        .select {
-            border-radius: 999px;
-            font-weight: 700;
-            width: auto;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.9rem;
-            margin-top: 1rem;
-        }
-
-        .form-grid .span-2 {
-            grid-column: 1 / -1;
-        }
-
-        .message {
-            margin-top: 0.8rem;
-            color: var(--color-muted);
-            font-weight: 700;
-        }
-
+        .select { border-radius: 999px; font-weight: 700; width: auto; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; margin-top: 1rem; }
+        .form-grid .span-2 { grid-column: 1 / -1; }
+        .message { margin-top: 0.8rem; color: var(--color-muted); font-weight: 700; }
         .message.success { color: #166534; }
         .message.warn { color: var(--color-warn); }
         .message.error { color: var(--color-danger); }
-
-        .loading-text {
-            color: var(--color-muted);
-            font-style: italic;
-        }
+        .loading-text { color: var(--color-muted); font-style: italic; }
 
         [data-admin-only][hidden],
         body:not(.is-admin) [data-admin-only] {
@@ -353,32 +256,22 @@
             pointer-events: none !important;
         }
 
-        body.is-admin [data-admin-only] {
-            visibility: visible !important;
-            pointer-events: auto !important;
-        }
+        body.is-admin [data-admin-only] { visibility: visible !important; pointer-events: auto !important; }
+        body.is-admin a[data-admin-only], body.is-admin button[data-admin-only] { display: inline-flex !important; }
+        body.is-admin div[data-admin-only] { display: flex !important; }
 
-        body.is-admin a[data-admin-only],
-        body.is-admin button[data-admin-only] {
-            display: inline-flex !important;
-        }
-
-        body.is-admin div[data-admin-only] {
-            display: flex !important;
+        @media (max-width: 1280px) {
+            header { grid-template-columns: minmax(150px, 205px) minmax(0, 1fr); gap: 0.5rem; padding-inline: 0.75rem; }
+            .header-title p { display: none; }
+            .header-nav { gap: 0.2rem; }
+            .header-nav a, .header-nav .btn { font-size: clamp(0.58rem, 0.62vw, 0.72rem); padding-inline: 0.42rem; }
+            .header-nav .btn { min-width: 58px; padding-inline: 0.62rem; }
         }
 
         @media (max-width: 980px) {
-            header {
-                grid-template-columns: 1fr;
-                align-items: start;
-                overflow: visible;
-            }
-
-            .header-nav {
-                justify-content: flex-start;
-                overflow-x: auto;
-            }
-
+            header { grid-template-columns: 1fr; align-items: start; overflow: visible; }
+            .header-nav { justify-content: flex-start; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; padding-bottom: 0.25rem; }
+            .header-nav a, .header-nav .btn { flex: 0 0 auto; }
             .page-body { grid-template-columns: 1fr; }
             .grid-summary, .support-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
@@ -528,557 +421,55 @@
         const ADMIN_EMAIL = 'claudiofranciscojunior2006@gmail.com';
         const FIRESTORE_TIMEOUT_MS = 3200;
         const MODULE_TIMEOUT_MS = 6000;
-        const OVERPASS_ENDPOINTS = [
-            'https://overpass-api.de/api/interpreter',
-            'https://overpass.kumi.systems/api/interpreter',
-        ];
-
+        const OVERPASS_ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
         let api = null;
         let currentSessionUser = null;
         let cachedAlerts = [];
         let cachedPharmacies = [];
         let cachedMedicines = [];
         let authResolved = false;
-
         const byId = (id) => document.getElementById(id);
         const normalizeEmail = (value) => String(value ?? '').trim().toLowerCase();
         const isAdminEmail = (value) => normalizeEmail(value) === ADMIN_EMAIL;
-
-        function escapeHtml(value) {
-            return String(value ?? '')
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#039;');
-        }
-
-        function setText(id, value) {
-            const element = byId(id);
-            if (element) element.innerText = String(value ?? '');
-        }
-
-        function setHtml(id, value) {
-            const element = byId(id);
-            if (element) element.innerHTML = value;
-        }
-
-        function setMessage(id, value, type = '') {
-            const element = byId(id);
-            if (!element) return;
-            element.innerText = value;
-            element.className = `message ${type}`.trim();
-        }
-
-        function setSessionStatus(message, mode = 'ok') {
-            const status = byId('session-status');
-            if (!status) return;
-            status.innerText = message;
-            status.className = `status-pill ${mode}`.trim();
-        }
-
-        function runBestEffort(operation) {
-            Promise.resolve(operation).catch(() => undefined);
-        }
-
-        function withTimeout(promise, fallbackValue, timeoutMs = FIRESTORE_TIMEOUT_MS) {
-            let settled = false;
-            const execution = Promise.resolve().then(() => promise);
-            const timeout = new Promise((resolve) => {
-                window.setTimeout(() => {
-                    if (!settled) resolve({ ok: false, timedOut: true, data: fallbackValue, error: null });
-                }, timeoutMs);
-            });
-            return Promise.race([
-                execution.then((data) => {
-                    settled = true;
-                    return { ok: true, timedOut: false, data, error: null };
-                }).catch((error) => {
-                    settled = true;
-                    return { ok: false, timedOut: false, data: fallbackValue, error };
-                }),
-                timeout,
-            ]);
-        }
-
-        async function importFirebaseClient() {
-            return withTimeout(import('./assets/firebaseClient.js'), null, MODULE_TIMEOUT_MS);
-        }
-
-        function updateSummaryCounts() {
-            setText('alerta-count', cachedAlerts.length);
-            setText('farmacia-count', cachedPharmacies.length);
-            setText('medicamento-count', cachedMedicines.length);
-        }
-
-        function normalizeText(value) {
-            return String(value ?? '')
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .toLowerCase()
-                .replace(/[^a-z0-9\s]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-
-        function textMatchesQuery(searchable, query) {
-            const normalizedQuery = normalizeText(query);
-            if (!normalizedQuery) return true;
-            const haystack = normalizeText(searchable);
-            return normalizedQuery.split(' ').every((term) => haystack.includes(term));
-        }
-
-        function filterPharmacies(query) {
-            return cachedPharmacies
-                .filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.endereco || item.address || ''} ${item.bairro || ''} ${item.cidade || ''} ${item.telefone || item.phone || ''} ${item.horario_funcionamento || item.opening_hours_label || ''}`, query))
-                .slice(0, 100);
-        }
-
-        function filterMedicines(query) {
-            return cachedMedicines
-                .filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.categoria || item.category || ''} ${item.descricao || item.description || ''}`, query))
-                .slice(0, 100);
-        }
-
-        function applyAccessControl(isAdmin) {
-            document.body.classList.toggle('is-admin', Boolean(isAdmin));
-            document.querySelectorAll('[data-admin-only]').forEach((element) => {
-                element.hidden = !isAdmin;
-                element.setAttribute('aria-hidden', isAdmin ? 'false' : 'true');
-                if (element instanceof HTMLAnchorElement) {
-                    if (!element.dataset.originalHref) element.dataset.originalHref = element.getAttribute('href') || '';
-                    if (isAdmin) {
-                        element.setAttribute('href', element.dataset.originalHref || 'cadastrar-farmacias.html');
-                        element.removeAttribute('tabindex');
-                    } else {
-                        element.removeAttribute('href');
-                        element.setAttribute('tabindex', '-1');
-                    }
-                }
-            });
-            const medicineForm = byId('medicine-form');
-            const medicineButton = byId('btn-register-medicine');
-            if (medicineForm) medicineForm.hidden = false;
-            if (medicineButton) medicineButton.disabled = false;
-        }
-
-        function readCachedSession() {
-            try {
-                const rawSession = sessionStorage.getItem(STORAGE_USER_KEY);
-                return rawSession ? JSON.parse(rawSession) : null;
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function hydrateCachedSession() {
-            const cachedSession = readCachedSession();
-            if (!cachedSession?.email) return;
-            currentSessionUser = cachedSession;
-            setText('user-name', cachedSession.name || cachedSession.email || 'Usuário');
-            applyAccessControl(isAdminEmail(cachedSession.email));
-            setSessionStatus('Validando sessão em segundo plano...', 'warn');
-        }
-
-        function renderAlertList(alertas) {
-            if (!Array.isArray(alertas) || alertas.length === 0) {
-                setHtml('alert-list', '<p class="loading-text">Nenhum alerta encontrado.</p>');
-                return;
-            }
-            setHtml('alert-list', alertas.slice(0, 5).map((alerta) => {
-                const status = String(alerta.status || 'NORMAL').toUpperCase();
-                const badgeClass = status === 'CRITICO' ? 'danger' : status === 'ATENCAO' ? 'warn' : 'ok';
-                return `
-                    <div class="item-card">
-                        <div class="item-head">
-                            <div>
-                                <strong>${escapeHtml(alerta.nome || alerta.medicineName || 'Alerta')}</strong>
-                                <p>${escapeHtml(alerta.dias_restantes ?? alerta.daysRemaining ?? '—')} dias restantes</p>
-                            </div>
-                            <span class="badge ${badgeClass}">${escapeHtml(status)}</span>
-                        </div>
-                    </div>`;
-            }).join(''));
-        }
-
-        function pharmacyActions(item) {
-            const links = [];
-            const phone = item.telefone || item.phone;
-            const mapUrl = item.openstreetmap_url || item.maps_url;
-            if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`);
-            if (phone) links.push(`<a href="tel:${escapeHtml(phone)}">Telefone</a>`);
-            if (mapUrl) links.push(`<a href="${escapeHtml(mapUrl)}" target="_blank" rel="noopener">Abrir no mapa</a>`);
-            return links.length ? links.join(' · ') : '<span class="muted">Sem canais adicionais informados.</span>';
-        }
-
-        function renderPharmacyDirectory(items) {
-            if (!Array.isArray(items) || items.length === 0) {
-                setHtml('pharmacy-directory-list', '<p class="loading-text">Nenhuma farmácia cadastrada encontrada. Use a busca por proximidade para localizar estabelecimentos próximos.</p>');
-                return;
-            }
-            setHtml('pharmacy-directory-list', items.map((item) => `
-                <div class="item-card">
-                    <div class="item-head">
-                        <div>
-                            <strong>${escapeHtml(item.nome || item.name || 'Farmácia')}</strong>
-                            <p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p>
-                            <p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')}</p>
-                        </div>
-                        <span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível'}</span>
-                    </div>
-                    <div class="item-actions">${pharmacyActions(item)}</div>
-                </div>`).join(''));
-        }
-
-        function renderMedicines(items) {
-            if (!Array.isArray(items) || items.length === 0) {
-                setHtml('medicine-list', '<p class="loading-text">Nenhum medicamento cadastrado.</p>');
-                setText('medicamento-count', 0);
-                return;
-            }
-            setText('medicamento-count', items.length);
-            setHtml('medicine-list', items.map((item) => `
-                <div class="item-card">
-                    <div class="item-head">
-                        <div>
-                            <strong>${escapeHtml(item.nome || item.name || 'Medicamento')}</strong>
-                            <p>${escapeHtml(item.categoria || item.category || 'Categoria não informada')} · Estoque informado: ${escapeHtml(item.stock ?? 0)}</p>
-                            <p>${escapeHtml(item.descricao || item.description || 'Sem descrição operacional.')}</p>
-                        </div>
-                        <span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Prescrição' : 'Livre'}</span>
-                    </div>
-                </div>`).join(''));
-        }
-
-        async function loadInitialData() {
-            if (!api) return;
-            setHtml('alert-list', '<p class="loading-text">Atualizando alertas...</p>');
-            setHtml('medicine-list', '<p class="loading-text">Carregando catálogo...</p>');
-            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
-
-            const role = currentSessionUser?.role || (isAdminEmail(currentSessionUser?.email) ? 'ADMIN' : 'USER');
-            const [alertsResult, pharmaciesResult, medicinesResult] = await Promise.all([
-                withTimeout(api.listMedicineAlerts({ role, max: 10 }), [], FIRESTORE_TIMEOUT_MS),
-                withTimeout(api.listFarmacias({ max: 100 }), [], FIRESTORE_TIMEOUT_MS),
-                withTimeout(api.listMedications({ max: 100 }), [], FIRESTORE_TIMEOUT_MS),
-            ]);
-
-            cachedAlerts = Array.isArray(alertsResult.data) ? alertsResult.data : [];
-            cachedPharmacies = Array.isArray(pharmaciesResult.data) ? pharmaciesResult.data : [];
-            cachedMedicines = Array.isArray(medicinesResult.data) ? medicinesResult.data : [];
-
-            updateSummaryCounts();
-            renderAlertList(cachedAlerts);
-            renderPharmacyDirectory(cachedPharmacies);
-            renderMedicines(cachedMedicines);
-
-            if (pharmaciesResult.timedOut) {
-                setMessage('pharmacy-directory-status', 'O banco demorou a responder. A interface foi liberada e a consulta pode ser repetida.', 'warn');
-            } else if (pharmaciesResult.ok) {
-                setMessage('pharmacy-directory-status', `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
-            } else {
-                setMessage('pharmacy-directory-status', 'Não foi possível carregar farmácias agora. Verifique as regras do Firestore ou tente novamente.', 'warn');
-            }
-        }
-
-        async function loadPharmacies(query = '') {
-            const normalizedQuery = String(query || '').trim();
-            if (!api) return;
-            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
-
-            if (cachedPharmacies.length > 0) {
-                const items = filterPharmacies(normalizedQuery);
-                renderPharmacyDirectory(items);
-                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s) na sessão atual.`, 'success');
-                runBestEffort(api.trackPharmacyClick('directory:list', 'VIEW'));
-                return;
-            }
-
-            const result = await withTimeout(api.listFarmacias({ q: normalizedQuery, max: 100 }), [], FIRESTORE_TIMEOUT_MS);
-            cachedPharmacies = Array.isArray(result.data) ? result.data : [];
-            const items = filterPharmacies(normalizedQuery);
-            updateSummaryCounts();
-            renderPharmacyDirectory(items);
-            setMessage('pharmacy-directory-status', result.ok ? `${items.length} farmácia(s) cadastrada(s) encontrada(s).` : 'Consulta indisponível no momento.', result.ok ? 'success' : 'warn');
-            runBestEffort(api.trackPharmacyClick('directory:list', 'VIEW'));
-        }
-
-        async function loadMedicines(query = '') {
-            const normalizedQuery = String(query || '').trim();
-            if (!api) return;
-
-            if (cachedMedicines.length > 0) {
-                const items = filterMedicines(normalizedQuery);
-                renderMedicines(items);
-                runBestEffort(api.trackMedicineSearch(normalizedQuery, items.length));
-                return;
-            }
-
-            const result = await withTimeout(api.listMedications({ q: normalizedQuery, max: 100 }), [], FIRESTORE_TIMEOUT_MS);
-            cachedMedicines = Array.isArray(result.data) ? result.data : [];
-            const items = filterMedicines(normalizedQuery);
-            updateSummaryCounts();
-            renderMedicines(items);
-            runBestEffort(api.trackMedicineSearch(normalizedQuery, items.length));
-        }
-
-        async function registerMedicine(event) {
-            event.preventDefault();
-            if (!api) return;
-            const button = byId('btn-register-medicine');
-            button.disabled = true;
-            setMessage('medicine-form-status', 'Registrando medicamento...');
-            try {
-                const payload = {
-                    nome: byId('medicine-name').value.trim(),
-                    categoria: byId('medicine-category').value.trim() || null,
-                    descricao: byId('medicine-description').value.trim() || null,
-                    dose_diaria_comprimidos: Number(byId('medicine-dose').value || 1),
-                    stock: Number(byId('medicine-stock').value || 0),
-                    requires_prescription: byId('medicine-prescription').value === 'true',
-                };
-                await api.createMedication(payload);
-                byId('medicine-form').reset();
-                byId('medicine-dose').value = '1';
-                byId('medicine-stock').value = '0';
-                setMessage('medicine-form-status', 'Medicamento cadastrado com sucesso.', 'success');
-                cachedMedicines = [];
-                await loadMedicines();
-            } catch (error) {
-                setMessage('medicine-form-status', `Não foi possível concluir o cadastro: ${error?.message || 'erro desconhecido'}`, 'error');
-            } finally {
-                button.disabled = false;
-            }
-        }
-
-        async function logout() {
-            if (api) await api.signOutUser();
-            sessionStorage.removeItem(STORAGE_USER_KEY);
-            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
-            window.location.href = 'login.html';
-        }
-
-        function redirectToLogin() {
-            sessionStorage.removeItem(STORAGE_USER_KEY);
-            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
-            window.location.href = 'login.html';
-        }
-
-        function verifySession(user) {
-            authResolved = true;
-            if (!user) {
-                setSessionStatus('Sessão não encontrada. Redirecionando...', 'warn');
-                window.setTimeout(redirectToLogin, 600);
-                return;
-            }
-
-            const sessionUser = api.toSessionUser(user);
-            currentSessionUser = {
-                ...sessionUser,
-                role: isAdminEmail(sessionUser.email) ? 'ADMIN' : 'USER',
-            };
-
-            const isAdmin = isAdminEmail(currentSessionUser.email);
-            applyAccessControl(isAdmin);
-            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
-            runBestEffort(user.getIdToken(false).then((token) => {
-                if (token) sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token);
-            }));
-
-            setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
-            setSessionStatus(isAdmin ? 'Perfil administrativo ativo.' : 'Acesso validado. Cadastro de medicamentos liberado.', '');
-            runBestEffort(loadInitialData());
-        }
-
-        function getUserLocation() {
-            return new Promise((resolve, reject) => {
-                if (!navigator.geolocation) {
-                    reject(new Error('Geolocalização não é suportada neste navegador.'));
-                    return;
-                }
-                navigator.geolocation.getCurrentPosition(
-                    (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
-                    () => reject(new Error('Permissão de localização negada ou indisponível.')),
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-                );
-            });
-        }
-
-        function routeLinks(latitude, longitude) {
-            const url = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
-            return { maps_url: url, openstreetmap_url: url };
-        }
-
-        function addressFromTags(tags) {
-            const street = tags['addr:street'] || tags['contact:street'] || tags['addr:place'];
-            const number = tags['addr:housenumber'] || tags['contact:housenumber'];
-            const suburb = tags['addr:suburb'] || tags['addr:neighbourhood'] || tags['addr:district'];
-            const city = tags['addr:city'] || tags['addr:town'] || tags['addr:municipality'];
-            return [street && number ? `${street}, ${number}` : street, suburb, city].filter(Boolean).join(' - ') || 'Endereço não informado';
-        }
-
+        function escapeHtml(value) { return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
+        function setText(id, value) { const element = byId(id); if (element) element.innerText = String(value ?? ''); }
+        function setHtml(id, value) { const element = byId(id); if (element) element.innerHTML = value; }
+        function setMessage(id, value, type = '') { const element = byId(id); if (!element) return; element.innerText = value; element.className = `message ${type}`.trim(); }
+        function setSessionStatus(message, mode = 'ok') { const status = byId('session-status'); if (!status) return; status.innerText = message; status.className = `status-pill ${mode}`.trim(); }
+        function runBestEffort(operation) { Promise.resolve(operation).catch(() => undefined); }
+        function withTimeout(promise, fallbackValue, timeoutMs = FIRESTORE_TIMEOUT_MS) { let settled = false; const execution = Promise.resolve().then(() => promise); const timeout = new Promise((resolve) => { window.setTimeout(() => { if (!settled) resolve({ ok: false, timedOut: true, data: fallbackValue, error: null }); }, timeoutMs); }); return Promise.race([execution.then((data) => { settled = true; return { ok: true, timedOut: false, data, error: null }; }).catch((error) => { settled = true; return { ok: false, timedOut: false, data: fallbackValue, error }; }), timeout]); }
+        async function importFirebaseClient() { return withTimeout(import('./assets/firebaseClient.js'), null, MODULE_TIMEOUT_MS); }
+        function updateSummaryCounts() { setText('alerta-count', cachedAlerts.length); setText('farmacia-count', cachedPharmacies.length); setText('medicamento-count', cachedMedicines.length); }
+        function normalizeText(value) { return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
+        function textMatchesQuery(searchable, query) { const normalizedQuery = normalizeText(query); if (!normalizedQuery) return true; const haystack = normalizeText(searchable); return normalizedQuery.split(' ').every((term) => haystack.includes(term)); }
+        function filterPharmacies(query) { return cachedPharmacies.filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.endereco || item.address || ''} ${item.bairro || ''} ${item.cidade || ''} ${item.telefone || item.phone || ''} ${item.horario_funcionamento || item.opening_hours_label || ''}`, query)).slice(0, 100); }
+        function filterMedicines(query) { return cachedMedicines.filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.categoria || item.category || ''} ${item.descricao || item.description || ''}`, query)).slice(0, 100); }
+        function applyAccessControl(isAdmin) { document.body.classList.toggle('is-admin', Boolean(isAdmin)); document.querySelectorAll('[data-admin-only]').forEach((element) => { element.hidden = !isAdmin; element.setAttribute('aria-hidden', isAdmin ? 'false' : 'true'); if (element instanceof HTMLAnchorElement) { if (!element.dataset.originalHref) element.dataset.originalHref = element.getAttribute('href') || ''; if (isAdmin) { element.setAttribute('href', element.dataset.originalHref || 'cadastrar-farmacias.html'); element.removeAttribute('tabindex'); } else { element.removeAttribute('href'); element.setAttribute('tabindex', '-1'); } } }); const medicineForm = byId('medicine-form'); const medicineButton = byId('btn-register-medicine'); if (medicineForm) medicineForm.hidden = false; if (medicineButton) medicineButton.disabled = false; }
+        function readCachedSession() { try { const rawSession = sessionStorage.getItem(STORAGE_USER_KEY); return rawSession ? JSON.parse(rawSession) : null; } catch (_) { return null; } }
+        function hydrateCachedSession() { const cachedSession = readCachedSession(); if (!cachedSession?.email) return; currentSessionUser = cachedSession; setText('user-name', cachedSession.name || cachedSession.email || 'Usuário'); applyAccessControl(isAdminEmail(cachedSession.email)); setSessionStatus('Validando sessão em segundo plano...', 'warn'); }
+        function renderAlertList(alertas) { if (!Array.isArray(alertas) || alertas.length === 0) { setHtml('alert-list', '<p class="loading-text">Nenhum alerta encontrado.</p>'); return; } setHtml('alert-list', alertas.slice(0, 5).map((alerta) => { const status = String(alerta.status || 'NORMAL').toUpperCase(); const badgeClass = status === 'CRITICO' ? 'danger' : status === 'ATENCAO' ? 'warn' : 'ok'; return `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(alerta.nome || alerta.medicineName || 'Alerta')}</strong><p>${escapeHtml(alerta.dias_restantes ?? alerta.daysRemaining ?? '—')} dias restantes</p></div><span class="badge ${badgeClass}">${escapeHtml(status)}</span></div></div>`; }).join('')); }
+        function pharmacyActions(item) { const links = []; const phone = item.telefone || item.phone; const mapUrl = item.openstreetmap_url || item.maps_url; if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`); if (phone) links.push(`<a href="tel:${escapeHtml(phone)}">Telefone</a>`); if (mapUrl) links.push(`<a href="${escapeHtml(mapUrl)}" target="_blank" rel="noopener">Abrir no mapa</a>`); return links.length ? links.join(' · ') : '<span class="muted">Sem canais adicionais informados.</span>'; }
+        function renderPharmacyDirectory(items) { if (!Array.isArray(items) || items.length === 0) { setHtml('pharmacy-directory-list', '<p class="loading-text">Nenhuma farmácia cadastrada encontrada. Use a busca por proximidade para localizar estabelecimentos próximos.</p>'); return; } setHtml('pharmacy-directory-list', items.map((item) => `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(item.nome || item.name || 'Farmácia')}</strong><p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p><p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')}</p></div><span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível'}</span></div><div class="item-actions">${pharmacyActions(item)}</div></div>`).join('')); }
+        function renderMedicines(items) { if (!Array.isArray(items) || items.length === 0) { setHtml('medicine-list', '<p class="loading-text">Nenhum medicamento cadastrado.</p>'); setText('medicamento-count', 0); return; } setText('medicamento-count', items.length); setHtml('medicine-list', items.map((item) => `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(item.nome || item.name || 'Medicamento')}</strong><p>${escapeHtml(item.categoria || item.category || 'Categoria não informada')} · Estoque informado: ${escapeHtml(item.stock ?? 0)}</p><p>${escapeHtml(item.descricao || item.description || 'Sem descrição operacional.')}</p></div><span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Prescrição' : 'Livre'}</span></div></div>`).join('')); }
+        async function loadInitialData() { if (!api) return; setHtml('alert-list', '<p class="loading-text">Atualizando alertas...</p>'); setHtml('medicine-list', '<p class="loading-text">Carregando catálogo...</p>'); setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...'); const role = currentSessionUser?.role || (isAdminEmail(currentSessionUser?.email) ? 'ADMIN' : 'USER'); const [alertsResult, pharmaciesResult, medicinesResult] = await Promise.all([withTimeout(api.listMedicineAlerts({ role, max: 10 }), [], FIRESTORE_TIMEOUT_MS), withTimeout(api.listFarmacias({ max: 100 }), [], FIRESTORE_TIMEOUT_MS), withTimeout(api.listMedications({ max: 100 }), [], FIRESTORE_TIMEOUT_MS)]); cachedAlerts = Array.isArray(alertsResult.data) ? alertsResult.data : []; cachedPharmacies = Array.isArray(pharmaciesResult.data) ? pharmaciesResult.data : []; cachedMedicines = Array.isArray(medicinesResult.data) ? medicinesResult.data : []; updateSummaryCounts(); renderAlertList(cachedAlerts); renderPharmacyDirectory(cachedPharmacies); renderMedicines(cachedMedicines); if (pharmaciesResult.timedOut) setMessage('pharmacy-directory-status', 'O banco demorou a responder. A interface foi liberada e a consulta pode ser repetida.', 'warn'); else if (pharmaciesResult.ok) setMessage('pharmacy-directory-status', `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success'); else setMessage('pharmacy-directory-status', 'Não foi possível carregar farmácias agora. Verifique as regras do Firestore ou tente novamente.', 'warn'); }
+        async function loadPharmacies(query = '') { const normalizedQuery = String(query || '').trim(); if (!api) return; setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...'); if (cachedPharmacies.length > 0) { const items = filterPharmacies(normalizedQuery); renderPharmacyDirectory(items); setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s) na sessão atual.`, 'success'); runBestEffort(api.trackPharmacyClick('directory:list', 'VIEW')); return; } const result = await withTimeout(api.listFarmacias({ q: normalizedQuery, max: 100 }), [], FIRESTORE_TIMEOUT_MS); cachedPharmacies = Array.isArray(result.data) ? result.data : []; const items = filterPharmacies(normalizedQuery); updateSummaryCounts(); renderPharmacyDirectory(items); setMessage('pharmacy-directory-status', result.ok ? `${items.length} farmácia(s) cadastrada(s) encontrada(s).` : 'Consulta indisponível no momento.', result.ok ? 'success' : 'warn'); runBestEffort(api.trackPharmacyClick('directory:list', 'VIEW')); }
+        async function loadMedicines(query = '') { const normalizedQuery = String(query || '').trim(); if (!api) return; if (cachedMedicines.length > 0) { const items = filterMedicines(normalizedQuery); renderMedicines(items); runBestEffort(api.trackMedicineSearch(normalizedQuery, items.length)); return; } const result = await withTimeout(api.listMedications({ q: normalizedQuery, max: 100 }), [], FIRESTORE_TIMEOUT_MS); cachedMedicines = Array.isArray(result.data) ? result.data : []; const items = filterMedicines(normalizedQuery); updateSummaryCounts(); renderMedicines(items); runBestEffort(api.trackMedicineSearch(normalizedQuery, items.length)); }
+        async function registerMedicine(event) { event.preventDefault(); if (!api) return; const button = byId('btn-register-medicine'); button.disabled = true; setMessage('medicine-form-status', 'Registrando medicamento...'); try { const payload = { nome: byId('medicine-name').value.trim(), categoria: byId('medicine-category').value.trim() || null, descricao: byId('medicine-description').value.trim() || null, dose_diaria_comprimidos: Number(byId('medicine-dose').value || 1), stock: Number(byId('medicine-stock').value || 0), requires_prescription: byId('medicine-prescription').value === 'true' }; await api.createMedication(payload); byId('medicine-form').reset(); byId('medicine-dose').value = '1'; byId('medicine-stock').value = '0'; setMessage('medicine-form-status', 'Medicamento cadastrado com sucesso.', 'success'); cachedMedicines = []; await loadMedicines(); } catch (error) { setMessage('medicine-form-status', `Não foi possível concluir o cadastro: ${error?.message || 'erro desconhecido'}`, 'error'); } finally { button.disabled = false; } }
+        async function logout() { if (api) await api.signOutUser(); sessionStorage.removeItem(STORAGE_USER_KEY); sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY); window.location.href = 'login.html'; }
+        function redirectToLogin() { sessionStorage.removeItem(STORAGE_USER_KEY); sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY); window.location.href = 'login.html'; }
+        function verifySession(user) { authResolved = true; if (!user) { setSessionStatus('Sessão não encontrada. Redirecionando...', 'warn'); window.setTimeout(redirectToLogin, 600); return; } const sessionUser = api.toSessionUser(user); currentSessionUser = { ...sessionUser, role: isAdminEmail(sessionUser.email) ? 'ADMIN' : 'USER' }; const isAdmin = isAdminEmail(currentSessionUser.email); applyAccessControl(isAdmin); sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser)); runBestEffort(user.getIdToken(false).then((token) => { if (token) sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token); })); setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário'); setSessionStatus(isAdmin ? 'Perfil administrativo ativo.' : 'Acesso validado. Cadastro de medicamentos liberado.', ''); runBestEffort(loadInitialData()); }
+        function getUserLocation() { return new Promise((resolve, reject) => { if (!navigator.geolocation) { reject(new Error('Geolocalização não é suportada neste navegador.')); return; } navigator.geolocation.getCurrentPosition((position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }), () => reject(new Error('Permissão de localização negada ou indisponível.')), { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }); }); }
+        function routeLinks(latitude, longitude) { const url = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`; return { maps_url: url, openstreetmap_url: url }; }
+        function addressFromTags(tags) { const street = tags['addr:street'] || tags['contact:street'] || tags['addr:place']; const number = tags['addr:housenumber'] || tags['contact:housenumber']; const suburb = tags['addr:suburb'] || tags['addr:neighbourhood'] || tags['addr:district']; const city = tags['addr:city'] || tags['addr:town'] || tags['addr:municipality']; return [street && number ? `${street}, ${number}` : street, suburb, city].filter(Boolean).join(' - ') || 'Endereço não informado'; }
         function toRadians(value) { return value * Math.PI / 180; }
-        function haversineKm(aLat, aLng, bLat, bLng) {
-            const r = 6371;
-            const dLat = toRadians(bLat - aLat);
-            const dLng = toRadians(bLng - aLng);
-            const lat1 = toRadians(aLat);
-            const lat2 = toRadians(bLat);
-            const value = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-            return 2 * r * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-        }
-
-        function buildOverpassQuery(lat, lng, radiusKm, kind) {
-            const radiusM = Math.round(radiusKm * 1000);
-            if (kind === 'health') {
-                return `[out:json][timeout:20];(node["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng});way["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng});relation["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng}););out center tags;`;
-            }
-            return `[out:json][timeout:20];(node["amenity"="pharmacy"](around:${radiusM},${lat},${lng});way["amenity"="pharmacy"](around:${radiusM},${lat},${lng});relation["amenity"="pharmacy"](around:${radiusM},${lat},${lng});node["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});way["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});relation["healthcare"="pharmacy"](around:${radiusM},${lat},${lng}););out center tags;`;
-        }
-
-        async function overpassRequest(queryText) {
-            let lastError = null;
-            for (const endpoint of OVERPASS_ENDPOINTS) {
-                const controller = new AbortController();
-                const timer = window.setTimeout(() => controller.abort(), 14000);
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-                        body: new URLSearchParams({ data: queryText }),
-                        signal: controller.signal,
-                    });
-                    window.clearTimeout(timer);
-                    if (!response.ok) throw new Error(`O serviço de localização respondeu HTTP ${response.status}`);
-                    return response.json();
-                } catch (error) {
-                    window.clearTimeout(timer);
-                    lastError = error;
-                }
-            }
-            throw lastError || new Error('O serviço de localização está indisponível no momento.');
-        }
-
-        function osmRecord(element, origin, kind = 'pharmacy') {
-            const tags = element.tags || {};
-            const center = element.center || {};
-            const latitude = Number(element.lat ?? center.lat);
-            const longitude = Number(element.lon ?? center.lon);
-            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-            const distance = haversineKm(origin.lat, origin.lng, latitude, longitude);
-            return {
-                id: `osm-${element.type}-${element.id}`,
-                name: tags.name || (kind === 'health' ? 'Estabelecimento de saúde localizado' : 'Farmácia localizada'),
-                address: addressFromTags(tags),
-                phone: tags.phone || tags['contact:phone'] || null,
-                website: tags.website || tags['contact:website'] || null,
-                latitude,
-                longitude,
-                distance_km: Math.round(distance * 100) / 100,
-                opening_hours_label: tags.opening_hours || 'Horário não informado',
-                status_label: 'Localizado',
-                kind: kind === 'health' ? 'Serviço público de saúde' : 'Farmácia',
-                ...routeLinks(latitude, longitude),
-            };
-        }
-
-        async function loadNearby(kind) {
-            const isHealth = kind === 'health';
-            const button = byId(isHealth ? 'btn-nearby-health' : 'btn-nearby-pharmacies');
-            const statusId = isHealth ? 'health-status' : 'nearby-status';
-            const listId = isHealth ? 'health-list' : 'nearby-pharmacy-list';
-            const radiusId = isHealth ? 'health-radius' : 'nearby-radius';
-            button.disabled = true;
-            setMessage(statusId, 'Obtendo sua localização autorizada...');
-            setHtml(listId, '<p class="loading-text">Consultando estabelecimentos próximos...</p>');
-            try {
-                const location = await getUserLocation();
-                const radiusKm = Number(byId(radiusId).value || (isHealth ? 5 : 10));
-                const payload = await overpassRequest(buildOverpassQuery(location.lat, location.lng, radiusKm, kind));
-                const seen = new Set();
-                const items = (payload.elements || [])
-                    .map((element) => osmRecord(element, location, kind))
-                    .filter(Boolean)
-                    .filter((item) => {
-                        if (seen.has(item.id)) return false;
-                        seen.add(item.id);
-                        return true;
-                    })
-                    .sort((a, b) => a.distance_km - b.distance_km)
-                    .slice(0, isHealth ? 12 : 10);
-                setMessage(statusId, `${items.length} estabelecimento(s) localizado(s) com base na sua localização.`, 'success');
-                setHtml(listId, items.length ? items.map((item) => `
-                    <div class="item-card">
-                        <div class="item-head">
-                            <div>
-                                <strong>${escapeHtml(item.name)}</strong>
-                                <p>${escapeHtml(item.kind)} · ${String(item.distance_km.toFixed(2)).replace('.', ',')} km</p>
-                                <p>${escapeHtml(item.address)}</p>
-                                <p>${escapeHtml(item.opening_hours_label)}</p>
-                            </div>
-                            <span class="badge ok">Localizado</span>
-                        </div>
-                        <div class="item-actions">${pharmacyActions(item)}</div>
-                    </div>`).join('') : '<p class="loading-text">Nenhum estabelecimento encontrado no raio configurado.</p>');
-            } catch (error) {
-                setMessage(statusId, error?.message || 'Não foi possível consultar estabelecimentos próximos.', 'error');
-                setHtml(listId, '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>');
-            } finally {
-                button.disabled = false;
-            }
-        }
-
-        function setupEvents() {
-            byId('btn-logout').addEventListener('click', logout);
-            byId('btn-search-pharmacies').addEventListener('click', () => loadPharmacies(byId('pharmacy-search-input').value.trim()));
-            byId('btn-list-pharmacies').addEventListener('click', () => { byId('pharmacy-search-input').value = ''; cachedPharmacies = []; loadPharmacies(); });
-            byId('pharmacy-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPharmacies(event.target.value.trim()); });
-            byId('btn-search-medicines').addEventListener('click', () => loadMedicines(byId('medicine-search-input').value.trim()));
-            byId('btn-list-medicines').addEventListener('click', () => { byId('medicine-search-input').value = ''; cachedMedicines = []; loadMedicines(); });
-            byId('medicine-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadMedicines(event.target.value.trim()); });
-            byId('medicine-form').addEventListener('submit', registerMedicine);
-            byId('btn-nearby-pharmacies').addEventListener('click', () => loadNearby('pharmacy'));
-            byId('btn-nearby-health').addEventListener('click', () => loadNearby('health'));
-        }
-
-        async function boot() {
-            hydrateCachedSession();
-            setupEvents();
-
-            const moduleResult = await importFirebaseClient();
-            if (!moduleResult.ok || !moduleResult.data) {
-                setSessionStatus('Falha ao carregar credenciais. Recarregue a página.', 'error');
-                setHtml('alert-list', '<p class="loading-text">O módulo de autenticação não foi carregado.</p>');
-                setHtml('medicine-list', '<p class="loading-text">Catálogo indisponível até a autenticação carregar.</p>');
-                setMessage('pharmacy-directory-status', 'Módulo Firebase indisponível. Verifique o console do navegador e o caminho assets/firebaseClient.js.', 'error');
-                return;
-            }
-
-            api = moduleResult.data;
-            setSessionStatus('Validando sua sessão...', 'warn');
-            api.onAuthStateChange((user) => {
-                try {
-                    verifySession(user);
-                } catch (_) {
-                    redirectToLogin();
-                }
-            });
-
-            window.setTimeout(() => {
-                if (!authResolved) {
-                    setSessionStatus('A autenticação está demorando. Mantendo a interface ativa enquanto a sessão sincroniza.', 'warn');
-                    renderAlertList([]);
-                    renderMedicines([]);
-                    setMessage('pharmacy-directory-status', 'Aguardando resposta do Firebase Auth. Recarregue se a mensagem persistir.', 'warn');
-                }
-            }, 5000);
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', boot);
-        } else {
-            boot();
-        }
+        function haversineKm(aLat, aLng, bLat, bLng) { const r = 6371; const dLat = toRadians(bLat - aLat); const dLng = toRadians(bLng - aLng); const lat1 = toRadians(aLat); const lat2 = toRadians(bLat); const value = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2; return 2 * r * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value)); }
+        function buildOverpassQuery(lat, lng, radiusKm, kind) { const radiusM = Math.round(radiusKm * 1000); if (kind === 'health') return `[out:json][timeout:20];(node["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng});way["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng});relation["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng}););out center tags;`; return `[out:json][timeout:20];(node["amenity"="pharmacy"](around:${radiusM},${lat},${lng});way["amenity"="pharmacy"](around:${radiusM},${lat},${lng});relation["amenity"="pharmacy"](around:${radiusM},${lat},${lng});node["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});way["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});relation["healthcare"="pharmacy"](around:${radiusM},${lat},${lng}););out center tags;`; }
+        async function overpassRequest(queryText) { let lastError = null; for (const endpoint of OVERPASS_ENDPOINTS) { const controller = new AbortController(); const timer = window.setTimeout(() => controller.abort(), 14000); try { const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body: new URLSearchParams({ data: queryText }), signal: controller.signal }); window.clearTimeout(timer); if (!response.ok) throw new Error(`O serviço de localização respondeu HTTP ${response.status}`); return response.json(); } catch (error) { window.clearTimeout(timer); lastError = error; } } throw lastError || new Error('O serviço de localização está indisponível no momento.'); }
+        function osmRecord(element, origin, kind = 'pharmacy') { const tags = element.tags || {}; const center = element.center || {}; const latitude = Number(element.lat ?? center.lat); const longitude = Number(element.lon ?? center.lon); if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null; const distance = haversineKm(origin.lat, origin.lng, latitude, longitude); return { id: `osm-${element.type}-${element.id}`, name: tags.name || (kind === 'health' ? 'Estabelecimento de saúde localizado' : 'Farmácia localizada'), address: addressFromTags(tags), phone: tags.phone || tags['contact:phone'] || null, website: tags.website || tags['contact:website'] || null, latitude, longitude, distance_km: Math.round(distance * 100) / 100, opening_hours_label: tags.opening_hours || 'Horário não informado', status_label: 'Localizado', kind: kind === 'health' ? 'Serviço público de saúde' : 'Farmácia', ...routeLinks(latitude, longitude) }; }
+        async function loadNearby(kind) { const isHealth = kind === 'health'; const button = byId(isHealth ? 'btn-nearby-health' : 'btn-nearby-pharmacies'); const statusId = isHealth ? 'health-status' : 'nearby-status'; const listId = isHealth ? 'health-list' : 'nearby-pharmacy-list'; const radiusId = isHealth ? 'health-radius' : 'nearby-radius'; button.disabled = true; setMessage(statusId, 'Obtendo sua localização autorizada...'); setHtml(listId, '<p class="loading-text">Consultando estabelecimentos próximos...</p>'); try { const location = await getUserLocation(); const radiusKm = Number(byId(radiusId).value || (isHealth ? 5 : 10)); const payload = await overpassRequest(buildOverpassQuery(location.lat, location.lng, radiusKm, kind)); const seen = new Set(); const items = (payload.elements || []).map((element) => osmRecord(element, location, kind)).filter(Boolean).filter((item) => { if (seen.has(item.id)) return false; seen.add(item.id); return true; }).sort((a, b) => a.distance_km - b.distance_km).slice(0, isHealth ? 12 : 10); setMessage(statusId, `${items.length} estabelecimento(s) localizado(s) com base na sua localização.`, 'success'); setHtml(listId, items.length ? items.map((item) => `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.kind)} · ${String(item.distance_km.toFixed(2)).replace('.', ',')} km</p><p>${escapeHtml(item.address)}</p><p>${escapeHtml(item.opening_hours_label)}</p></div><span class="badge ok">Localizado</span></div><div class="item-actions">${pharmacyActions(item)}</div></div>`).join('') : '<p class="loading-text">Nenhum estabelecimento encontrado no raio configurado.</p>'); } catch (error) { setMessage(statusId, error?.message || 'Não foi possível consultar estabelecimentos próximos.', 'error'); setHtml(listId, '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>'); } finally { button.disabled = false; } }
+        function setupEvents() { byId('btn-logout').addEventListener('click', logout); byId('btn-search-pharmacies').addEventListener('click', () => loadPharmacies(byId('pharmacy-search-input').value.trim())); byId('btn-list-pharmacies').addEventListener('click', () => { byId('pharmacy-search-input').value = ''; cachedPharmacies = []; loadPharmacies(); }); byId('pharmacy-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPharmacies(event.target.value.trim()); }); byId('btn-search-medicines').addEventListener('click', () => loadMedicines(byId('medicine-search-input').value.trim())); byId('btn-list-medicines').addEventListener('click', () => { byId('medicine-search-input').value = ''; cachedMedicines = []; loadMedicines(); }); byId('medicine-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadMedicines(event.target.value.trim()); }); byId('medicine-form').addEventListener('submit', registerMedicine); byId('btn-nearby-pharmacies').addEventListener('click', () => loadNearby('pharmacy')); byId('btn-nearby-health').addEventListener('click', () => loadNearby('health')); }
+        async function boot() { hydrateCachedSession(); setupEvents(); const moduleResult = await importFirebaseClient(); if (!moduleResult.ok || !moduleResult.data) { setSessionStatus('Falha ao carregar credenciais. Recarregue a página.', 'error'); setHtml('alert-list', '<p class="loading-text">O módulo de autenticação não foi carregado.</p>'); setHtml('medicine-list', '<p class="loading-text">Catálogo indisponível até a autenticação carregar.</p>'); setMessage('pharmacy-directory-status', 'Módulo Firebase indisponível. Verifique o console do navegador e o caminho assets/firebaseClient.js.', 'error'); return; } api = moduleResult.data; setSessionStatus('Validando sua sessão...', 'warn'); api.onAuthStateChange((user) => { try { verifySession(user); } catch (_) { redirectToLogin(); } }); window.setTimeout(() => { if (!authResolved) { setSessionStatus('A autenticação está demorando. Mantendo a interface ativa enquanto a sessão sincroniza.', 'warn'); renderAlertList([]); renderMedicines([]); setMessage('pharmacy-directory-status', 'Aguardando resposta do Firebase Auth. Recarregue se a mensagem persistir.', 'warn'); } }, 5000); }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
     </script>
 </body>
 </html>
