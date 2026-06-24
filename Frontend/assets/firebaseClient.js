@@ -1,5 +1,4 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
-import { getAnalytics, isSupported, logEvent } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-analytics.js';
 import {
     getAuth,
     GoogleAuthProvider,
@@ -17,16 +16,19 @@ import {
     doc,
     getDoc,
     setDoc,
-    updateDoc,
     addDoc,
     collection,
+    getDocs,
+    query,
+    where,
+    orderBy,
+    limit as limitQuery,
     serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
 
 // Configuração pública do app Web registrada no Firebase Console.
-// Este é o local correto para a configuração no projeto estático atual.
-// Não inserir a tag <script> gerada pelo Console diretamente nas páginas HTML;
-// as páginas devem importar este módulo para preservar a camada de serviço.
+// Essa configuração identifica o app; não é chave secreta. Regras do Firestore
+// e Firebase Authentication continuam sendo a camada real de segurança.
 export const firebaseConfig = Object.freeze({
     apiKey: 'AIzaSyCN4we2-58ZJXy0TCxVpcdTzo5dvlDrCXw',
     authDomain: 'conectapharma-33fd7.firebaseapp.com',
@@ -45,6 +47,15 @@ export const PLATFORM_ADMIN_EMAILS = Object.freeze([
     'claudiofranciscojunior2006@gmail.com',
 ]);
 
+setPersistence(auth, browserSessionPersistence).catch(() => undefined);
+
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+function getSafeUserId() {
+    return auth.currentUser?.uid ?? null;
+}
+
 export function normalizeEmail(email) {
     return String(email ?? '').trim().toLowerCase();
 }
@@ -60,32 +71,12 @@ export function resolveUserRole(email, currentRole = 'USER') {
     return 'USER';
 }
 
-let analyticsInstancePromise = null;
-
-export function getAnalyticsSafe() {
-    if (typeof window === 'undefined') return Promise.resolve(null);
-    if (!analyticsInstancePromise) {
-        analyticsInstancePromise = isSupported()
-            .then((supported) => (supported ? getAnalytics(app) : null))
-            .catch(() => null);
-    }
-    return analyticsInstancePromise;
-}
-
-setPersistence(auth, browserSessionPersistence).catch(() => undefined);
-
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: 'select_account' });
-
-function getSafeUserId() {
-    return auth.currentUser?.uid ?? null;
-}
-
 export function normalizeSearchTerm(term) {
     return String(term ?? '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 }
@@ -99,12 +90,16 @@ export function getFriendlyAuthError(error) {
         'auth/wrong-password': 'Senha incorreta.',
         'auth/invalid-credential': 'E-mail ou senha inválidos.',
         'auth/popup-closed-by-user': 'Login com Google cancelado antes da conclusão.',
+        'auth/popup-blocked': 'O navegador bloqueou a janela de login do Google. Libere pop-ups para este site e tente novamente.',
+        'auth/cancelled-popup-request': 'Outra janela de login já estava em andamento. Tente novamente.',
         'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de autenticação.',
         'auth/network-request-failed': 'Falha de rede. Verifique sua conexão e tente novamente.',
-        'permission-denied': 'Operação bloqueada pelas regras do Firestore. Verifique a publicação das regras de segurança.',
+        'auth/operation-not-allowed': 'Este método de login ainda não está habilitado no Firebase Authentication.',
+        'auth/unauthorized-domain': 'Este domínio ainda não está autorizado no Firebase Authentication.',
+        'permission-denied': 'Operação bloqueada pelas regras do Firestore. Publique as regras atualizadas de segurança.',
     };
 
-    return errorMap[error?.code] || 'Não foi possível concluir a operação. Tente novamente.';
+    return errorMap[error?.code] || error?.message || 'Não foi possível concluir a operação. Tente novamente.';
 }
 
 export function toSessionUser(user) {
@@ -125,80 +120,73 @@ export async function upsertUserDocument(user, provider, name = null) {
     }
 
     const userRef = doc(db, 'users', user.uid);
-    const snapshot = await getDoc(userRef);
-    const resolvedName = name || user.displayName || user.email || 'Usuário ConectaPharma';
-    const existingRole = snapshot.exists() ? snapshot.data()?.role : 'USER';
-    const resolvedRole = resolveUserRole(user.email, existingRole);
+    let existingRole = 'USER';
 
-    if (!snapshot.exists()) {
-        await setDoc(userRef, {
-            uid: user.uid,
-            name: resolvedName,
-            email: normalizeEmail(user.email),
-            photoURL: user.photoURL || null,
-            provider,
-            role: resolvedRole,
-            createdAt: serverTimestamp(),
-            lastLoginAt: serverTimestamp(),
-            active: true,
-        });
-        return { created: true, role: resolvedRole };
+    try {
+        const snapshot = await getDoc(userRef);
+        if (snapshot.exists()) existingRole = snapshot.data()?.role || 'USER';
+    } catch (_) {
+        // A leitura pode falhar se as regras ainda não foram publicadas. A gravação
+        // abaixo continua sendo a operação que determina o estado do perfil.
     }
 
-    await updateDoc(userRef, {
+    const resolvedName = name || user.displayName || user.email || 'Usuário ConectaPharma';
+    const resolvedRole = resolveUserRole(user.email, existingRole);
+
+    await setDoc(userRef, {
+        uid: user.uid,
         name: resolvedName,
         email: normalizeEmail(user.email),
         photoURL: user.photoURL || null,
+        provider,
         role: resolvedRole,
-        lastLoginAt: serverTimestamp(),
         active: true,
-    });
-
-    return { created: false, role: resolvedRole };
-}
-
-async function writeLog(collectionName, payload) {
-    await addDoc(collection(db, collectionName), {
-        ...payload,
-        userId: payload.userId ?? getSafeUserId(),
         createdAt: serverTimestamp(),
-    });
+        lastLoginAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    return { role: resolvedRole };
 }
 
 async function writeLogBestEffort(collectionName, payload) {
     try {
-        await writeLog(collectionName, payload);
+        await addDoc(collection(db, collectionName), {
+            ...payload,
+            userId: payload.userId ?? getSafeUserId(),
+            createdAt: serverTimestamp(),
+        });
     } catch (_) {
-        // Métrica opcional: falha silenciosa para não impactar a experiência.
+        // Métricas opcionais nunca devem impedir navegação, login ou consulta pública.
     }
 }
 
-async function trackAnalyticsEvent(_eventName, _params = {}) {
-    return undefined;
+export async function trackPageView(pageName) {
+    await writeLogBestEffort('click_logs', { pharmacyId: `page:${pageName}`, actionType: 'VIEW' });
 }
 
-export async function trackPageView(_pageName) {
-    return undefined;
+export async function trackLogin(method, userId = null) {
+    await writeLogBestEffort('auth_logs', { method, eventType: 'LOGIN', userId: userId || getSafeUserId() });
 }
 
-export async function trackLogin(_method, _userId = null) {
-    return undefined;
+export async function trackSignUp(method, userId = null) {
+    await writeLogBestEffort('auth_logs', { method, eventType: 'SIGN_UP', userId: userId || getSafeUserId() });
 }
 
-export async function trackSignUp(_method, _userId = null) {
-    return undefined;
+export async function trackFormSubmit(formType) {
+    await writeLogBestEffort('form_submit_logs', { formType });
 }
 
-export async function trackFormSubmit(_formType) {
-    return undefined;
+export async function trackMedicineSearch(term, resultCount = 0) {
+    await writeLogBestEffort('search_logs', {
+        term: String(term || '').trim(),
+        normalizedTerm: normalizeSearchTerm(term),
+        resultCount,
+    });
 }
 
-export async function trackMedicineSearch(_term, _resultCount = 0) {
-    return undefined;
-}
-
-export async function trackPharmacyClick(_pharmacyId, _actionType = 'VIEW') {
-    return undefined;
+export async function trackPharmacyClick(pharmacyId, actionType = 'VIEW') {
+    await writeLogBestEffort('click_logs', { pharmacyId: String(pharmacyId), actionType });
 }
 
 export async function signUpWithEmail(name, email, password) {
@@ -231,14 +219,8 @@ export async function signInWithEmail(email, password) {
 
 export async function signInWithGoogle() {
     const credential = await signInWithPopup(auth, googleProvider);
-    const result = await upsertUserDocument(credential.user, 'google');
-
-    if (result.created) {
-        await trackSignUp('google', credential.user.uid);
-    } else {
-        await trackLogin('google', credential.user.uid);
-    }
-
+    await upsertUserDocument(credential.user, 'google');
+    await trackLogin('google', credential.user.uid);
     return credential.user;
 }
 
@@ -265,6 +247,89 @@ function validateRequired(data, fields) {
     if (missing.length > 0) {
         throw new Error(`Campos obrigatórios ausentes: ${missing.join(', ')}.`);
     }
+}
+
+function matchesQuery(record, queryText, fields) {
+    const queryValue = normalizeSearchTerm(queryText);
+    if (!queryValue) return true;
+    const haystack = normalizeSearchTerm(fields.map((field) => record?.[field]).filter(Boolean).join(' '));
+    return queryValue.split(' ').every((term) => haystack.includes(term));
+}
+
+function snapshotToRecords(snapshot) {
+    return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+}
+
+export async function listFarmacias({ q = '', max = 100 } = {}) {
+    const snapshot = await getDocs(query(collection(db, 'farmacias'), limitQuery(max)));
+    return snapshotToRecords(snapshot)
+        .filter((item) => item.ativo !== false)
+        .filter((item) => matchesQuery(item, q, ['nome', 'name', 'endereco', 'address', 'bairro', 'cidade', 'horario_funcionamento', 'opening_hours_label']))
+        .sort((a, b) => String(a.nome || a.name || '').localeCompare(String(b.nome || b.name || ''), 'pt-BR'))
+        .slice(0, max);
+}
+
+export async function createFarmacia(data) {
+    validateRequired(data, ['nome', 'endereco']);
+    const userId = getSafeUserId();
+    const payload = {
+        nome: data.nome.trim(),
+        endereco: data.endereco.trim(),
+        bairro: data.bairro?.trim() || null,
+        cidade: data.cidade?.trim() || 'Belo Horizonte',
+        telefone: data.telefone?.trim() || null,
+        horario_funcionamento: data.horario_funcionamento?.trim() || 'Horário não informado',
+        latitude: Number.isFinite(Number(data.latitude)) ? Number(data.latitude) : null,
+        longitude: Number.isFinite(Number(data.longitude)) ? Number(data.longitude) : null,
+        ativo: data.ativo !== false,
+        disponibilidade_farmaco: data.disponibilidade_farmaco !== false,
+        createdBy: userId,
+        updatedBy: userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    };
+    const ref = await addDoc(collection(db, 'farmacias'), payload);
+    return { id: ref.id, ...payload };
+}
+
+export async function listMedications({ q = '', max = 100 } = {}) {
+    const snapshot = await getDocs(query(collection(db, 'medications'), limitQuery(max)));
+    return snapshotToRecords(snapshot)
+        .filter((item) => item.active !== false && item.ativo !== false)
+        .filter((item) => matchesQuery(item, q, ['nome', 'name', 'categoria', 'category', 'descricao', 'description']))
+        .sort((a, b) => String(a.nome || a.name || '').localeCompare(String(b.nome || b.name || ''), 'pt-BR'))
+        .slice(0, max);
+}
+
+export async function createMedication(data) {
+    validateRequired(data, ['nome']);
+    const userId = getSafeUserId();
+    const payload = {
+        nome: data.nome.trim(),
+        categoria: data.categoria?.trim() || null,
+        descricao: data.descricao?.trim() || null,
+        dose_diaria_comprimidos: Number(data.dose_diaria_comprimidos || 1),
+        stock: Number(data.stock || 0),
+        requires_prescription: Boolean(data.requires_prescription),
+        active: true,
+        createdBy: userId,
+        updatedBy: userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    };
+    const ref = await addDoc(collection(db, 'medications'), payload);
+    return { id: ref.id, ...payload };
+}
+
+export async function listMedicineAlerts({ role = 'USER', max = 20 } = {}) {
+    const normalizedRole = String(role || 'USER').toUpperCase();
+    const userId = getSafeUserId();
+    const baseCollection = collection(db, 'medicine_alerts');
+    const q = normalizedRole === 'ADMIN'
+        ? query(baseCollection, orderBy('createdAt'), limitQuery(max))
+        : query(baseCollection, where('userId', '==', userId || '__none__'), limitQuery(max));
+    const snapshot = await getDocs(q);
+    return snapshotToRecords(snapshot);
 }
 
 export async function submitContactForm(data) {

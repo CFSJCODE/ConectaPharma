@@ -374,7 +374,7 @@
     <main class="page-body">
         <section class="card">
             <h2 class="section-title">Painel do usuário</h2>
-            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. A sessão é autenticada pelo Firebase e validada pelo backend quando disponível.</p>
+            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. A sessão é autenticada pelo Firebase e os dados operacionais são consultados no Firestore.</p>
             <div class="status-pill" id="session-status">Carregando sessão...</div>
             <div class="status-pill admin" id="admin-status">Administrador da plataforma</div>
             <div class="grid-summary">
@@ -395,7 +395,7 @@
 
         <section class="card">
             <h2 class="section-title">Alertas de consumo</h2>
-            <p class="section-subtitle">Acompanhamento operacional dos medicamentos monitorados pelo backend.</p>
+            <p class="section-subtitle">Acompanhamento operacional dos medicamentos monitorados no Firestore.</p>
             <div id="alert-list" class="list-grid">
                 <p class="loading-text">Carregando alertas...</p>
             </div>
@@ -448,7 +448,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Farmácias abertas próximas</h2>
-            <p class="section-subtitle">A localização é solicitada apenas após o clique. A busca utiliza OpenStreetMap/Overpass como fonte gratuita para localizar farmácias próximas.</p>
+            <p class="section-subtitle">A localização é solicitada apenas após o clique. A busca utiliza OpenStreetMap/Overpass como serviço gratuito para localizar farmácias próximas.</p>
             <div class="actions">
                 <button id="btn-nearby-pharmacies" class="btn" type="button">Usar minha localização</button>
                 <select id="nearby-radius" class="select" aria-label="Raio de busca">
@@ -466,7 +466,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Postos de saúde e UPAs próximos</h2>
-            <p class="section-subtitle">Localize UBSs, postos de saúde, centros de saúde e UPAs próximos usando OpenStreetMap/Overpass como fonte gratuita.</p>
+            <p class="section-subtitle">Localize UBSs, postos de saúde, centros de saúde e UPAs próximos usando OpenStreetMap/Overpass como serviço gratuito.</p>
             <div class="actions">
                 <button id="btn-nearby-health" class="btn" type="button">Localizar estabelecimentos</button>
                 <select id="health-kind" class="select" aria-label="Tipo de estabelecimento">
@@ -494,16 +494,19 @@
 
     <script type="module">
         import {
+            createMedication,
             getCurrentIdToken,
+            listFarmacias,
+            listMedications,
+            listMedicineAlerts,
             onAuthStateChange,
             resolveUserRole,
             signOutUser,
             toSessionUser,
+            trackMedicineSearch,
+            trackPharmacyClick,
         } from './assets/firebaseClient.js';
 
-        const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '']);
-        const IS_LOCAL_FRONTEND = LOCAL_HOSTS.has(window.location.hostname);
-        const API_BASE_URL = window.CONNECTAPHARMA_API_BASE_URL || (IS_LOCAL_FRONTEND ? 'http://127.0.0.1:8000/api/v1' : '');
         const STORAGE_USER_KEY = 'conectapharma_user';
         const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
         const BH_CENTER = { lat: -19.9166813, lng: -43.9344931 };
@@ -524,7 +527,7 @@
 
         const LOCAL_MOCK_FARMACIAS = [
             {
-                id: 1,
+                id: 'local-1',
                 nome: 'Farmácia Central BH',
                 endereco: 'Av. Afonso Pena, 1000 - Centro',
                 horario_funcionamento: '08:00 - 22:00',
@@ -535,7 +538,7 @@
                 openstreetmap_url: 'https://www.openstreetmap.org/?mlat=-19.9191&mlon=-43.9386#map=17/-19.9191/-43.9386',
             },
             {
-                id: 2,
+                id: 'local-2',
                 nome: 'Drogaria Plantão 24h',
                 endereco: 'Região Centro-Sul, Belo Horizonte - MG',
                 horario_funcionamento: '24 Horas',
@@ -548,17 +551,10 @@
         ];
 
         const LOCAL_MOCK_MEDICINES = [
-            { id: 1, nome: 'Losartana 50mg', categoria: 'Anti-hipertensivo', descricao: 'Item operacional do MVP.', stock: 3, requires_prescription: true },
-            { id: 2, nome: 'Metformina 850mg', categoria: 'Antidiabético', descricao: 'Item operacional do MVP.', stock: 22, requires_prescription: true },
-            { id: 3, nome: 'Dipirona 500mg', categoria: 'Analgésico', descricao: 'Item operacional do MVP.', stock: 14, requires_prescription: false },
+            { id: 'local-med-1', nome: 'Losartana 50mg', categoria: 'Anti-hipertensivo', descricao: 'Item operacional do MVP.', stock: 3, requires_prescription: true },
+            { id: 'local-med-2', nome: 'Metformina 850mg', categoria: 'Antidiabético', descricao: 'Item operacional do MVP.', stock: 22, requires_prescription: true },
+            { id: 'local-med-3', nome: 'Dipirona 500mg', categoria: 'Analgésico', descricao: 'Item operacional do MVP.', stock: 14, requires_prescription: false },
         ];
-
-        class BackendUnavailableError extends Error {
-            constructor(message) {
-                super(message);
-                this.name = 'BackendUnavailableError';
-            }
-        }
 
         function byId(id) {
             return document.getElementById(id);
@@ -585,66 +581,11 @@
             element.className = `message ${type}`.trim();
         }
 
-        function authHeaders(token = currentToken) {
-            return token ? { Authorization: `Bearer ${token}` } : {};
-        }
-
-        function isBackendUnavailable(error) {
-            return error?.name === 'BackendUnavailableError' || error?.name === 'TypeError' || /failed to fetch|network|backend/i.test(String(error?.message ?? ''));
-        }
-
         function setSessionStatus(message, mode = 'ok') {
             const status = byId('session-status');
+            if (!status) return;
             status.innerHTML = message;
             status.className = `status-pill ${mode === 'warn' ? 'warn' : ''}`.trim();
-        }
-
-        async function logout() {
-            await signOutUser();
-            sessionStorage.removeItem(STORAGE_USER_KEY);
-            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
-            window.location.href = 'login.html';
-        }
-
-        function redirectToLogin() {
-            sessionStorage.removeItem(STORAGE_USER_KEY);
-            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
-            window.location.href = 'login.html';
-        }
-
-        async function apiJson(path, options = {}) {
-            if (!API_BASE_URL) {
-                throw new BackendUnavailableError('Backend público não configurado para esta hospedagem estática.');
-            }
-
-            try {
-                const response = await fetch(`${API_BASE_URL}${path}`, {
-                    ...options,
-                    headers: {
-                        ...(options.headers || {}),
-                        ...(options.auth ? authHeaders() : {}),
-                    },
-                });
-
-                if (!response.ok) {
-                    let detail = `HTTP ${response.status}`;
-                    try {
-                        const payload = await response.json();
-                        detail = payload.detail || detail;
-                    } catch (_) {}
-                    throw new Error(detail);
-                }
-
-                return response.json();
-            } catch (error) {
-                if (error?.name === 'AbortError') {
-                    throw new BackendUnavailableError('Tempo limite excedido ao consultar o backend.');
-                }
-                if (error instanceof TypeError) {
-                    throw new BackendUnavailableError('Backend indisponível ou bloqueado por CORS.');
-                }
-                throw error;
-            }
         }
 
         function normalizeText(value) {
@@ -678,7 +619,7 @@
             return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
 
-        function routeLinks(latitude, longitude, label = 'Destino') {
+        function routeLinks(latitude, longitude) {
             const openstreetmapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
             return {
                 maps_url: openstreetmapUrl,
@@ -775,14 +716,14 @@ out center tags;`.trim();
             return `[out:json][timeout:25];\n(\n  ${statements}\n);\nout center tags;`;
         }
 
-        async function overpassRequest(query) {
+        async function overpassRequest(queryText) {
             let lastError = null;
             for (const endpoint of OVERPASS_ENDPOINTS) {
                 try {
                     const response = await fetch(endpoint, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-                        body: new URLSearchParams({ data: query }),
+                        body: new URLSearchParams({ data: queryText }),
                         signal: AbortSignal.timeout(14000),
                     });
                     if (!response.ok) throw new Error(`OpenStreetMap respondeu HTTP ${response.status}`);
@@ -841,7 +782,7 @@ out center tags;`.trim();
             const longitude = Number(element.lon ?? center.lon);
             if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
             const name = tags.name || tags.brand || 'Farmácia no OpenStreetMap';
-            const links = routeLinks(latitude, longitude, name);
+            const links = routeLinks(latitude, longitude);
             const isOpen = parseOpenStatus(tags.opening_hours);
             const distanceKm = origin ? haversineKm(origin.lat, origin.lng, latitude, longitude) : null;
             return {
@@ -971,6 +912,19 @@ out center tags;`.trim();
             }
         }
 
+        async function logout() {
+            await signOutUser();
+            sessionStorage.removeItem(STORAGE_USER_KEY);
+            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
+            window.location.href = 'login.html';
+        }
+
+        function redirectToLogin() {
+            sessionStorage.removeItem(STORAGE_USER_KEY);
+            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
+            window.location.href = 'login.html';
+        }
+
         async function verifySession(user) {
             if (!user) {
                 redirectToLogin();
@@ -984,27 +938,10 @@ out center tags;`.trim();
             };
             applyAccessControl(currentSessionUser.role);
             currentToken = await getCurrentIdToken();
-            sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, currentToken);
+            sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, currentToken || '');
             sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
             setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
-
-            try {
-                const apiUser = await apiJson('/auth/me', { auth: true, signal: AbortSignal.timeout(2800) });
-                currentSessionUser = {
-                    ...currentSessionUser,
-                    ...apiUser,
-                    role: resolveUserRole(apiUser.email || currentSessionUser.email, apiUser.role || currentSessionUser.role),
-                };
-                sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
-                applyAccessControl(currentSessionUser.role);
-                setText('user-name', apiUser.name || currentSessionUser.name || currentSessionUser.email || 'Usuário');
-                setSessionStatus(currentSessionUser.role === 'ADMIN' ? 'Sessão administrativa validada' : 'Sessão de usuário comum validada');
-            } catch (error) {
-                const modeMessage = API_BASE_URL
-                    ? 'Sessão Firebase ativa; backend indisponível no momento'
-                    : 'Sessão Firebase ativa; usando OpenStreetMap direto para buscas públicas';
-                setSessionStatus(modeMessage, 'warn');
-            }
+            setSessionStatus(currentSessionUser.role === 'ADMIN' ? 'Sessão administrativa ativa no Firebase' : 'Sessão de usuário comum ativa no Firebase');
 
             await Promise.allSettled([
                 loadDashboardData(),
@@ -1014,15 +951,18 @@ out center tags;`.trim();
         }
 
         async function loadDashboardData() {
+            let alertas = [];
+            let farmacias = [];
             try {
-                const [alertas, farmacias] = await Promise.all([
-                    apiJson('/alertas', { signal: AbortSignal.timeout(2800) }),
-                    apiJson('/farmacias/mapa', { signal: AbortSignal.timeout(2800) }),
+                [alertas, farmacias] = await Promise.all([
+                    listMedicineAlerts({ role: currentSessionUser?.role || 'USER', max: 10 }),
+                    listFarmacias({ max: 100 }),
                 ]);
-                renderDashboardData(alertas, farmacias);
             } catch (_) {
-                renderDashboardData(LOCAL_MOCK_ALERTAS, LOCAL_MOCK_FARMACIAS);
+                alertas = LOCAL_MOCK_ALERTAS;
+                farmacias = LOCAL_MOCK_FARMACIAS;
             }
+            renderDashboardData(alertas, farmacias);
         }
 
         function renderDashboardData(alertas, farmacias) {
@@ -1044,8 +984,8 @@ out center tags;`.trim();
                     <div class="item-card">
                         <div class="item-head">
                             <div>
-                                <strong>${escapeHtml(alerta.nome || 'Alerta')}</strong>
-                                <p>${escapeHtml(alerta.dias_restantes ?? '—')} dias restantes</p>
+                                <strong>${escapeHtml(alerta.nome || alerta.medicineName || 'Alerta')}</strong>
+                                <p>${escapeHtml(alerta.dias_restantes ?? alerta.daysRemaining ?? '—')} dias restantes</p>
                             </div>
                             <span class="badge ${badgeClass}">${escapeHtml(status)}</span>
                         </div>
@@ -1066,7 +1006,7 @@ out center tags;`.trim();
         function renderPharmacyDirectory(items) {
             const list = byId('pharmacy-directory-list');
             if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhuma farmácia encontrada.</p>';
+                list.innerHTML = '<p class="loading-text">Nenhuma farmácia cadastrada no Firestore. A busca por proximidade abaixo continua usando OpenStreetMap.</p>';
                 return;
             }
             list.innerHTML = items.map((item) => `
@@ -1085,35 +1025,22 @@ out center tags;`.trim();
         }
 
         async function loadPharmacies(query = '') {
-            setMessage('pharmacy-directory-status', 'Consultando farmácias...');
+            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas no Firestore...');
             try {
-                const params = new URLSearchParams({ limit: '30' });
-                if (query) params.set('q', query);
-                const items = await apiJson(`/farmacias?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
-                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s) no backend.`, 'success');
+                const items = await listFarmacias({ q: query, max: 100 });
+                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
                 renderPharmacyDirectory(items);
+                await trackPharmacyClick('directory:list', 'VIEW');
             } catch (error) {
-                if (isBackendUnavailable(error)) {
-                    try {
-                        setMessage('pharmacy-directory-status', 'Backend indisponível. Buscando farmácias no OpenStreetMap em Belo Horizonte...', 'warn');
-                        const items = await findOpenStreetMapPharmacies({ ...BH_CENTER, radiusKm: 12, limit: 30, openNow: false, queryText: query });
-                        setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s) no OpenStreetMap.`, 'success');
-                        renderPharmacyDirectory(items);
-                    } catch (_) {
-                        setMessage('pharmacy-directory-status', 'Não foi possível consultar backend nem OpenStreetMap. Exibindo base local mínima.', 'error');
-                        renderPharmacyDirectory(LOCAL_MOCK_FARMACIAS);
-                    }
-                    return;
-                }
-                setMessage('pharmacy-directory-status', `Não foi possível consultar farmácias: ${error.message}`, 'error');
-                renderPharmacyDirectory(LOCAL_MOCK_FARMACIAS);
+                setMessage('pharmacy-directory-status', `Não foi possível consultar farmácias cadastradas: ${error.message}`, 'error');
+                renderPharmacyDirectory([]);
             }
         }
 
         function renderMedicines(items) {
             const list = byId('medicine-list');
             if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhum medicamento encontrado.</p>';
+                list.innerHTML = '<p class="loading-text">Nenhum medicamento cadastrado.</p>';
                 setText('medicamento-count', 0);
                 return;
             }
@@ -1122,9 +1049,9 @@ out center tags;`.trim();
                 <div class="item-card">
                     <div class="item-head">
                         <div>
-                            <strong>${escapeHtml(item.nome)}</strong>
-                            <p>${escapeHtml(item.categoria || 'Categoria não informada')} · Estoque operacional: ${escapeHtml(item.stock ?? 0)}</p>
-                            <p>${escapeHtml(item.descricao || 'Sem descrição operacional.')}</p>
+                            <strong>${escapeHtml(item.nome || item.name)}</strong>
+                            <p>${escapeHtml(item.categoria || item.category || 'Categoria não informada')} · Estoque operacional: ${escapeHtml(item.stock ?? 0)}</p>
+                            <p>${escapeHtml(item.descricao || item.description || 'Sem descrição operacional.')}</p>
                         </div>
                         <span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Prescrição' : 'Livre'}</span>
                     </div>
@@ -1134,10 +1061,9 @@ out center tags;`.trim();
 
         async function loadMedicines(query = '') {
             try {
-                const params = new URLSearchParams({ limit: '50' });
-                if (query) params.set('q', query);
-                const items = await apiJson(`/saude/medicamentos?${params.toString()}`, { signal: AbortSignal.timeout(5000) });
+                const items = await listMedications({ q: query, max: 100 });
                 renderMedicines(items);
+                await trackMedicineSearch(query, items.length);
             } catch (_) {
                 const items = LOCAL_MOCK_MEDICINES.filter((item) => textMatchesQuery(`${item.nome} ${item.categoria} ${item.descricao}`, query));
                 renderMedicines(items);
@@ -1152,7 +1078,7 @@ out center tags;`.trim();
             }
             const button = byId('btn-register-medicine');
             button.disabled = true;
-            setMessage('medicine-form-status', 'Cadastrando...');
+            setMessage('medicine-form-status', 'Cadastrando no Firestore...');
             try {
                 const payload = {
                     nome: byId('medicine-name').value.trim(),
@@ -1162,24 +1088,16 @@ out center tags;`.trim();
                     stock: Number(byId('medicine-stock').value || 0),
                     requires_prescription: byId('medicine-prescription').value === 'true',
                 };
-                await apiJson('/saude/medicamentos', {
-                    method: 'POST',
-                    auth: true,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
+                await createMedication(payload);
                 byId('medicine-form').reset();
                 byId('medicine-dose').value = '1';
                 byId('medicine-stock').value = '0';
-                setMessage('medicine-form-status', 'Medicamento cadastrado com sucesso.', 'success');
-                await loadMedicines();
+                setMessage('medicine-form-status', 'Medicamento cadastrado no Firestore com sucesso.', 'success');
+                await Promise.allSettled([loadMedicines(), loadDashboardData()]);
             } catch (error) {
-                const message = isBackendUnavailable(error)
-                    ? 'O cadastro exige backend FastAPI ativo. Execute o backend local ou configure uma API pública.'
-                    : `Falha no cadastro: ${error.message}`;
-                setMessage('medicine-form-status', message, 'error');
+                setMessage('medicine-form-status', `Falha no cadastro: ${error.message}`, 'error');
             } finally {
-                button.disabled = false;
+                button.disabled = String(currentSessionUser?.role || 'USER').toUpperCase() !== 'ADMIN';
             }
         }
 
@@ -1233,25 +1151,9 @@ out center tags;`.trim();
                 const radiusKm = Number(byId('nearby-radius').value || 10);
                 if (nearbyRequestController) nearbyRequestController.abort();
                 nearbyRequestController = new AbortController();
-                const params = new URLSearchParams({
-                    lat: String(location.lat),
-                    lng: String(location.lng),
-                    radius_km: String(radiusKm),
-                    open_now: 'true',
-                    limit: '10',
-                });
-                try {
-                    const data = await apiJson(`/farmacias/proximas?${params.toString()}`, {
-                        signal: AbortSignal.any([nearbyRequestController.signal, AbortSignal.timeout(12000)]),
-                    });
-                    setMessage('nearby-status', `${data.count} farmácia(s) localizada(s) em até ${data.radius_km} km.`, 'success');
-                    renderNearbyPharmacies(data.items);
-                } catch (backendError) {
-                    if (!isBackendUnavailable(backendError)) throw backendError;
-                    const items = await findOpenStreetMapPharmacies({ lat: location.lat, lng: location.lng, radiusKm, limit: 10, openNow: true });
-                    setMessage('nearby-status', `${items.length} farmácia(s) localizada(s) diretamente no OpenStreetMap.`, 'success');
-                    renderNearbyPharmacies(items);
-                }
+                const items = await findOpenStreetMapPharmacies({ lat: location.lat, lng: location.lng, radiusKm, limit: 10, openNow: true });
+                setMessage('nearby-status', `${items.length} farmácia(s) localizada(s) diretamente no OpenStreetMap.`, 'success');
+                renderNearbyPharmacies(items);
             } catch (error) {
                 if (error?.name !== 'AbortError') {
                     setMessage('nearby-status', error.message || 'Não foi possível consultar farmácias próximas.', 'error');
@@ -1301,26 +1203,9 @@ out center tags;`.trim();
                 const kind = byId('health-kind').value;
                 if (healthRequestController) healthRequestController.abort();
                 healthRequestController = new AbortController();
-                const params = new URLSearchParams({
-                    lat: String(location.lat),
-                    lng: String(location.lng),
-                    radius_km: String(radiusKm),
-                    open_now: String(openNow),
-                    limit: '12',
-                    kind,
-                });
-                try {
-                    const data = await apiJson(`/estabelecimentos-saude/proximos?${params.toString()}`, {
-                        signal: AbortSignal.any([healthRequestController.signal, AbortSignal.timeout(12000)]),
-                    });
-                    setMessage('health-status', `${data.count} posto(s)/UPA(s) localizado(s) em até ${data.radius_km} km.`, 'success');
-                    renderHealthEstablishments(data.items);
-                } catch (backendError) {
-                    if (!isBackendUnavailable(backendError)) throw backendError;
-                    const items = await findOpenStreetMapHealth({ lat: location.lat, lng: location.lng, radiusKm, limit: 12, openNow, kind });
-                    setMessage('health-status', `${items.length} posto(s)/UPA(s) localizado(s) diretamente no OpenStreetMap.`, 'success');
-                    renderHealthEstablishments(items);
-                }
+                const items = await findOpenStreetMapHealth({ lat: location.lat, lng: location.lng, radiusKm, limit: 12, openNow, kind });
+                setMessage('health-status', `${items.length} posto(s)/UPA(s) localizado(s) diretamente no OpenStreetMap.`, 'success');
+                renderHealthEstablishments(items);
             } catch (error) {
                 if (error?.name !== 'AbortError') {
                     setMessage('health-status', error.message || 'Não foi possível localizar postos de saúde ou UPAs.', 'error');
@@ -1352,6 +1237,7 @@ out center tags;`.trim();
             });
         });
     </script>
+
 
 </body>
 </html>
