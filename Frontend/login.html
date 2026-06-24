@@ -377,20 +377,22 @@
             });
         }
 
-        async function persistFirebaseSession(user) {
+        function persistFirebaseSession(user) {
             const sessionUser = toSessionUser(user);
-            const idToken = await user.getIdToken();
 
             sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(sessionUser));
-            sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, idToken);
             localStorage.removeItem(STORAGE_USER_KEY);
+
+            user.getIdToken(false)
+                .then((idToken) => sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, idToken))
+                .catch(() => sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY));
         }
 
         function redirectToPlatform(user) {
             showAlert(`Bem-vindo(a), ${user.displayName || user.email}! Redirecionando...`, 'success');
             setTimeout(() => {
                 window.location.href = 'plataforma.html';
-            }, 800);
+            }, 180);
         }
 
         async function handleLogin(event) {

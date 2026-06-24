@@ -14,7 +14,6 @@ import {
 import {
     getFirestore,
     doc,
-    getDoc,
     setDoc,
     addDoc,
     collection,
@@ -128,18 +127,10 @@ export async function upsertUserDocument(user, provider, name = null) {
         throw new Error('Não foi possível validar os dados da conta para criação do perfil.');
     }
 
-    const userRef = doc(db, 'users', user.uid);
-    try {
-        await getDoc(userRef);
-    } catch (_) {
-        // A leitura pode falhar se as regras ainda não foram publicadas. A gravação
-        // abaixo continua sendo a operação que determina o estado do perfil.
-    }
-
     const resolvedName = name || user.displayName || user.email || 'Usuário ConectaPharma';
     const resolvedRole = resolveUserRole(user.email);
 
-    await setDoc(userRef, {
+    await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         name: resolvedName,
         email: normalizeEmail(user.email),
@@ -153,6 +144,10 @@ export async function upsertUserDocument(user, provider, name = null) {
     }, { merge: true });
 
     return { role: resolvedRole };
+}
+
+function runBestEffort(operation) {
+    Promise.resolve(operation).catch(() => undefined);
 }
 
 async function writeLogBestEffort(collectionName, payload) {
@@ -205,8 +200,8 @@ export async function signUpWithEmail(name, email, password) {
 
     const credential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
     await updateProfile(credential.user, { displayName: trimmedName });
-    await upsertUserDocument(credential.user, 'email', trimmedName);
-    await trackSignUp('email', credential.user.uid);
+    runBestEffort(upsertUserDocument(credential.user, 'email', trimmedName));
+    runBestEffort(trackSignUp('email', credential.user.uid));
     return credential.user;
 }
 
@@ -218,15 +213,15 @@ export async function signInWithEmail(email, password) {
     }
 
     const credential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
-    await upsertUserDocument(credential.user, 'email');
-    await trackLogin('email', credential.user.uid);
+    runBestEffort(upsertUserDocument(credential.user, 'email'));
+    runBestEffort(trackLogin('email', credential.user.uid));
     return credential.user;
 }
 
 export async function signInWithGoogle() {
     const credential = await signInWithPopup(auth, googleProvider);
-    await upsertUserDocument(credential.user, 'google');
-    await trackLogin('google', credential.user.uid);
+    runBestEffort(upsertUserDocument(credential.user, 'google'));
+    runBestEffort(trackLogin('google', credential.user.uid));
     return credential.user;
 }
 

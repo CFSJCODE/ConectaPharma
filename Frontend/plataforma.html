@@ -469,7 +469,7 @@
         <section class="card">
             <h2 class="section-title">Minha área</h2>
             <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. Aqui você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos. O cadastro de medicamentos está liberado para contas autenticadas; o cadastro manual de farmácias permanece restrito ao responsável autorizado.</p>
-            <div class="status-pill" id="session-status">Verificando seu acesso...</div>
+            <div class="status-pill" id="session-status" aria-live="polite">Verificando seu acesso...</div>
             <div class="status-pill admin" id="admin-status" data-admin-only hidden aria-hidden="true">Perfil responsável</div>
             <div class="actions admin-actions" aria-label="Ações administrativas" data-admin-only hidden aria-hidden="true">
                 <a class="btn btn-accent" href="cadastrar-farmacias.html">Cadastrar farmácias manualmente</a>
@@ -493,7 +493,7 @@
         <section class="card">
             <h2 class="section-title">Alertas e acompanhamento</h2>
             <p class="section-subtitle">Acompanhe alertas e informações que ajudam na organização do cuidado.</p>
-            <div id="alert-list" class="list-grid">
+            <div id="alert-list" class="list-grid" aria-live="polite">
                 <p class="loading-text">Carregando alertas...</p>
             </div>
         </section>
@@ -532,7 +532,7 @@
                 <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html" data-admin-only hidden aria-hidden="true" tabindex="-1">Cadastrar farmácias manualmente</a>
             </div>
             <p id="pharmacy-directory-status" class="message">Pronto para consulta.</p>
-            <div id="pharmacy-directory-list" class="list-grid">
+            <div id="pharmacy-directory-list" class="list-grid" aria-live="polite">
                 <p class="loading-text">Pesquise por nome, bairro, endereço ou liste todas as farmácias cadastradas.</p>
             </div>
         </section>
@@ -545,7 +545,7 @@
                 <button id="btn-search-medicines" class="btn" type="button">Pesquisar</button>
                 <button id="btn-list-medicines" class="btn btn-secondary" type="button">Listar catálogo</button>
             </div>
-            <div id="medicine-list" class="list-grid">
+            <div id="medicine-list" class="list-grid" aria-live="polite">
                 <p class="loading-text">Carregando catálogo...</p>
             </div>
 
@@ -617,7 +617,6 @@
     <script type="module">
         import {
             createMedication,
-            getCurrentIdToken,
             isPlatformAdminUser,
             listFarmacias,
             listMedications,
@@ -638,46 +637,16 @@
             'https://overpass.kumi.systems/api/interpreter',
         ];
 
-        let currentToken = null;
+        const FIRESTORE_FAST_TIMEOUT_MS = 2800;
+
         let currentSessionUser = null;
+        let cachedAlerts = [];
+        let cachedPharmacies = [];
+        let cachedMedicines = [];
+        let pharmacyRequestSeq = 0;
+        let medicineRequestSeq = 0;
         let nearbyRequestController = null;
         let healthRequestController = null;
-
-        const LOCAL_MOCK_ALERTAS = [
-            { id: 1, nome: 'Losartana 50mg', dias_restantes: 3, status: 'CRITICO' },
-            { id: 2, nome: 'Metformina 850mg', dias_restantes: 15, status: 'OK' },
-        ];
-
-        const LOCAL_MOCK_FARMACIAS = [
-            {
-                id: 'local-1',
-                nome: 'Farmácia Central BH',
-                endereco: 'Av. Afonso Pena, 1000 - Centro',
-                horario_funcionamento: '08:00 - 22:00',
-                disponibilidade_farmaco: true,
-                avaliacao: 4.8,
-                latitude: -19.9191,
-                longitude: -43.9386,
-                openstreetmap_url: 'https://www.openstreetmap.org/?mlat=-19.9191&mlon=-43.9386#map=17/-19.9191/-43.9386',
-            },
-            {
-                id: 'local-2',
-                nome: 'Drogaria Plantão 24h',
-                endereco: 'Região Centro-Sul, Belo Horizonte - MG',
-                horario_funcionamento: '24 Horas',
-                disponibilidade_farmaco: true,
-                avaliacao: 4.6,
-                latitude: -19.932,
-                longitude: -43.9378,
-                openstreetmap_url: 'https://www.openstreetmap.org/?mlat=-19.932&mlon=-43.9378#map=17/-19.932/-43.9378',
-            },
-        ];
-
-        const LOCAL_MOCK_MEDICINES = [
-            { id: 'local-med-1', nome: 'Losartana 50mg', categoria: 'Anti-hipertensivo', descricao: 'Item de referência cadastral.', stock: 3, requires_prescription: true },
-            { id: 'local-med-2', nome: 'Metformina 850mg', categoria: 'Antidiabético', descricao: 'Item de referência cadastral.', stock: 22, requires_prescription: true },
-            { id: 'local-med-3', nome: 'Dipirona 500mg', categoria: 'Analgésico', descricao: 'Item de referência cadastral.', stock: 14, requires_prescription: false },
-        ];
 
         function byId(id) {
             return document.getElementById(id);
@@ -709,6 +678,72 @@
             if (!status) return;
             status.innerHTML = message;
             status.className = `status-pill ${mode === 'warn' ? 'warn' : ''}`.trim();
+        }
+
+        function runBestEffort(operation) {
+            Promise.resolve(operation).catch(() => undefined);
+        }
+
+        function readCachedSession() {
+            try {
+                const rawSession = sessionStorage.getItem(STORAGE_USER_KEY);
+                return rawSession ? JSON.parse(rawSession) : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function hydrateCachedSession() {
+            const cachedSession = readCachedSession();
+            if (!cachedSession?.email) return;
+            currentSessionUser = cachedSession;
+            setText('user-name', cachedSession.name || cachedSession.email || 'Usuário');
+            setSessionStatus('Preparando sua área de consulta...', 'ok');
+        }
+
+        function fastRead(loader, fallbackValue, timeoutMs = FIRESTORE_FAST_TIMEOUT_MS, onLateData = null) {
+            let resolvedByTimeout = false;
+            const execution = Promise.resolve().then(loader);
+
+            const timed = Promise.race([
+                execution
+                    .then((data) => ({ ok: true, timedOut: false, data }))
+                    .catch((error) => ({ ok: false, timedOut: false, error, data: fallbackValue })),
+                new Promise((resolve) => {
+                    window.setTimeout(() => {
+                        resolvedByTimeout = true;
+                        resolve({ ok: false, timedOut: true, data: fallbackValue });
+                    }, timeoutMs);
+                }),
+            ]);
+
+            execution
+                .then((data) => {
+                    if (resolvedByTimeout && typeof onLateData === 'function') {
+                        onLateData(data);
+                    }
+                })
+                .catch(() => undefined);
+
+            return timed;
+        }
+
+        function filterPharmaciesFromCache(query) {
+            return cachedPharmacies
+                .filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.endereco || item.address || ''} ${item.bairro || ''} ${item.cidade || ''} ${item.telefone || item.phone || ''} ${item.horario_funcionamento || item.opening_hours_label || ''}`, query))
+                .slice(0, 100);
+        }
+
+        function filterMedicinesFromCache(query) {
+            return cachedMedicines
+                .filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.categoria || item.category || ''} ${item.descricao || item.description || ''}`, query))
+                .slice(0, 100);
+        }
+
+        function updateSummaryCounts() {
+            setText('alerta-count', cachedAlerts.length);
+            setText('farmacia-count', cachedPharmacies.length);
+            setText('medicamento-count', cachedMedicines.length);
         }
 
         function normalizeText(value) {
@@ -1080,40 +1115,106 @@ out center tags;`.trim();
                 ...sessionUser,
                 role: resolveUserRole(sessionUser.email),
             };
+
             const isAdminSession = isPlatformAdminUser(user);
             applyAccessControl(isAdminSession);
-            currentToken = await getCurrentIdToken();
-            sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, currentToken || '');
             sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
-            setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
-            setSessionStatus(isAdminSession ? 'Perfil administrativo ativo: claudiofranciscojunior2006@gmail.com' : 'Perfil de consulta ativo');
+            runBestEffort(user.getIdToken(false).then((token) => {
+                if (token) sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token);
+            }));
 
-            await Promise.allSettled([
-                loadDashboardData(),
-                loadPharmacies(),
-                loadMedicines(),
+            setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
+            setSessionStatus(isAdminSession
+                ? 'Perfil administrativo ativo'
+                : 'Acesso validado. Cadastro de medicamentos liberado.');
+
+            await loadInitialDataOptimized();
+        }
+
+        async function loadInitialDataOptimized() {
+            byId('alert-list').innerHTML = '<p class="loading-text">Atualizando alertas...</p>';
+            byId('medicine-list').innerHTML = '<p class="loading-text">Carregando catálogo...</p>';
+            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
+
+            const alertResultPromise = fastRead(
+                () => listMedicineAlerts({ role: currentSessionUser?.role || 'USER', max: 10 }),
+                [],
+                FIRESTORE_FAST_TIMEOUT_MS,
+                (lateAlerts) => {
+                    cachedAlerts = Array.isArray(lateAlerts) ? lateAlerts : [];
+                    updateSummaryCounts();
+                    renderAlertList(cachedAlerts);
+                },
+            );
+
+            const pharmacyResultPromise = fastRead(
+                () => listFarmacias({ max: 100 }),
+                [],
+                FIRESTORE_FAST_TIMEOUT_MS,
+                (latePharmacies) => {
+                    cachedPharmacies = Array.isArray(latePharmacies) ? latePharmacies : [];
+                    updateSummaryCounts();
+                    renderPharmacyDirectory(cachedPharmacies);
+                    setMessage('pharmacy-directory-status', `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
+                },
+            );
+
+            const medicineResultPromise = fastRead(
+                () => listMedications({ max: 100 }),
+                [],
+                FIRESTORE_FAST_TIMEOUT_MS,
+                (lateMedicines) => {
+                    cachedMedicines = Array.isArray(lateMedicines) ? lateMedicines : [];
+                    updateSummaryCounts();
+                    renderMedicines(cachedMedicines);
+                },
+            );
+
+            const [alertResult, pharmacyResult, medicineResult] = await Promise.all([
+                alertResultPromise,
+                pharmacyResultPromise,
+                medicineResultPromise,
             ]);
+
+            cachedAlerts = Array.isArray(alertResult.data) ? alertResult.data : [];
+            cachedPharmacies = Array.isArray(pharmacyResult.data) ? pharmacyResult.data : [];
+            cachedMedicines = Array.isArray(medicineResult.data) ? medicineResult.data : [];
+
+            updateSummaryCounts();
+            renderAlertList(cachedAlerts);
+            renderPharmacyDirectory(cachedPharmacies);
+            renderMedicines(cachedMedicines);
+
+            if (pharmacyResult.timedOut) {
+                setMessage('pharmacy-directory-status', 'Consulta inicial concluída. O banco ainda está sincronizando em segundo plano.', 'warn');
+            } else if (pharmacyResult.ok) {
+                setMessage('pharmacy-directory-status', `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
+            } else {
+                setMessage('pharmacy-directory-status', 'Não foi possível carregar farmácias agora. Tente listar novamente em alguns segundos.', 'warn');
+            }
         }
 
         async function loadDashboardData() {
-            let alertas = [];
-            let farmacias = [];
-            try {
-                [alertas, farmacias] = await Promise.all([
-                    listMedicineAlerts({ role: currentSessionUser?.role || 'USER', max: 10 }),
-                    listFarmacias({ max: 100 }),
-                ]);
-            } catch (_) {
-                alertas = LOCAL_MOCK_ALERTAS;
-                farmacias = LOCAL_MOCK_FARMACIAS;
-            }
-            renderDashboardData(alertas, farmacias);
+            const alertResult = await fastRead(
+                () => listMedicineAlerts({ role: currentSessionUser?.role || 'USER', max: 10 }),
+                cachedAlerts,
+                FIRESTORE_FAST_TIMEOUT_MS,
+                (lateAlerts) => {
+                    cachedAlerts = Array.isArray(lateAlerts) ? lateAlerts : [];
+                    updateSummaryCounts();
+                    renderAlertList(cachedAlerts);
+                },
+            );
+            cachedAlerts = Array.isArray(alertResult.data) ? alertResult.data : cachedAlerts;
+            updateSummaryCounts();
+            renderAlertList(cachedAlerts);
         }
 
         function renderDashboardData(alertas, farmacias) {
-            setText('alerta-count', Array.isArray(alertas) ? alertas.length : 0);
-            setText('farmacia-count', Array.isArray(farmacias) ? farmacias.length : 0);
-            renderAlertList(alertas);
+            cachedAlerts = Array.isArray(alertas) ? alertas : cachedAlerts;
+            cachedPharmacies = Array.isArray(farmacias) ? farmacias : cachedPharmacies;
+            updateSummaryCounts();
+            renderAlertList(cachedAlerts);
         }
 
         function renderAlertList(alertas) {
@@ -1170,16 +1271,48 @@ out center tags;`.trim();
         }
 
         async function loadPharmacies(query = '') {
-            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
-            try {
-                const items = await listFarmacias({ q: query, max: 100 });
-                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
-                renderPharmacyDirectory(items);
-                await trackPharmacyClick('directory:list', 'VIEW');
-            } catch (error) {
-                setMessage('pharmacy-directory-status', `Não foi possível consultar farmácias cadastradas: ${error.message}`, 'error');
-                renderPharmacyDirectory([]);
+            const requestId = ++pharmacyRequestSeq;
+            const normalizedQuery = String(query || '').trim();
+
+            if (cachedPharmacies.length > 0) {
+                const cachedItems = filterPharmaciesFromCache(normalizedQuery);
+                renderPharmacyDirectory(cachedItems);
+                setMessage('pharmacy-directory-status', `${cachedItems.length} farmácia(s) encontrada(s) no cache local da sessão.`, 'success');
+                runBestEffort(trackPharmacyClick('directory:list', 'VIEW'));
+                return;
             }
+
+            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
+            const result = await fastRead(
+                () => listFarmacias({ q: normalizedQuery, max: 100 }),
+                [],
+                FIRESTORE_FAST_TIMEOUT_MS,
+                (lateItems) => {
+                    if (requestId !== pharmacyRequestSeq) return;
+                    cachedPharmacies = Array.isArray(lateItems) ? lateItems : [];
+                    const visibleItems = filterPharmaciesFromCache(normalizedQuery);
+                    renderPharmacyDirectory(visibleItems);
+                    updateSummaryCounts();
+                    setMessage('pharmacy-directory-status', `${visibleItems.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
+                },
+            );
+
+            if (requestId !== pharmacyRequestSeq) return;
+
+            cachedPharmacies = Array.isArray(result.data) ? result.data : [];
+            const items = filterPharmaciesFromCache(normalizedQuery);
+            renderPharmacyDirectory(items);
+            updateSummaryCounts();
+
+            if (result.timedOut) {
+                setMessage('pharmacy-directory-status', 'O banco demorou a responder. A sincronização continuará em segundo plano.', 'warn');
+            } else if (result.ok) {
+                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
+            } else {
+                setMessage('pharmacy-directory-status', 'Não foi possível consultar farmácias cadastradas agora.', 'error');
+            }
+
+            runBestEffort(trackPharmacyClick('directory:list', 'VIEW'));
         }
 
         function renderMedicines(items) {
@@ -1205,14 +1338,36 @@ out center tags;`.trim();
         }
 
         async function loadMedicines(query = '') {
-            try {
-                const items = await listMedications({ q: query, max: 100 });
-                renderMedicines(items);
-                await trackMedicineSearch(query, items.length);
-            } catch (_) {
-                const items = LOCAL_MOCK_MEDICINES.filter((item) => textMatchesQuery(`${item.nome} ${item.categoria} ${item.descricao}`, query));
-                renderMedicines(items);
+            const requestId = ++medicineRequestSeq;
+            const normalizedQuery = String(query || '').trim();
+
+            if (cachedMedicines.length > 0) {
+                const cachedItems = filterMedicinesFromCache(normalizedQuery);
+                renderMedicines(cachedItems);
+                runBestEffort(trackMedicineSearch(normalizedQuery, cachedItems.length));
+                return;
             }
+
+            const result = await fastRead(
+                () => listMedications({ q: normalizedQuery, max: 100 }),
+                [],
+                FIRESTORE_FAST_TIMEOUT_MS,
+                (lateItems) => {
+                    if (requestId !== medicineRequestSeq) return;
+                    cachedMedicines = Array.isArray(lateItems) ? lateItems : [];
+                    const visibleItems = filterMedicinesFromCache(normalizedQuery);
+                    renderMedicines(visibleItems);
+                    updateSummaryCounts();
+                },
+            );
+
+            if (requestId !== medicineRequestSeq) return;
+
+            cachedMedicines = Array.isArray(result.data) ? result.data : [];
+            const items = filterMedicinesFromCache(normalizedQuery);
+            renderMedicines(items);
+            updateSummaryCounts();
+            runBestEffort(trackMedicineSearch(normalizedQuery, items.length));
         }
 
         async function registerMedicine(event) {
@@ -1234,6 +1389,7 @@ out center tags;`.trim();
                 byId('medicine-dose').value = '1';
                 byId('medicine-stock').value = '0';
                 setMessage('medicine-form-status', 'Medicamento cadastrado com sucesso.', 'success');
+                cachedMedicines = [];
                 await Promise.allSettled([loadMedicines(), loadDashboardData()]);
             } catch (error) {
                 setMessage('medicine-form-status', `Não foi possível concluir o cadastro: ${error.message}`, 'error');
@@ -1372,6 +1528,7 @@ out center tags;`.trim();
         window.logout = logout;
 
         document.addEventListener('DOMContentLoaded', () => {
+            hydrateCachedSession();
             setupEvents();
             onAuthStateChange((user) => {
                 verifySession(user).catch(() => redirectToLogin());
