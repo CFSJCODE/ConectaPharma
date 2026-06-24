@@ -418,6 +418,33 @@
                 width: 100%;
             }
         }
+
+        /* Controle de acesso visual: cadastro manual de farmácias é exclusivo do administrador.
+           O atributo hidden evita flash de conteúdo antes da validação do Firebase. */
+        [data-admin-only][hidden],
+        body:not(.is-admin) [data-admin-only] {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        body.is-admin div[data-admin-only] {
+            display: flex !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        body.is-admin a[data-admin-only],
+        body.is-admin button[data-admin-only] {
+            display: inline-flex !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        #medicine-form {
+            display: grid;
+        }
+
     </style>
 </head>
 <body>
@@ -443,8 +470,8 @@
             <h2 class="section-title">Minha área</h2>
             <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. Aqui você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos. O cadastro de medicamentos está liberado para contas autenticadas; o cadastro manual de farmácias permanece restrito ao responsável autorizado.</p>
             <div class="status-pill" id="session-status">Verificando seu acesso...</div>
-            <div class="status-pill admin" id="admin-status">Perfil responsável</div>
-            <div class="actions admin-actions" aria-label="Ações administrativas">
+            <div class="status-pill admin" id="admin-status" data-admin-only hidden aria-hidden="true">Perfil responsável</div>
+            <div class="actions admin-actions" aria-label="Ações administrativas" data-admin-only hidden aria-hidden="true">
                 <a class="btn btn-accent" href="cadastrar-farmacias.html">Cadastrar farmácias manualmente</a>
             </div>
             <div class="grid-summary">
@@ -502,7 +529,7 @@
                 <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
                 <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
                 <button id="btn-list-pharmacies" class="btn btn-secondary" type="button">Listar todas</button>
-                <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html">Cadastrar farmácias manualmente</a>
+                <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html" data-admin-only hidden aria-hidden="true" tabindex="-1">Cadastrar farmácias manualmente</a>
             </div>
             <p id="pharmacy-directory-status" class="message">Pronto para consulta.</p>
             <div id="pharmacy-directory-list" class="list-grid">
@@ -996,7 +1023,37 @@ out center tags;`.trim();
         }
 
         function applyAccessControl(isAdmin) {
-            document.body.classList.toggle('is-admin', Boolean(isAdmin));
+            const allowAdmin = Boolean(isAdmin);
+            document.body.classList.toggle('is-admin', allowAdmin);
+
+            document.querySelectorAll('[data-admin-only]').forEach((element) => {
+                element.hidden = !allowAdmin;
+                element.setAttribute('aria-hidden', allowAdmin ? 'false' : 'true');
+
+                if (element instanceof HTMLAnchorElement) {
+                    if (!element.dataset.originalHref) {
+                        element.dataset.originalHref = element.getAttribute('href') || '';
+                    }
+
+                    if (allowAdmin) {
+                        if (element.dataset.originalHref) {
+                            element.setAttribute('href', element.dataset.originalHref);
+                        }
+                        element.removeAttribute('tabindex');
+                    } else {
+                        element.removeAttribute('href');
+                        element.setAttribute('tabindex', '-1');
+                    }
+                }
+            });
+
+            const medicineForm = byId('medicine-form');
+            const medicineButton = byId('btn-register-medicine');
+            const medicineNote = byId('medicine-admin-note');
+
+            if (medicineForm) medicineForm.hidden = false;
+            if (medicineButton) medicineButton.disabled = false;
+            if (medicineNote) medicineNote.hidden = false;
         }
 
         async function logout() {
