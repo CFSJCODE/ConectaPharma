@@ -79,11 +79,13 @@ Ao autenticar, o frontend grava/atualiza `users/{uid}` com `role: "ADMIN"` apena
 ## Segurança
 
 - Farmácias e medicamentos podem ser lidos publicamente.
-- Criação, edição e exclusão de dados operacionais são restritas a admin.
-- Usuários comuns não acessam gestão operacional.
+- Medicamentos podem ser cadastrados por contas autenticadas.
+- O cadastro manual de farmácias permanece restrito à conta administradora.
+- Criação, edição e exclusão de farmácias e demais dados operacionais sensíveis são restritas a admin; medicamentos aceitam criação por contas autenticadas.
+- Usuários comuns não acessam gestão administrativa de farmácias.
 - Chaves privadas, service accounts, senhas e arquivos `.env` não devem ser versionados.
 
 
 ## Cadastro manual de farmácias
 
-A página `Frontend/cadastrar-farmacias.html` permite que a conta administradora `claudiofranciscojunior2006@gmail.com` cadastre farmácias diretamente na coleção `farmacias` do Firestore. A escrita continua protegida por `Firebase/firestore.rules`, com `create`, `update` e `delete` permitidos somente para `claudiofranciscojunior2006@gmail.com`.
+A página `Frontend/cadastrar-farmacias.html` permite que a conta administradora `claudiofranciscojunior2006@gmail.com` cadastre farmácias diretamente na coleção `farmacias` do Firestore. A escrita de farmácias continua protegida por `Firebase/firestore.rules`, com `create`, `update` e `delete` permitidos somente para `claudiofranciscojunior2006@gmail.com`. O catálogo de medicamentos, por outro lado, aceita criação por usuários autenticados.

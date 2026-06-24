@@ -31,9 +31,9 @@ A versão publicada **não depende de FastAPI, Cloud Functions, Cloud Run, Googl
 - Foi adicionada a subpágina `Frontend/cadastrar-farmacias.html` para cadastro manual de farmácias pelo administrador.
 - O botão **Cadastrar Farmácias Manualmente** aparece somente na sessão administrativa.
 - O catálogo de medicamentos usa diretamente a coleção `medications` do Firestore.
-- O cadastro de farmácias e medicamentos é feito diretamente no Firestore e fica restrito ao administrador.
-- Somente a conta `claudiofranciscojunior2006@gmail.com` ativa funções administrativas no frontend, backend e Firestore Rules.
-- Usuários comuns acessam somente funcionalidades de uso comum.
+- O cadastro manual de farmácias é restrito ao administrador; o cadastro de medicamentos é liberado para contas autenticadas.
+- Somente a conta `claudiofranciscojunior2006@gmail.com` ativa funções administrativas, como o cadastro manual de farmácias, no frontend, backend e Firestore Rules.
+- Usuários comuns acessam funcionalidades de consulta e cadastro de medicamentos; funções administrativas de farmácia permanecem bloqueadas.
 - A busca de farmácias próximas, UBSs, postos de saúde e UPAs usa OpenStreetMap/Overpass diretamente no frontend.
 - Google Maps/Google Places foi removido como fonte de dados.
 - O backend Python permanece apenas como referência local/opcional, sem dependência para a versão online.
@@ -68,7 +68,7 @@ Apenas a conta abaixo possui acesso administrativo:
 claudiofranciscojunior2006@gmail.com
 ```
 
-Campos locais `role: "ADMIN"`, documentos em `users/{uid}` ou claims administrativas não liberam a interface de cadastro nem as escritas protegidas quando o e-mail autenticado é diferente desse endereço.
+Campos locais `role: "ADMIN"`, documentos em `users/{uid}` ou claims administrativas não liberam a interface de cadastro manual de farmácias nem as escritas administrativas protegidas quando o e-mail autenticado é diferente desse endereço. O cadastro de medicamentos permanece disponível para contas autenticadas.
 
 Ela pode acessar funcionalidades de gestão liberadas no frontend e autorizadas pelas regras do Firestore. Contas comuns recebem papel `USER`.
 
@@ -141,7 +141,7 @@ Resumo das permissões:
 
 - `users/{uid}`: cada usuário lê seu próprio documento; admin lê usuários.
 - `farmacias`: leitura pública; escrita/edição/exclusão somente pela conta `claudiofranciscojunior2006@gmail.com`.
-- `medications`: leitura pública; escrita/edição/exclusão somente pela conta `claudiofranciscojunior2006@gmail.com`.
+- `medications`: leitura pública; criação por contas autenticadas; atualização/exclusão somente pela conta `claudiofranciscojunior2006@gmail.com`.
 - `medicine_alerts`: leitura pelo próprio usuário ou admin; gestão por admin.
 - formulários e logs: criação pública/autenticada conforme o caso; leitura administrativa.
 

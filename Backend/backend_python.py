@@ -1943,7 +1943,7 @@ async def listar_medicamentos(
     return items[:limit]
 
 @router_health.post("/medicamentos", response_model=MedicamentoCatalogoItem, status_code=status.HTTP_201_CREATED)
-async def cadastrar_medicamento(req: MedicamentoCreate, current_user: dict = Depends(require_admin)):
+async def cadastrar_medicamento(req: MedicamentoCreate, current_user: dict = Depends(get_current_user)):
     """Cadastra medicamento no catálogo operacional do MVP.
 
     Não armazena dados clínicos de pacientes, prescrição, diagnóstico ou CNS/CPF.

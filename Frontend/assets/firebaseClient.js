@@ -334,7 +334,11 @@ export async function listMedications({ q = '', max = 100 } = {}) {
 }
 
 export async function createMedication(data) {
-    assertPlatformAdminUser();
+    if (!getSafeUserId()) {
+        const error = new Error('Faça login para cadastrar medicamentos.');
+        error.code = 'permission-denied';
+        throw error;
+    }
     validateRequired(data, ['nome']);
     const userId = getSafeUserId();
     const payload = {

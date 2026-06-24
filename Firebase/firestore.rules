@@ -48,7 +48,12 @@ service cloud.firestore {
 
     match /medications/{documentId} {
       allow read: if true;
-      allow create, update, delete: if isPlatformAdmin();
+      allow create: if isSignedIn()
+        && hasOnlyAllowedKeys(['nome', 'categoria', 'descricao', 'dose_diaria_comprimidos', 'stock', 'requires_prescription', 'active', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.active == true;
+      allow update, delete: if isPlatformAdmin();
     }
 
     match /institutions/{documentId} {

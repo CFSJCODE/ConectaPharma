@@ -183,21 +183,14 @@
             display: inline-flex;
         }
 
-        .admin-management,
-        .admin-actions {
+        .admin-actions,
+        .actions.admin-actions {
             display: none;
         }
 
-        body.is-admin .admin-management {
-            display: grid;
-        }
-
-        body.is-admin .admin-actions {
+        body.is-admin .admin-actions,
+        body.is-admin .actions.admin-actions {
             display: flex;
-        }
-
-        body.is-admin #medicine-admin-note {
-            display: none;
         }
 
         .grid-summary {
@@ -312,6 +305,16 @@
             gap: 0.65rem;
             align-items: center;
             margin-top: 1rem;
+        }
+
+        .admin-actions,
+        .actions.admin-actions {
+            display: none;
+        }
+
+        body.is-admin .admin-actions,
+        body.is-admin .actions.admin-actions {
+            display: flex;
         }
 
         .item-actions {
@@ -438,7 +441,7 @@
     <main class="page-body">
         <section class="card">
             <h2 class="section-title">Minha área</h2>
-            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. Aqui você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos. Alguns recursos de cadastro aparecem somente para responsáveis autorizados.</p>
+            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. Aqui você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos. O cadastro de medicamentos está liberado para contas autenticadas; o cadastro manual de farmácias permanece restrito ao responsável autorizado.</p>
             <div class="status-pill" id="session-status">Verificando seu acesso...</div>
             <div class="status-pill admin" id="admin-status">Perfil responsável</div>
             <div class="actions admin-actions" aria-label="Ações administrativas">
@@ -509,7 +512,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Catálogo de medicamentos</h2>
-            <p class="section-subtitle">Consulte medicamentos cadastrados. A inclusão e a atualização de informações ficam disponíveis apenas para responsáveis autorizados.</p>
+            <p class="section-subtitle">Consulte medicamentos cadastrados. Contas autenticadas podem cadastrar medicamentos no catálogo. A gestão manual de farmácias permanece restrita ao responsável autorizado.</p>
             <div class="actions">
                 <input id="medicine-search-input" class="input" type="search" placeholder="Pesquisar medicamento ou categoria" style="max-width: 520px;">
                 <button id="btn-search-medicines" class="btn" type="button">Pesquisar</button>
@@ -519,9 +522,9 @@
                 <p class="loading-text">Carregando catálogo...</p>
             </div>
 
-            <p id="medicine-admin-note" class="message warn">Esta conta possui acesso de consulta. Recursos de cadastro aparecem apenas para responsáveis autorizados.</p>
+            <p id="medicine-admin-note" class="message success">Cadastro de medicamentos liberado para contas autenticadas. Use informações verificáveis e mantenha a descrição objetiva.</p>
 
-            <form id="medicine-form" class="form-grid admin-management" autocomplete="off">
+            <form id="medicine-form" class="form-grid" autocomplete="off">
                 <input id="medicine-name" class="input" type="text" placeholder="Nome do medicamento, exemplo: Amoxicilina 500mg" required>
                 <input id="medicine-category" class="input" type="text" placeholder="Categoria, exemplo: Antibiótico">
                 <input id="medicine-dose" class="input" type="number" min="0.1" max="20" step="0.1" value="1" placeholder="Dose diária estimada">
@@ -588,7 +591,6 @@
         import {
             createMedication,
             getCurrentIdToken,
-            getCurrentUser,
             isPlatformAdminUser,
             listFarmacias,
             listMedications,
@@ -994,15 +996,7 @@ out center tags;`.trim();
         }
 
         function applyAccessControl(isAdmin) {
-            isAdmin = Boolean(isAdmin);
-            document.body.classList.toggle('is-admin', isAdmin);
-
-            const form = byId('medicine-form');
-            if (form) {
-                form.querySelectorAll('input, select, textarea, button').forEach((element) => {
-                    element.disabled = !isAdmin;
-                });
-            }
+            document.body.classList.toggle('is-admin', Boolean(isAdmin));
         }
 
         async function logout() {
@@ -1166,10 +1160,6 @@ out center tags;`.trim();
 
         async function registerMedicine(event) {
             event.preventDefault();
-            if (!isPlatformAdminUser(getCurrentUser())) {
-                setMessage('medicine-form-status', 'Apenas a conta claudiofranciscojunior2006@gmail.com pode cadastrar medicamentos.', 'error');
-                return;
-            }
             const button = byId('btn-register-medicine');
             button.disabled = true;
             setMessage('medicine-form-status', 'Registrando medicamento...');
@@ -1191,7 +1181,7 @@ out center tags;`.trim();
             } catch (error) {
                 setMessage('medicine-form-status', `Não foi possível concluir o cadastro: ${error.message}`, 'error');
             } finally {
-                button.disabled = !isPlatformAdminUser(getCurrentUser());
+                button.disabled = false;
             }
         }
 
