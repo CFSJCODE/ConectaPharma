@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-    <link rel="modulepreload" href="./assets/firebaseClient.js">
     <title>ConectaPharma</title>
     <style>
         :root {
@@ -18,6 +17,7 @@
             --color-muted: #475569;
             --color-border: rgba(15, 23, 42, 0.10);
             --color-danger: #B91C1C;
+            --color-warn: #92400E;
             --transition-smooth: all 0.25s ease;
         }
 
@@ -25,7 +25,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         body {
@@ -76,15 +76,10 @@
             font-weight: 800;
         }
 
-        .header-nav a:hover {
-            color: var(--color-sus-blue);
-            border-color: var(--color-sus-blue);
-        }
-
         .btn {
             border: none;
             background: var(--color-sus-blue);
-            color: white;
+            color: #fff;
             padding: 0.85rem 1.25rem;
             border-radius: 999px;
             cursor: pointer;
@@ -168,8 +163,13 @@
         }
 
         .status-pill.warn {
-            color: #92400E;
+            color: var(--color-warn);
             background: #FEF3C7;
+        }
+
+        .status-pill.error {
+            color: var(--color-danger);
+            background: #FEE2E2;
         }
 
         .status-pill.admin {
@@ -181,16 +181,6 @@
 
         body.is-admin .status-pill.admin {
             display: inline-flex;
-        }
-
-        .admin-actions,
-        .actions.admin-actions {
-            display: none;
-        }
-
-        body.is-admin .admin-actions,
-        body.is-admin .actions.admin-actions {
-            display: flex;
         }
 
         .grid-summary {
@@ -225,23 +215,24 @@
             margin-top: 1rem;
         }
 
-        .support-card {
+        .support-card, .item-card {
             padding: 1rem;
             border-radius: 18px;
             background: #F8FAFC;
             border: 1px solid var(--color-border);
         }
 
-        .support-card strong {
+        .support-card strong, .item-card strong {
             color: var(--color-primary);
             display: block;
             margin-bottom: 0.35rem;
         }
 
-        .support-card span {
+        .support-card span, .item-card p {
             color: var(--color-muted);
             line-height: 1.45;
             display: block;
+            margin-top: 0.35rem;
         }
 
         .list-grid {
@@ -250,30 +241,11 @@
             margin-top: 1rem;
         }
 
-        .item-card {
-            padding: 1rem;
-            border-radius: 18px;
-            background: #F8FAFC;
-            border: 1px solid var(--color-border);
-        }
-
         .item-head {
             display: flex;
             justify-content: space-between;
             gap: 1rem;
             align-items: flex-start;
-        }
-
-        .item-card strong {
-            display: block;
-            color: var(--color-primary);
-            margin-bottom: 0.35rem;
-        }
-
-        .item-card p {
-            margin-top: 0.35rem;
-            color: var(--color-muted);
-            line-height: 1.45;
         }
 
         .badge {
@@ -284,20 +256,9 @@
             white-space: nowrap;
         }
 
-        .badge.ok {
-            background: #DCFCE7;
-            color: #166534;
-        }
-
-        .badge.warn {
-            background: #FEF3C7;
-            color: #92400E;
-        }
-
-        .badge.danger {
-            background: #FEE2E2;
-            color: var(--color-danger);
-        }
+        .badge.ok { background: #DCFCE7; color: #166534; }
+        .badge.warn { background: #FEF3C7; color: var(--color-warn); }
+        .badge.danger { background: #FEE2E2; color: var(--color-danger); }
 
         .actions {
             display: flex;
@@ -305,16 +266,6 @@
             gap: 0.65rem;
             align-items: center;
             margin-top: 1rem;
-        }
-
-        .admin-actions,
-        .actions.admin-actions {
-            display: none;
-        }
-
-        body.is-admin .admin-actions,
-        body.is-admin .actions.admin-actions {
-            display: flex;
         }
 
         .item-actions {
@@ -329,10 +280,6 @@
             text-decoration: none;
             font-weight: 800;
             font-size: 0.9rem;
-        }
-
-        .item-actions a:hover {
-            text-decoration: underline;
         }
 
         .input, .select, textarea {
@@ -352,11 +299,6 @@
             width: auto;
         }
 
-        .input:focus, .select:focus, textarea:focus {
-            border-color: var(--color-sus-blue);
-            box-shadow: 0 0 0 4px rgba(0, 93, 170, 0.10);
-        }
-
         .form-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -374,53 +316,15 @@
             font-weight: 700;
         }
 
-        .message.success {
-            color: #166534;
-        }
-
-        .message.warn {
-            color: #92400E;
-        }
-
-        .message.error {
-            color: var(--color-danger);
-        }
+        .message.success { color: #166534; }
+        .message.warn { color: var(--color-warn); }
+        .message.error { color: var(--color-danger); }
 
         .loading-text {
             color: var(--color-muted);
             font-style: italic;
         }
 
-        @media (max-width: 980px) {
-            .page-body {
-                grid-template-columns: 1fr;
-            }
-            .grid-summary, .support-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width: 640px) {
-            header {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-            .page-body {
-                padding: 0 1rem 2rem;
-            }
-            .grid-summary, .support-grid, .form-grid {
-                grid-template-columns: 1fr;
-            }
-            .form-grid .span-2 {
-                grid-column: auto;
-            }
-            .select {
-                width: 100%;
-            }
-        }
-
-        /* Controle de acesso visual: cadastro manual de farmácias é exclusivo do administrador.
-           O atributo hidden evita flash de conteúdo antes da validação do Firebase. */
         [data-admin-only][hidden],
         body:not(.is-admin) [data-admin-only] {
             display: none !important;
@@ -428,8 +332,7 @@
             pointer-events: none !important;
         }
 
-        body.is-admin div[data-admin-only] {
-            display: flex !important;
+        body.is-admin [data-admin-only] {
             visibility: visible !important;
             pointer-events: auto !important;
         }
@@ -437,14 +340,24 @@
         body.is-admin a[data-admin-only],
         body.is-admin button[data-admin-only] {
             display: inline-flex !important;
-            visibility: visible !important;
-            pointer-events: auto !important;
         }
 
-        #medicine-form {
-            display: grid;
+        body.is-admin div[data-admin-only] {
+            display: flex !important;
         }
 
+        @media (max-width: 980px) {
+            .page-body { grid-template-columns: 1fr; }
+            .grid-summary, .support-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 640px) {
+            header { align-items: flex-start; flex-direction: column; }
+            .page-body { padding: 0 1rem 2rem; }
+            .grid-summary, .support-grid, .form-grid { grid-template-columns: 1fr; }
+            .form-grid .span-2 { grid-column: auto; }
+            .select { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -461,7 +374,7 @@
             <a href="parceiros.html">Parceiros</a>
             <a href="jornadas.html">Pessoas atendidas</a>
             <a href="impacto-social.html">Impacto social</a>
-            <button class="btn" onclick="logout()" type="button">Sair</button>
+            <button class="btn" id="btn-logout" type="button">Sair</button>
         </nav>
     </header>
 
@@ -469,24 +382,15 @@
         <section class="card">
             <h2 class="section-title">Minha área</h2>
             <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. Aqui você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos. O cadastro de medicamentos está liberado para contas autenticadas; o cadastro manual de farmácias permanece restrito ao responsável autorizado.</p>
-            <div class="status-pill" id="session-status" aria-live="polite">Verificando seu acesso...</div>
+            <div class="status-pill warn" id="session-status" aria-live="polite">Inicializando credenciais...</div>
             <div class="status-pill admin" id="admin-status" data-admin-only hidden aria-hidden="true">Perfil responsável</div>
-            <div class="actions admin-actions" aria-label="Ações administrativas" data-admin-only hidden aria-hidden="true">
+            <div class="actions" aria-label="Ações administrativas" data-admin-only hidden aria-hidden="true">
                 <a class="btn btn-accent" href="cadastrar-farmacias.html">Cadastrar farmácias manualmente</a>
             </div>
             <div class="grid-summary">
-                <div class="summary-card">
-                    <h3>Alertas</h3>
-                    <p id="alerta-count">0</p>
-                </div>
-                <div class="summary-card">
-                    <h3>Farmácias</h3>
-                    <p id="farmacia-count">0</p>
-                </div>
-                <div class="summary-card">
-                    <h3>Medicamentos</h3>
-                    <p id="medicamento-count">0</p>
-                </div>
+                <div class="summary-card"><h3>Alertas</h3><p id="alerta-count">0</p></div>
+                <div class="summary-card"><h3>Farmácias</h3><p id="farmacia-count">0</p></div>
+                <div class="summary-card"><h3>Medicamentos</h3><p id="medicamento-count">0</p></div>
             </div>
         </section>
 
@@ -494,7 +398,7 @@
             <h2 class="section-title">Alertas e acompanhamento</h2>
             <p class="section-subtitle">Acompanhe alertas e informações que ajudam na organização do cuidado.</p>
             <div id="alert-list" class="list-grid" aria-live="polite">
-                <p class="loading-text">Carregando alertas...</p>
+                <p class="loading-text">Aguardando validação da sessão...</p>
             </div>
         </section>
 
@@ -502,20 +406,11 @@
             <h2 class="section-title">Rede de cuidado</h2>
             <p class="section-subtitle">O ConectaPharma aproxima pacientes, cuidadores, comunidade, instituições de ensino e serviços de saúde para facilitar a orientação antes do deslocamento.</p>
             <div class="support-grid">
-                <div class="support-card">
-                    <strong>Para pacientes e famílias</strong>
-                    <span>Consulta de farmácias, horários, contatos e serviços próximos com linguagem simples.</span>
-                </div>
-                <div class="support-card">
-                    <strong>Para a comunidade</strong>
-                    <span>Apoio a ações solidárias, voluntariado local e cuidado com idosos e pessoas com mobilidade reduzida.</span>
-                </div>
-                <div class="support-card">
-                    <strong>Para instituições</strong>
-                    <span>Organização de informações úteis para planejamento, extensão universitária e ações preventivas.</span>
-                </div>
+                <div class="support-card"><strong>Para pacientes e famílias</strong><span>Consulta de farmácias, horários, contatos e serviços próximos com linguagem simples.</span></div>
+                <div class="support-card"><strong>Para a comunidade</strong><span>Apoio a ações solidárias, voluntariado local e cuidado com idosos e pessoas com mobilidade reduzida.</span></div>
+                <div class="support-card"><strong>Para instituições</strong><span>Organização de informações úteis para planejamento, extensão universitária e ações preventivas.</span></div>
             </div>
-            <div class="actions" style="margin-top: 1rem;">
+            <div class="actions">
                 <a class="btn btn-secondary" href="parceiros.html">Conhecer parceiros</a>
                 <a class="btn btn-secondary" href="jornadas.html">Ver pessoas atendidas</a>
                 <a class="btn btn-secondary" href="impacto-social.html">Ver impacto social</a>
@@ -529,11 +424,11 @@
                 <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
                 <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
                 <button id="btn-list-pharmacies" class="btn btn-secondary" type="button">Listar todas</button>
-                <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html" data-admin-only hidden aria-hidden="true" tabindex="-1">Cadastrar farmácias manualmente</a>
+                <a class="btn btn-accent" href="cadastrar-farmacias.html" data-admin-only hidden aria-hidden="true" tabindex="-1">Cadastrar farmácias manualmente</a>
             </div>
-            <p id="pharmacy-directory-status" class="message">Pronto para consulta.</p>
+            <p id="pharmacy-directory-status" class="message">Aguardando validação da sessão.</p>
             <div id="pharmacy-directory-list" class="list-grid" aria-live="polite">
-                <p class="loading-text">Pesquise por nome, bairro, endereço ou liste todas as farmácias cadastradas.</p>
+                <p class="loading-text">Os dados serão carregados após a validação do login.</p>
             </div>
         </section>
 
@@ -546,11 +441,9 @@
                 <button id="btn-list-medicines" class="btn btn-secondary" type="button">Listar catálogo</button>
             </div>
             <div id="medicine-list" class="list-grid" aria-live="polite">
-                <p class="loading-text">Carregando catálogo...</p>
+                <p class="loading-text">Aguardando validação da sessão...</p>
             </div>
-
             <p id="medicine-admin-note" class="message success">Cadastro de medicamentos liberado para contas autenticadas. Use informações verificáveis e mantenha a descrição objetiva.</p>
-
             <form id="medicine-form" class="form-grid" autocomplete="off">
                 <input id="medicine-name" class="input" type="text" placeholder="Nome do medicamento, exemplo: Amoxicilina 500mg" required>
                 <input id="medicine-category" class="input" type="text" placeholder="Categoria, exemplo: Antibiótico">
@@ -581,9 +474,7 @@
                 </select>
             </div>
             <p id="nearby-status" class="message">Nenhuma busca por proximidade foi feita ainda.</p>
-            <div id="nearby-pharmacy-list" class="list-grid">
-                <p class="loading-text">Clique no botão para consultar farmácias próximas. Quando houver informação de horário, a plataforma indica se estão abertas.</p>
-            </div>
+            <div id="nearby-pharmacy-list" class="list-grid"><p class="loading-text">Clique no botão para consultar farmácias próximas.</p></div>
         </section>
 
         <section class="card card-wide">
@@ -591,66 +482,39 @@
             <p class="section-subtitle">Com sua autorização, localize UBSs, postos de saúde, centros de saúde e UPAs próximos.</p>
             <div class="actions">
                 <button id="btn-nearby-health" class="btn" type="button">Localizar estabelecimentos</button>
-                <select id="health-kind" class="select" aria-label="Tipo de estabelecimento">
-                    <option value="all" selected>Postos, UBSs e UPAs</option>
-                    <option value="primary_care">Postos/UBS/Centros de saúde</option>
-                    <option value="urgent_care">UPAs/Pronto atendimento</option>
-                </select>
                 <select id="health-radius" class="select" aria-label="Raio de busca de saúde">
                     <option value="3">Raio de 3 km</option>
                     <option value="5" selected>Raio de 5 km</option>
                     <option value="10">Raio de 10 km</option>
                     <option value="20">Raio de 20 km</option>
                 </select>
-                <select id="health-open-now" class="select" aria-label="Filtro de abertura">
-                    <option value="false" selected>Mostrar todos</option>
-                    <option value="true">Somente abertos agora</option>
-                </select>
             </div>
             <p id="health-status" class="message">Nenhuma busca realizada.</p>
-            <div id="health-list" class="list-grid">
-                <p class="loading-text">Clique no botão para localizar postos de saúde, UBSs e UPAs próximos.</p>
-            </div>
+            <div id="health-list" class="list-grid"><p class="loading-text">Clique no botão para localizar postos de saúde, UBSs e UPAs próximos.</p></div>
         </section>
     </main>
 
     <script type="module">
-        import {
-            createMedication,
-            isPlatformAdminUser,
-            listFarmacias,
-            listMedications,
-            listMedicineAlerts,
-            onAuthStateChange,
-            resolveUserRole,
-            signOutUser,
-            toSessionUser,
-            trackMedicineSearch,
-            trackPharmacyClick,
-        } from './assets/firebaseClient.js';
-
         const STORAGE_USER_KEY = 'conectapharma_user';
         const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
-        const BH_CENTER = { lat: -19.9166813, lng: -43.9344931 };
+        const ADMIN_EMAIL = 'claudiofranciscojunior2006@gmail.com';
+        const FIRESTORE_TIMEOUT_MS = 3200;
+        const MODULE_TIMEOUT_MS = 6000;
         const OVERPASS_ENDPOINTS = [
             'https://overpass-api.de/api/interpreter',
             'https://overpass.kumi.systems/api/interpreter',
         ];
 
-        const FIRESTORE_FAST_TIMEOUT_MS = 2800;
-
+        let api = null;
         let currentSessionUser = null;
         let cachedAlerts = [];
         let cachedPharmacies = [];
         let cachedMedicines = [];
-        let pharmacyRequestSeq = 0;
-        let medicineRequestSeq = 0;
-        let nearbyRequestController = null;
-        let healthRequestController = null;
+        let authResolved = false;
 
-        function byId(id) {
-            return document.getElementById(id);
-        }
+        const byId = (id) => document.getElementById(id);
+        const normalizeEmail = (value) => String(value ?? '').trim().toLowerCase();
+        const isAdminEmail = (value) => normalizeEmail(value) === ADMIN_EMAIL;
 
         function escapeHtml(value) {
             return String(value ?? '')
@@ -663,7 +527,12 @@
 
         function setText(id, value) {
             const element = byId(id);
-            if (element) element.innerText = value;
+            if (element) element.innerText = String(value ?? '');
+        }
+
+        function setHtml(id, value) {
+            const element = byId(id);
+            if (element) element.innerHTML = value;
         }
 
         function setMessage(id, value, type = '') {
@@ -676,68 +545,36 @@
         function setSessionStatus(message, mode = 'ok') {
             const status = byId('session-status');
             if (!status) return;
-            status.innerHTML = message;
-            status.className = `status-pill ${mode === 'warn' ? 'warn' : ''}`.trim();
+            status.innerText = message;
+            status.className = `status-pill ${mode}`.trim();
         }
 
         function runBestEffort(operation) {
             Promise.resolve(operation).catch(() => undefined);
         }
 
-        function readCachedSession() {
-            try {
-                const rawSession = sessionStorage.getItem(STORAGE_USER_KEY);
-                return rawSession ? JSON.parse(rawSession) : null;
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function hydrateCachedSession() {
-            const cachedSession = readCachedSession();
-            if (!cachedSession?.email) return;
-            currentSessionUser = cachedSession;
-            setText('user-name', cachedSession.name || cachedSession.email || 'Usuário');
-            setSessionStatus('Preparando sua área de consulta...', 'ok');
-        }
-
-        function fastRead(loader, fallbackValue, timeoutMs = FIRESTORE_FAST_TIMEOUT_MS, onLateData = null) {
-            let resolvedByTimeout = false;
-            const execution = Promise.resolve().then(loader);
-
-            const timed = Promise.race([
-                execution
-                    .then((data) => ({ ok: true, timedOut: false, data }))
-                    .catch((error) => ({ ok: false, timedOut: false, error, data: fallbackValue })),
-                new Promise((resolve) => {
-                    window.setTimeout(() => {
-                        resolvedByTimeout = true;
-                        resolve({ ok: false, timedOut: true, data: fallbackValue });
-                    }, timeoutMs);
+        function withTimeout(promise, fallbackValue, timeoutMs = FIRESTORE_TIMEOUT_MS) {
+            let settled = false;
+            const execution = Promise.resolve().then(() => promise);
+            const timeout = new Promise((resolve) => {
+                window.setTimeout(() => {
+                    if (!settled) resolve({ ok: false, timedOut: true, data: fallbackValue, error: null });
+                }, timeoutMs);
+            });
+            return Promise.race([
+                execution.then((data) => {
+                    settled = true;
+                    return { ok: true, timedOut: false, data, error: null };
+                }).catch((error) => {
+                    settled = true;
+                    return { ok: false, timedOut: false, data: fallbackValue, error };
                 }),
+                timeout,
             ]);
-
-            execution
-                .then((data) => {
-                    if (resolvedByTimeout && typeof onLateData === 'function') {
-                        onLateData(data);
-                    }
-                })
-                .catch(() => undefined);
-
-            return timed;
         }
 
-        function filterPharmaciesFromCache(query) {
-            return cachedPharmacies
-                .filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.endereco || item.address || ''} ${item.bairro || ''} ${item.cidade || ''} ${item.telefone || item.phone || ''} ${item.horario_funcionamento || item.opening_hours_label || ''}`, query))
-                .slice(0, 100);
-        }
-
-        function filterMedicinesFromCache(query) {
-            return cachedMedicines
-                .filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.categoria || item.category || ''} ${item.descricao || item.description || ''}`, query))
-                .slice(0, 100);
+        async function importFirebaseClient() {
+            return withTimeout(import('./assets/firebaseClient.js'), null, MODULE_TIMEOUT_MS);
         }
 
         function updateSummaryCounts() {
@@ -763,317 +600,27 @@
             return normalizedQuery.split(' ').every((term) => haystack.includes(term));
         }
 
-        function toRadians(value) {
-            return value * Math.PI / 180;
+        function filterPharmacies(query) {
+            return cachedPharmacies
+                .filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.endereco || item.address || ''} ${item.bairro || ''} ${item.cidade || ''} ${item.telefone || item.phone || ''} ${item.horario_funcionamento || item.opening_hours_label || ''}`, query))
+                .slice(0, 100);
         }
 
-        function haversineKm(originLat, originLng, destLat, destLng) {
-            const earthRadiusKm = 6371;
-            const deltaLat = toRadians(destLat - originLat);
-            const deltaLng = toRadians(destLng - originLng);
-            const lat1 = toRadians(originLat);
-            const lat2 = toRadians(destLat);
-            const a = Math.sin(deltaLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) ** 2;
-            return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        }
-
-        function routeLinks(latitude, longitude) {
-            const openstreetmapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
-            return {
-                maps_url: openstreetmapUrl,
-                openstreetmap_url: openstreetmapUrl,
-            };
-        }
-
-        function addressFromTags(tags) {
-            const fullAddress = tags['addr:full'] || tags['contact:address'];
-            if (fullAddress) return fullAddress;
-
-            const street = tags['addr:street'] || tags['contact:street'] || tags['addr:place'];
-            const number = tags['addr:housenumber'] || tags['contact:housenumber'];
-            const unit = tags['addr:unit'] || tags['addr:door'];
-            const suburb = tags['addr:suburb'] || tags['addr:neighbourhood'] || tags['addr:district'];
-            const city = tags['addr:city'] || tags['addr:town'] || tags['addr:municipality'];
-            const state = tags['addr:state'];
-            const postcode = tags['addr:postcode'];
-            const parts = [];
-            if (street) {
-                let line = number ? `${street}, ${number}` : street;
-                if (unit) line += `, ${unit}`;
-                parts.push(line);
-            }
-            if (suburb) parts.push(suburb);
-            if (city) parts.push(city);
-            if (state) parts.push(state);
-            if (postcode) parts.push(`CEP ${postcode}`);
-            return parts.join(' - ') || 'Endereço não informado';
-        }
-
-        function addressQualityFromTags(tags) {
-            if (tags['addr:full'] || tags['contact:address']) return 'osm_full_address';
-            if (tags['addr:street'] || tags['contact:street']) return 'osm_structured_address';
-            if (tags['addr:city'] || tags['addr:suburb'] || tags['addr:neighbourhood']) return 'osm_partial_address';
-            return 'missing_address';
-        }
-
-        function phoneFromTags(tags) {
-            return tags.phone || tags['contact:phone'] || tags.mobile || tags['contact:mobile'] || null;
-        }
-
-        function websiteFromTags(tags) {
-            return tags.website || tags['contact:website'] || tags.url || null;
-        }
-
-        function emailFromTags(tags) {
-            return tags.email || tags['contact:email'] || null;
-        }
-
-        function buildOverpassPharmacyQuery(lat, lng, radiusKm) {
-            const radiusM = Math.round(radiusKm * 1000);
-            return `
-[out:json][timeout:25];
-(
-  node["amenity"="pharmacy"](around:${radiusM},${lat},${lng});
-  way["amenity"="pharmacy"](around:${radiusM},${lat},${lng});
-  relation["amenity"="pharmacy"](around:${radiusM},${lat},${lng});
-  node["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
-  way["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
-  relation["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});
-  node["shop"="chemist"](around:${radiusM},${lat},${lng});
-  way["shop"="chemist"](around:${radiusM},${lat},${lng});
-  relation["shop"="chemist"](around:${radiusM},${lat},${lng});
-);
-out center tags;`.trim();
-        }
-
-        function buildOverpassHealthQuery(lat, lng, radiusKm, kind) {
-            const radiusM = Math.round(radiusKm * 1000);
-            const filters = {
-                all: [
-                    '["amenity"~"^(clinic|hospital|doctors)$"]',
-                    '["healthcare"~"^(clinic|centre|doctor|hospital)$"]',
-                    '["name"~"(UBS|UPA|Unidade Básica|Unidade Basica|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade de Saúde|Unidade de Saude|Pronto Atendimento|Policlínica|Policlinica|PSF|ESF)",i]',
-                ],
-                primary_care: [
-                    '["amenity"~"^(clinic|doctors)$"]',
-                    '["healthcare"~"^(clinic|centre|doctor)$"]',
-                    '["name"~"(UBS|Unidade Básica|Unidade Basica|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade de Saúde|Unidade de Saude|PSF|ESF)",i]',
-                ],
-                urgent_care: [
-                    '["amenity"~"^(clinic|hospital)$"]',
-                    '["healthcare"~"^(clinic|hospital)$"]',
-                    '["emergency"="yes"]',
-                    '["name"~"(UPA|Pronto Atendimento|Unidade de Pronto Atendimento|PA 24|24h)",i]',
-                ],
-            }[kind] || [];
-            const statements = filters.flatMap((filter) => [
-                `node${filter}(around:${radiusM},${lat},${lng});`,
-                `way${filter}(around:${radiusM},${lat},${lng});`,
-                `relation${filter}(around:${radiusM},${lat},${lng});`,
-            ]).join('\n  ');
-            return `[out:json][timeout:25];\n(\n  ${statements}\n);\nout center tags;`;
-        }
-
-        async function overpassRequest(queryText) {
-            let lastError = null;
-            for (const endpoint of OVERPASS_ENDPOINTS) {
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-                        body: new URLSearchParams({ data: queryText }),
-                        signal: AbortSignal.timeout(14000),
-                    });
-                    if (!response.ok) throw new Error(`O serviço de localização respondeu HTTP ${response.status}`);
-                    return response.json();
-                } catch (error) {
-                    lastError = error;
-                }
-            }
-            throw lastError || new Error('O serviço de localização está indisponível no momento.');
-        }
-
-        function parseOpenStatus(openingHours) {
-            if (!openingHours) return null;
-            const expression = String(openingHours).trim();
-            if (!expression) return null;
-            if (expression === '24/7') return true;
-
-            const now = new Date();
-            const dayMap = { Mo: 1, Tu: 2, We: 3, Th: 4, Fr: 5, Sa: 6, Su: 0 };
-            const currentDay = now.getDay();
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            const dayTokens = Object.keys(dayMap).join('|');
-
-            for (const rawRule of expression.split(';')) {
-                const rule = rawRule.trim();
-                if (!rule) continue;
-                if (/\boff\b/i.test(rule)) return false;
-                const dayMatch = rule.match(new RegExp(`\\b(${dayTokens})(?:\\s*-\\s*(${dayTokens}))?\\b`));
-                let appliesToday = !dayMatch;
-                if (dayMatch) {
-                    const start = dayMap[dayMatch[1]];
-                    const end = dayMatch[2] ? dayMap[dayMatch[2]] : start;
-                    if (start <= end) appliesToday = currentDay >= start && currentDay <= end;
-                    else appliesToday = currentDay >= start || currentDay <= end;
-                }
-                if (!appliesToday) continue;
-                const ranges = [...rule.matchAll(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2}|24:00)/g)];
-                if (ranges.length === 0) continue;
-                for (const match of ranges) {
-                    const [openH, openM] = match[1].split(':').map(Number);
-                    const [closeH, closeM] = match[2] === '24:00' ? [23, 59] : match[2].split(':').map(Number);
-                    const openMinutes = openH * 60 + openM;
-                    const closeMinutes = closeH * 60 + closeM;
-                    if (openMinutes <= closeMinutes && currentMinutes >= openMinutes && currentMinutes <= closeMinutes) return true;
-                    if (openMinutes > closeMinutes && (currentMinutes >= openMinutes || currentMinutes <= closeMinutes)) return true;
-                }
-                return false;
-            }
-            return null;
-        }
-
-        function pharmacyRecordFromOsm(element, origin = null) {
-            const tags = element.tags || {};
-            const center = element.center || {};
-            const latitude = Number(element.lat ?? center.lat);
-            const longitude = Number(element.lon ?? center.lon);
-            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-            const name = tags.name || tags.brand || 'Farmácia localizada';
-            const links = routeLinks(latitude, longitude);
-            const isOpen = parseOpenStatus(tags.opening_hours);
-            const distanceKm = origin ? haversineKm(origin.lat, origin.lng, latitude, longitude) : null;
-            return {
-                id: `osm-${element.type}-${element.id}`,
-                nome: name,
-                name,
-                source: 'openstreetmap',
-                endereco: addressFromTags(tags),
-                address: addressFromTags(tags),
-                telefone: phoneFromTags(tags),
-                phone: phoneFromTags(tags),
-                whatsapp: (tags['contact:whatsapp'] || tags.whatsapp || '').replace(/\D+/g, '') || null,
-                website: websiteFromTags(tags),
-                email: emailFromTags(tags),
-                operator: tags.operator || tags['operator:name'] || null,
-                brand: tags.brand || null,
-                latitude,
-                longitude,
-                distance_km: distanceKm !== null ? Math.round(distanceKm * 100) / 100 : null,
-                is_open: isOpen,
-                status_label: isOpen === true ? 'Aberta agora' : isOpen === false ? 'Fechada agora' : 'Horário não informado',
-                opening_hours_label: tags.opening_hours === '24/7' ? 'Aberto 24 horas' : (tags.opening_hours || 'Horário não informado'),
-                opening_hours_raw: tags.opening_hours || null,
-                horario_funcionamento: tags.opening_hours === '24/7' ? 'Aberto 24 horas' : (tags.opening_hours || 'Horário não informado'),
-                address_quality: addressQualityFromTags(tags),
-                disponibilidade_farmaco: true,
-                avaliacao: 'OSM',
-                ...links,
-            };
-        }
-
-        const PUBLIC_HEALTH_KEYWORDS = [
-            'ubs', 'upa', 'unidade basica', 'unidade básica', 'posto de saude', 'posto de saúde',
-            'centro de saude', 'centro de saúde', 'unidade de saude', 'unidade de saúde',
-            'pronto atendimento', 'unidade de pronto atendimento', 'policlinica', 'policlínica',
-            'psf', 'esf', 'estrategia saude da familia', 'estratégia saúde da família',
-            'saude da familia', 'saúde da família',
-        ];
-
-        function isAllowedPublicHealth(tags) {
-            const amenity = normalizeText(tags.amenity || '');
-            const healthcare = normalizeText(tags.healthcare || '');
-            const searchable = normalizeText(`${tags.name || ''} ${tags.official_name || ''} ${tags.operator || ''} ${tags.description || ''} ${tags['healthcare:speciality'] || ''}`);
-            if (['pharmacy', 'dentist', 'veterinary', 'laboratory', 'optician'].includes(amenity) || ['pharmacy', 'dentist', 'laboratory'].includes(healthcare)) {
-                return false;
-            }
-            if (PUBLIC_HEALTH_KEYWORDS.some((keyword) => searchable.includes(normalizeText(keyword)))) return true;
-            if ((['centre', 'clinic'].includes(healthcare) || ['clinic', 'doctors'].includes(amenity)) && ['municipal', 'prefeitura', 'sus', 'publico', 'público', 'saude', 'saúde'].some((hint) => searchable.includes(normalizeText(hint)))) {
-                return true;
-            }
-            if ((amenity === 'hospital' || healthcare === 'hospital') && (searchable.includes('upa') || searchable.includes('pronto atendimento') || tags.emergency === 'yes')) return true;
-            return false;
-        }
-
-        function healthKindFromTags(tags) {
-            const searchable = normalizeText(`${tags.name || ''} ${tags.official_name || ''} ${tags.operator || ''} ${tags.description || ''}`);
-            if (searchable.includes('upa') || searchable.includes('pronto atendimento') || searchable.includes('unidade de pronto atendimento') || tags.emergency === 'yes') return 'UPA / pronto atendimento';
-            if (searchable.includes('ubs') || searchable.includes('unidade basica') || searchable.includes('posto de saude') || searchable.includes('psf') || searchable.includes('esf')) return 'Posto de saúde / UBS';
-            if (searchable.includes('centro de saude') || searchable.includes('unidade de saude') || searchable.includes('policlinica')) return 'Centro de saúde comunitário';
-            return 'Estabelecimento público similar';
-        }
-
-        function healthRecordFromOsm(element, origin) {
-            const tags = element.tags || {};
-            if (!isAllowedPublicHealth(tags)) return null;
-            const record = pharmacyRecordFromOsm(element, origin);
-            if (!record) return null;
-            return {
-                ...record,
-                kind: healthKindFromTags(tags),
-            };
-        }
-
-        async function findOpenStreetMapPharmacies({ lat, lng, radiusKm = 10, limit = 20, openNow = false, queryText = '' }) {
-            const payload = await overpassRequest(buildOverpassPharmacyQuery(lat, lng, radiusKm));
-            const seen = new Set();
-            let items = (payload.elements || [])
-                .map((element) => pharmacyRecordFromOsm(element, { lat, lng }))
-                .filter(Boolean)
-                .filter((item) => {
-                    if (seen.has(item.id)) return false;
-                    seen.add(item.id);
-                    return true;
-                })
-                .filter((item) => textMatchesQuery(`${item.name} ${item.address} ${item.opening_hours_label}`, queryText))
-                .sort((a, b) => Number(a.distance_km ?? 9999) - Number(b.distance_km ?? 9999));
-
-            if (openNow) {
-                const openItems = items.filter((item) => item.is_open === true);
-                if (openItems.length > 0) items = openItems;
-            }
-
-            return items.slice(0, limit);
-        }
-
-        async function findOpenStreetMapHealth({ lat, lng, radiusKm = 5, limit = 12, openNow = false, kind = 'all' }) {
-            const payload = await overpassRequest(buildOverpassHealthQuery(lat, lng, radiusKm, kind));
-            const seen = new Set();
-            let items = (payload.elements || [])
-                .map((element) => healthRecordFromOsm(element, { lat, lng }))
-                .filter(Boolean)
-                .filter((item) => {
-                    if (seen.has(item.id)) return false;
-                    seen.add(item.id);
-                    return true;
-                })
-                .sort((a, b) => Number(a.distance_km ?? 9999) - Number(b.distance_km ?? 9999));
-
-            if (openNow) {
-                const openItems = items.filter((item) => item.is_open === true);
-                if (openItems.length > 0) items = openItems;
-            }
-
-            return items.slice(0, limit);
+        function filterMedicines(query) {
+            return cachedMedicines
+                .filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.categoria || item.category || ''} ${item.descricao || item.description || ''}`, query))
+                .slice(0, 100);
         }
 
         function applyAccessControl(isAdmin) {
-            const allowAdmin = Boolean(isAdmin);
-            document.body.classList.toggle('is-admin', allowAdmin);
-
+            document.body.classList.toggle('is-admin', Boolean(isAdmin));
             document.querySelectorAll('[data-admin-only]').forEach((element) => {
-                element.hidden = !allowAdmin;
-                element.setAttribute('aria-hidden', allowAdmin ? 'false' : 'true');
-
+                element.hidden = !isAdmin;
+                element.setAttribute('aria-hidden', isAdmin ? 'false' : 'true');
                 if (element instanceof HTMLAnchorElement) {
-                    if (!element.dataset.originalHref) {
-                        element.dataset.originalHref = element.getAttribute('href') || '';
-                    }
-
-                    if (allowAdmin) {
-                        if (element.dataset.originalHref) {
-                            element.setAttribute('href', element.dataset.originalHref);
-                        }
+                    if (!element.dataset.originalHref) element.dataset.originalHref = element.getAttribute('href') || '';
+                    if (isAdmin) {
+                        element.setAttribute('href', element.dataset.originalHref || 'cadastrar-farmacias.html');
                         element.removeAttribute('tabindex');
                     } else {
                         element.removeAttribute('href');
@@ -1081,150 +628,37 @@ out center tags;`.trim();
                     }
                 }
             });
-
             const medicineForm = byId('medicine-form');
             const medicineButton = byId('btn-register-medicine');
-            const medicineNote = byId('medicine-admin-note');
-
             if (medicineForm) medicineForm.hidden = false;
             if (medicineButton) medicineButton.disabled = false;
-            if (medicineNote) medicineNote.hidden = false;
         }
 
-        async function logout() {
-            await signOutUser();
-            sessionStorage.removeItem(STORAGE_USER_KEY);
-            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
-            window.location.href = 'login.html';
-        }
-
-        function redirectToLogin() {
-            sessionStorage.removeItem(STORAGE_USER_KEY);
-            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
-            window.location.href = 'login.html';
-        }
-
-        async function verifySession(user) {
-            if (!user) {
-                redirectToLogin();
-                return;
-            }
-
-            const sessionUser = toSessionUser(user);
-            currentSessionUser = {
-                ...sessionUser,
-                role: resolveUserRole(sessionUser.email),
-            };
-
-            const isAdminSession = isPlatformAdminUser(user);
-            applyAccessControl(isAdminSession);
-            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
-            runBestEffort(user.getIdToken(false).then((token) => {
-                if (token) sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token);
-            }));
-
-            setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
-            setSessionStatus(isAdminSession
-                ? 'Perfil administrativo ativo'
-                : 'Acesso validado. Cadastro de medicamentos liberado.');
-
-            await loadInitialDataOptimized();
-        }
-
-        async function loadInitialDataOptimized() {
-            byId('alert-list').innerHTML = '<p class="loading-text">Atualizando alertas...</p>';
-            byId('medicine-list').innerHTML = '<p class="loading-text">Carregando catálogo...</p>';
-            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
-
-            const alertResultPromise = fastRead(
-                () => listMedicineAlerts({ role: currentSessionUser?.role || 'USER', max: 10 }),
-                [],
-                FIRESTORE_FAST_TIMEOUT_MS,
-                (lateAlerts) => {
-                    cachedAlerts = Array.isArray(lateAlerts) ? lateAlerts : [];
-                    updateSummaryCounts();
-                    renderAlertList(cachedAlerts);
-                },
-            );
-
-            const pharmacyResultPromise = fastRead(
-                () => listFarmacias({ max: 100 }),
-                [],
-                FIRESTORE_FAST_TIMEOUT_MS,
-                (latePharmacies) => {
-                    cachedPharmacies = Array.isArray(latePharmacies) ? latePharmacies : [];
-                    updateSummaryCounts();
-                    renderPharmacyDirectory(cachedPharmacies);
-                    setMessage('pharmacy-directory-status', `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
-                },
-            );
-
-            const medicineResultPromise = fastRead(
-                () => listMedications({ max: 100 }),
-                [],
-                FIRESTORE_FAST_TIMEOUT_MS,
-                (lateMedicines) => {
-                    cachedMedicines = Array.isArray(lateMedicines) ? lateMedicines : [];
-                    updateSummaryCounts();
-                    renderMedicines(cachedMedicines);
-                },
-            );
-
-            const [alertResult, pharmacyResult, medicineResult] = await Promise.all([
-                alertResultPromise,
-                pharmacyResultPromise,
-                medicineResultPromise,
-            ]);
-
-            cachedAlerts = Array.isArray(alertResult.data) ? alertResult.data : [];
-            cachedPharmacies = Array.isArray(pharmacyResult.data) ? pharmacyResult.data : [];
-            cachedMedicines = Array.isArray(medicineResult.data) ? medicineResult.data : [];
-
-            updateSummaryCounts();
-            renderAlertList(cachedAlerts);
-            renderPharmacyDirectory(cachedPharmacies);
-            renderMedicines(cachedMedicines);
-
-            if (pharmacyResult.timedOut) {
-                setMessage('pharmacy-directory-status', 'Consulta inicial concluída. O banco ainda está sincronizando em segundo plano.', 'warn');
-            } else if (pharmacyResult.ok) {
-                setMessage('pharmacy-directory-status', `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
-            } else {
-                setMessage('pharmacy-directory-status', 'Não foi possível carregar farmácias agora. Tente listar novamente em alguns segundos.', 'warn');
+        function readCachedSession() {
+            try {
+                const rawSession = sessionStorage.getItem(STORAGE_USER_KEY);
+                return rawSession ? JSON.parse(rawSession) : null;
+            } catch (_) {
+                return null;
             }
         }
 
-        async function loadDashboardData() {
-            const alertResult = await fastRead(
-                () => listMedicineAlerts({ role: currentSessionUser?.role || 'USER', max: 10 }),
-                cachedAlerts,
-                FIRESTORE_FAST_TIMEOUT_MS,
-                (lateAlerts) => {
-                    cachedAlerts = Array.isArray(lateAlerts) ? lateAlerts : [];
-                    updateSummaryCounts();
-                    renderAlertList(cachedAlerts);
-                },
-            );
-            cachedAlerts = Array.isArray(alertResult.data) ? alertResult.data : cachedAlerts;
-            updateSummaryCounts();
-            renderAlertList(cachedAlerts);
-        }
-
-        function renderDashboardData(alertas, farmacias) {
-            cachedAlerts = Array.isArray(alertas) ? alertas : cachedAlerts;
-            cachedPharmacies = Array.isArray(farmacias) ? farmacias : cachedPharmacies;
-            updateSummaryCounts();
-            renderAlertList(cachedAlerts);
+        function hydrateCachedSession() {
+            const cachedSession = readCachedSession();
+            if (!cachedSession?.email) return;
+            currentSessionUser = cachedSession;
+            setText('user-name', cachedSession.name || cachedSession.email || 'Usuário');
+            applyAccessControl(isAdminEmail(cachedSession.email));
+            setSessionStatus('Validando sessão em segundo plano...', 'warn');
         }
 
         function renderAlertList(alertas) {
-            const container = byId('alert-list');
             if (!Array.isArray(alertas) || alertas.length === 0) {
-                container.innerHTML = '<p class="loading-text">Nenhum alerta encontrado.</p>';
+                setHtml('alert-list', '<p class="loading-text">Nenhum alerta encontrado.</p>');
                 return;
             }
-            container.innerHTML = alertas.slice(0, 5).map((alerta) => {
-                const status = alerta.status || 'DESCONHECIDO';
+            setHtml('alert-list', alertas.slice(0, 5).map((alerta) => {
+                const status = String(alerta.status || 'NORMAL').toUpperCase();
                 const badgeClass = status === 'CRITICO' ? 'danger' : status === 'ATENCAO' ? 'warn' : 'ok';
                 return `
                     <div class="item-card">
@@ -1235,143 +669,134 @@ out center tags;`.trim();
                             </div>
                             <span class="badge ${badgeClass}">${escapeHtml(status)}</span>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    </div>`;
+            }).join(''));
         }
 
         function pharmacyActions(item) {
             const links = [];
+            const phone = item.telefone || item.phone;
+            const mapUrl = item.openstreetmap_url || item.maps_url;
             if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`);
-            if (item.telefone || item.phone) links.push(`<a href="tel:${escapeHtml(item.telefone || item.phone)}">Telefone</a>`);
-            const osmUrl = item.openstreetmap_url || item.maps_url;
-            if (osmUrl) links.push(`<a href="${escapeHtml(osmUrl)}" target="_blank" rel="noopener">Abrir no mapa</a>`);
-            return links.join(' · ');
+            if (phone) links.push(`<a href="tel:${escapeHtml(phone)}">Telefone</a>`);
+            if (mapUrl) links.push(`<a href="${escapeHtml(mapUrl)}" target="_blank" rel="noopener">Abrir no mapa</a>`);
+            return links.length ? links.join(' · ') : '<span class="muted">Sem canais adicionais informados.</span>';
         }
 
         function renderPharmacyDirectory(items) {
-            const list = byId('pharmacy-directory-list');
             if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhuma farmácia cadastrada no momento. Utilize a busca por proximidade para localizar estabelecimentos próximos.</p>';
+                setHtml('pharmacy-directory-list', '<p class="loading-text">Nenhuma farmácia cadastrada encontrada. Use a busca por proximidade para localizar estabelecimentos próximos.</p>');
                 return;
             }
-            list.innerHTML = items.map((item) => `
+            setHtml('pharmacy-directory-list', items.map((item) => `
                 <div class="item-card">
                     <div class="item-head">
                         <div>
-                            <strong>${escapeHtml(item.nome || item.name)}</strong>
+                            <strong>${escapeHtml(item.nome || item.name || 'Farmácia')}</strong>
                             <p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p>
                             <p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')}</p>
                         </div>
-                        <span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível na plataforma'}</span>
+                        <span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível'}</span>
                     </div>
                     <div class="item-actions">${pharmacyActions(item)}</div>
-                </div>
-            `).join('');
-        }
-
-        async function loadPharmacies(query = '') {
-            const requestId = ++pharmacyRequestSeq;
-            const normalizedQuery = String(query || '').trim();
-
-            if (cachedPharmacies.length > 0) {
-                const cachedItems = filterPharmaciesFromCache(normalizedQuery);
-                renderPharmacyDirectory(cachedItems);
-                setMessage('pharmacy-directory-status', `${cachedItems.length} farmácia(s) encontrada(s) no cache local da sessão.`, 'success');
-                runBestEffort(trackPharmacyClick('directory:list', 'VIEW'));
-                return;
-            }
-
-            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
-            const result = await fastRead(
-                () => listFarmacias({ q: normalizedQuery, max: 100 }),
-                [],
-                FIRESTORE_FAST_TIMEOUT_MS,
-                (lateItems) => {
-                    if (requestId !== pharmacyRequestSeq) return;
-                    cachedPharmacies = Array.isArray(lateItems) ? lateItems : [];
-                    const visibleItems = filterPharmaciesFromCache(normalizedQuery);
-                    renderPharmacyDirectory(visibleItems);
-                    updateSummaryCounts();
-                    setMessage('pharmacy-directory-status', `${visibleItems.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
-                },
-            );
-
-            if (requestId !== pharmacyRequestSeq) return;
-
-            cachedPharmacies = Array.isArray(result.data) ? result.data : [];
-            const items = filterPharmaciesFromCache(normalizedQuery);
-            renderPharmacyDirectory(items);
-            updateSummaryCounts();
-
-            if (result.timedOut) {
-                setMessage('pharmacy-directory-status', 'O banco demorou a responder. A sincronização continuará em segundo plano.', 'warn');
-            } else if (result.ok) {
-                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
-            } else {
-                setMessage('pharmacy-directory-status', 'Não foi possível consultar farmácias cadastradas agora.', 'error');
-            }
-
-            runBestEffort(trackPharmacyClick('directory:list', 'VIEW'));
+                </div>`).join(''));
         }
 
         function renderMedicines(items) {
-            const list = byId('medicine-list');
             if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhum medicamento cadastrado.</p>';
+                setHtml('medicine-list', '<p class="loading-text">Nenhum medicamento cadastrado.</p>');
                 setText('medicamento-count', 0);
                 return;
             }
             setText('medicamento-count', items.length);
-            list.innerHTML = items.map((item) => `
+            setHtml('medicine-list', items.map((item) => `
                 <div class="item-card">
                     <div class="item-head">
                         <div>
-                            <strong>${escapeHtml(item.nome || item.name)}</strong>
+                            <strong>${escapeHtml(item.nome || item.name || 'Medicamento')}</strong>
                             <p>${escapeHtml(item.categoria || item.category || 'Categoria não informada')} · Estoque informado: ${escapeHtml(item.stock ?? 0)}</p>
                             <p>${escapeHtml(item.descricao || item.description || 'Sem descrição operacional.')}</p>
                         </div>
                         <span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Prescrição' : 'Livre'}</span>
                     </div>
-                </div>
-            `).join('');
+                </div>`).join(''));
         }
 
-        async function loadMedicines(query = '') {
-            const requestId = ++medicineRequestSeq;
-            const normalizedQuery = String(query || '').trim();
+        async function loadInitialData() {
+            if (!api) return;
+            setHtml('alert-list', '<p class="loading-text">Atualizando alertas...</p>');
+            setHtml('medicine-list', '<p class="loading-text">Carregando catálogo...</p>');
+            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
 
-            if (cachedMedicines.length > 0) {
-                const cachedItems = filterMedicinesFromCache(normalizedQuery);
-                renderMedicines(cachedItems);
-                runBestEffort(trackMedicineSearch(normalizedQuery, cachedItems.length));
+            const role = currentSessionUser?.role || (isAdminEmail(currentSessionUser?.email) ? 'ADMIN' : 'USER');
+            const [alertsResult, pharmaciesResult, medicinesResult] = await Promise.all([
+                withTimeout(api.listMedicineAlerts({ role, max: 10 }), [], FIRESTORE_TIMEOUT_MS),
+                withTimeout(api.listFarmacias({ max: 100 }), [], FIRESTORE_TIMEOUT_MS),
+                withTimeout(api.listMedications({ max: 100 }), [], FIRESTORE_TIMEOUT_MS),
+            ]);
+
+            cachedAlerts = Array.isArray(alertsResult.data) ? alertsResult.data : [];
+            cachedPharmacies = Array.isArray(pharmaciesResult.data) ? pharmaciesResult.data : [];
+            cachedMedicines = Array.isArray(medicinesResult.data) ? medicinesResult.data : [];
+
+            updateSummaryCounts();
+            renderAlertList(cachedAlerts);
+            renderPharmacyDirectory(cachedPharmacies);
+            renderMedicines(cachedMedicines);
+
+            if (pharmaciesResult.timedOut) {
+                setMessage('pharmacy-directory-status', 'O banco demorou a responder. A interface foi liberada e a consulta pode ser repetida.', 'warn');
+            } else if (pharmaciesResult.ok) {
+                setMessage('pharmacy-directory-status', `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success');
+            } else {
+                setMessage('pharmacy-directory-status', 'Não foi possível carregar farmácias agora. Verifique as regras do Firestore ou tente novamente.', 'warn');
+            }
+        }
+
+        async function loadPharmacies(query = '') {
+            const normalizedQuery = String(query || '').trim();
+            if (!api) return;
+            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
+
+            if (cachedPharmacies.length > 0) {
+                const items = filterPharmacies(normalizedQuery);
+                renderPharmacyDirectory(items);
+                setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s) na sessão atual.`, 'success');
+                runBestEffort(api.trackPharmacyClick('directory:list', 'VIEW'));
                 return;
             }
 
-            const result = await fastRead(
-                () => listMedications({ q: normalizedQuery, max: 100 }),
-                [],
-                FIRESTORE_FAST_TIMEOUT_MS,
-                (lateItems) => {
-                    if (requestId !== medicineRequestSeq) return;
-                    cachedMedicines = Array.isArray(lateItems) ? lateItems : [];
-                    const visibleItems = filterMedicinesFromCache(normalizedQuery);
-                    renderMedicines(visibleItems);
-                    updateSummaryCounts();
-                },
-            );
-
-            if (requestId !== medicineRequestSeq) return;
-
-            cachedMedicines = Array.isArray(result.data) ? result.data : [];
-            const items = filterMedicinesFromCache(normalizedQuery);
-            renderMedicines(items);
+            const result = await withTimeout(api.listFarmacias({ q: normalizedQuery, max: 100 }), [], FIRESTORE_TIMEOUT_MS);
+            cachedPharmacies = Array.isArray(result.data) ? result.data : [];
+            const items = filterPharmacies(normalizedQuery);
             updateSummaryCounts();
-            runBestEffort(trackMedicineSearch(normalizedQuery, items.length));
+            renderPharmacyDirectory(items);
+            setMessage('pharmacy-directory-status', result.ok ? `${items.length} farmácia(s) cadastrada(s) encontrada(s).` : 'Consulta indisponível no momento.', result.ok ? 'success' : 'warn');
+            runBestEffort(api.trackPharmacyClick('directory:list', 'VIEW'));
+        }
+
+        async function loadMedicines(query = '') {
+            const normalizedQuery = String(query || '').trim();
+            if (!api) return;
+
+            if (cachedMedicines.length > 0) {
+                const items = filterMedicines(normalizedQuery);
+                renderMedicines(items);
+                runBestEffort(api.trackMedicineSearch(normalizedQuery, items.length));
+                return;
+            }
+
+            const result = await withTimeout(api.listMedications({ q: normalizedQuery, max: 100 }), [], FIRESTORE_TIMEOUT_MS);
+            cachedMedicines = Array.isArray(result.data) ? result.data : [];
+            const items = filterMedicines(normalizedQuery);
+            updateSummaryCounts();
+            renderMedicines(items);
+            runBestEffort(api.trackMedicineSearch(normalizedQuery, items.length));
         }
 
         async function registerMedicine(event) {
             event.preventDefault();
+            if (!api) return;
             const button = byId('btn-register-medicine');
             button.disabled = true;
             setMessage('medicine-form-status', 'Registrando medicamento...');
@@ -1384,18 +809,57 @@ out center tags;`.trim();
                     stock: Number(byId('medicine-stock').value || 0),
                     requires_prescription: byId('medicine-prescription').value === 'true',
                 };
-                await createMedication(payload);
+                await api.createMedication(payload);
                 byId('medicine-form').reset();
                 byId('medicine-dose').value = '1';
                 byId('medicine-stock').value = '0';
                 setMessage('medicine-form-status', 'Medicamento cadastrado com sucesso.', 'success');
                 cachedMedicines = [];
-                await Promise.allSettled([loadMedicines(), loadDashboardData()]);
+                await loadMedicines();
             } catch (error) {
-                setMessage('medicine-form-status', `Não foi possível concluir o cadastro: ${error.message}`, 'error');
+                setMessage('medicine-form-status', `Não foi possível concluir o cadastro: ${error?.message || 'erro desconhecido'}`, 'error');
             } finally {
                 button.disabled = false;
             }
+        }
+
+        async function logout() {
+            if (api) await api.signOutUser();
+            sessionStorage.removeItem(STORAGE_USER_KEY);
+            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
+            window.location.href = 'login.html';
+        }
+
+        function redirectToLogin() {
+            sessionStorage.removeItem(STORAGE_USER_KEY);
+            sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY);
+            window.location.href = 'login.html';
+        }
+
+        function verifySession(user) {
+            authResolved = true;
+            if (!user) {
+                setSessionStatus('Sessão não encontrada. Redirecionando...', 'warn');
+                window.setTimeout(redirectToLogin, 600);
+                return;
+            }
+
+            const sessionUser = api.toSessionUser(user);
+            currentSessionUser = {
+                ...sessionUser,
+                role: isAdminEmail(sessionUser.email) ? 'ADMIN' : 'USER',
+            };
+
+            const isAdmin = isAdminEmail(currentSessionUser.email);
+            applyAccessControl(isAdmin);
+            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
+            runBestEffort(user.getIdToken(false).then((token) => {
+                if (token) sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token);
+            }));
+
+            setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
+            setSessionStatus(isAdmin ? 'Perfil administrativo ativo.' : 'Acesso validado. Cadastro de medicamentos liberado.', '');
+            runBestEffort(loadInitialData());
         }
 
         function getUserLocation() {
@@ -1412,130 +876,181 @@ out center tags;`.trim();
             });
         }
 
-        function renderNearbyPharmacies(items) {
-            const list = byId('nearby-pharmacy-list');
-            if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhuma farmácia encontrada no raio configurado.</p>';
-                return;
-            }
-            list.innerHTML = items.map((item) => {
-                const distance = Number(item.distance_km ?? 0).toFixed(2).replace('.', ',');
-                return `
-                    <div class="item-card">
-                        <div class="item-head">
-                            <div>
-                                <strong>${escapeHtml(item.name || item.nome)}</strong>
-                                <p>${escapeHtml(item.address || item.endereco || 'Endereço não informado')}</p>
-                                <p>${distance} km · ${escapeHtml(item.opening_hours_label || item.horario_funcionamento || 'Horário não informado')}</p>
-                                ${item.brand || item.operator ? `<p>${escapeHtml([item.brand, item.operator].filter(Boolean).join(' · '))}</p>` : ''}
-                                ${item.website || item.email ? `<p>${item.website ? `<a href="${escapeHtml(item.website)}" target="_blank" rel="noopener">Site</a>` : ''}${item.website && item.email ? ' · ' : ''}${item.email ? `<a href="mailto:${escapeHtml(item.email)}">E-mail</a>` : ''}</p>` : ''}
-                            </div>
-                            <span class="badge ${item.is_open === false ? 'warn' : 'ok'}">${escapeHtml(item.status_label || 'Localizada')}</span>
-                        </div>
-                        <div class="item-actions">${pharmacyActions(item)}</div>
-                    </div>
-                `;
-            }).join('');
+        function routeLinks(latitude, longitude) {
+            const url = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
+            return { maps_url: url, openstreetmap_url: url };
         }
 
-        async function loadNearbyOpenPharmacies() {
-            const button = byId('btn-nearby-pharmacies');
+        function addressFromTags(tags) {
+            const street = tags['addr:street'] || tags['contact:street'] || tags['addr:place'];
+            const number = tags['addr:housenumber'] || tags['contact:housenumber'];
+            const suburb = tags['addr:suburb'] || tags['addr:neighbourhood'] || tags['addr:district'];
+            const city = tags['addr:city'] || tags['addr:town'] || tags['addr:municipality'];
+            return [street && number ? `${street}, ${number}` : street, suburb, city].filter(Boolean).join(' - ') || 'Endereço não informado';
+        }
+
+        function toRadians(value) { return value * Math.PI / 180; }
+        function haversineKm(aLat, aLng, bLat, bLng) {
+            const r = 6371;
+            const dLat = toRadians(bLat - aLat);
+            const dLng = toRadians(bLng - aLng);
+            const lat1 = toRadians(aLat);
+            const lat2 = toRadians(bLat);
+            const value = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+            return 2 * r * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+        }
+
+        function buildOverpassQuery(lat, lng, radiusKm, kind) {
+            const radiusM = Math.round(radiusKm * 1000);
+            if (kind === 'health') {
+                return `[out:json][timeout:20];(node["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng});way["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng});relation["name"~"(UBS|UPA|Posto de Saúde|Posto de Saude|Centro de Saúde|Centro de Saude|Unidade Básica|Unidade Basica)",i](around:${radiusM},${lat},${lng}););out center tags;`;
+            }
+            return `[out:json][timeout:20];(node["amenity"="pharmacy"](around:${radiusM},${lat},${lng});way["amenity"="pharmacy"](around:${radiusM},${lat},${lng});relation["amenity"="pharmacy"](around:${radiusM},${lat},${lng});node["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});way["healthcare"="pharmacy"](around:${radiusM},${lat},${lng});relation["healthcare"="pharmacy"](around:${radiusM},${lat},${lng}););out center tags;`;
+        }
+
+        async function overpassRequest(queryText) {
+            let lastError = null;
+            for (const endpoint of OVERPASS_ENDPOINTS) {
+                const controller = new AbortController();
+                const timer = window.setTimeout(() => controller.abort(), 14000);
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                        body: new URLSearchParams({ data: queryText }),
+                        signal: controller.signal,
+                    });
+                    window.clearTimeout(timer);
+                    if (!response.ok) throw new Error(`O serviço de localização respondeu HTTP ${response.status}`);
+                    return response.json();
+                } catch (error) {
+                    window.clearTimeout(timer);
+                    lastError = error;
+                }
+            }
+            throw lastError || new Error('O serviço de localização está indisponível no momento.');
+        }
+
+        function osmRecord(element, origin, kind = 'pharmacy') {
+            const tags = element.tags || {};
+            const center = element.center || {};
+            const latitude = Number(element.lat ?? center.lat);
+            const longitude = Number(element.lon ?? center.lon);
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+            const distance = haversineKm(origin.lat, origin.lng, latitude, longitude);
+            return {
+                id: `osm-${element.type}-${element.id}`,
+                name: tags.name || (kind === 'health' ? 'Estabelecimento de saúde localizado' : 'Farmácia localizada'),
+                address: addressFromTags(tags),
+                phone: tags.phone || tags['contact:phone'] || null,
+                website: tags.website || tags['contact:website'] || null,
+                latitude,
+                longitude,
+                distance_km: Math.round(distance * 100) / 100,
+                opening_hours_label: tags.opening_hours || 'Horário não informado',
+                status_label: 'Localizado',
+                kind: kind === 'health' ? 'Serviço público de saúde' : 'Farmácia',
+                ...routeLinks(latitude, longitude),
+            };
+        }
+
+        async function loadNearby(kind) {
+            const isHealth = kind === 'health';
+            const button = byId(isHealth ? 'btn-nearby-health' : 'btn-nearby-pharmacies');
+            const statusId = isHealth ? 'health-status' : 'nearby-status';
+            const listId = isHealth ? 'health-list' : 'nearby-pharmacy-list';
+            const radiusId = isHealth ? 'health-radius' : 'nearby-radius';
             button.disabled = true;
-            setMessage('nearby-status', 'Obtendo sua localização autorizada...');
-            byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Pronto para consulta...</p>';
+            setMessage(statusId, 'Obtendo sua localização autorizada...');
+            setHtml(listId, '<p class="loading-text">Consultando estabelecimentos próximos...</p>');
             try {
                 const location = await getUserLocation();
-                const radiusKm = Number(byId('nearby-radius').value || 10);
-                if (nearbyRequestController) nearbyRequestController.abort();
-                nearbyRequestController = new AbortController();
-                const items = await findOpenStreetMapPharmacies({ lat: location.lat, lng: location.lng, radiusKm, limit: 10, openNow: true });
-                setMessage('nearby-status', `${items.length} farmácia(s) localizada(s) com base na sua localização.`, 'success');
-                renderNearbyPharmacies(items);
-            } catch (error) {
-                if (error?.name !== 'AbortError') {
-                    setMessage('nearby-status', error.message || 'Não foi possível consultar farmácias próximas.', 'error');
-                    byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>';
-                }
-            } finally {
-                button.disabled = false;
-            }
-        }
-
-        function renderHealthEstablishments(items) {
-            const list = byId('health-list');
-            if (!Array.isArray(items) || items.length === 0) {
-                list.innerHTML = '<p class="loading-text">Nenhum posto de saúde, UBS ou UPA encontrado no raio configurado.</p>';
-                return;
-            }
-            list.innerHTML = items.map((item) => {
-                const distance = Number(item.distance_km ?? 0).toFixed(2).replace('.', ',');
-                const phone = item.phone ? `<a href="tel:${escapeHtml(item.phone)}">Telefone</a>` : '';
-                const routeLinksHtml = pharmacyActions(item);
-                return `
+                const radiusKm = Number(byId(radiusId).value || (isHealth ? 5 : 10));
+                const payload = await overpassRequest(buildOverpassQuery(location.lat, location.lng, radiusKm, kind));
+                const seen = new Set();
+                const items = (payload.elements || [])
+                    .map((element) => osmRecord(element, location, kind))
+                    .filter(Boolean)
+                    .filter((item) => {
+                        if (seen.has(item.id)) return false;
+                        seen.add(item.id);
+                        return true;
+                    })
+                    .sort((a, b) => a.distance_km - b.distance_km)
+                    .slice(0, isHealth ? 12 : 10);
+                setMessage(statusId, `${items.length} estabelecimento(s) localizado(s) com base na sua localização.`, 'success');
+                setHtml(listId, items.length ? items.map((item) => `
                     <div class="item-card">
                         <div class="item-head">
                             <div>
                                 <strong>${escapeHtml(item.name)}</strong>
-                                <p>${escapeHtml(item.kind || 'Estabelecimento de saúde')} · ${distance} km</p>
-                                <p>${escapeHtml(item.address || 'Endereço não informado')}</p>
-                                <p>${escapeHtml(item.opening_hours_label || 'Horário não informado')}</p>
+                                <p>${escapeHtml(item.kind)} · ${String(item.distance_km.toFixed(2)).replace('.', ',')} km</p>
+                                <p>${escapeHtml(item.address)}</p>
+                                <p>${escapeHtml(item.opening_hours_label)}</p>
                             </div>
-                            <span class="badge ${item.is_open === false ? 'warn' : 'ok'}">${escapeHtml(item.status_label || 'Localizado')}</span>
+                            <span class="badge ok">Localizado</span>
                         </div>
-                        <div class="item-actions">${[phone, routeLinksHtml].filter(Boolean).join(' · ')}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function loadNearbyHealthEstablishments() {
-            const button = byId('btn-nearby-health');
-            button.disabled = true;
-            setMessage('health-status', 'Obtendo sua localização autorizada...');
-            byId('health-list').innerHTML = '<p class="loading-text">Pronto para consulta...</p>';
-            try {
-                const location = await getUserLocation();
-                const radiusKm = Number(byId('health-radius').value || 5);
-                const openNow = byId('health-open-now').value === 'true';
-                const kind = byId('health-kind').value;
-                if (healthRequestController) healthRequestController.abort();
-                healthRequestController = new AbortController();
-                const items = await findOpenStreetMapHealth({ lat: location.lat, lng: location.lng, radiusKm, limit: 12, openNow, kind });
-                setMessage('health-status', `${items.length} posto(s)/UPA(s) localizado(s) com base na sua localização.`, 'success');
-                renderHealthEstablishments(items);
+                        <div class="item-actions">${pharmacyActions(item)}</div>
+                    </div>`).join('') : '<p class="loading-text">Nenhum estabelecimento encontrado no raio configurado.</p>');
             } catch (error) {
-                if (error?.name !== 'AbortError') {
-                    setMessage('health-status', error.message || 'Não foi possível localizar postos de saúde ou UPAs.', 'error');
-                    byId('health-list').innerHTML = '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>';
-                }
+                setMessage(statusId, error?.message || 'Não foi possível consultar estabelecimentos próximos.', 'error');
+                setHtml(listId, '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>');
             } finally {
                 button.disabled = false;
             }
         }
 
         function setupEvents() {
+            byId('btn-logout').addEventListener('click', logout);
             byId('btn-search-pharmacies').addEventListener('click', () => loadPharmacies(byId('pharmacy-search-input').value.trim()));
-            byId('btn-list-pharmacies').addEventListener('click', () => { byId('pharmacy-search-input').value = ''; loadPharmacies(); });
+            byId('btn-list-pharmacies').addEventListener('click', () => { byId('pharmacy-search-input').value = ''; cachedPharmacies = []; loadPharmacies(); });
             byId('pharmacy-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPharmacies(event.target.value.trim()); });
             byId('btn-search-medicines').addEventListener('click', () => loadMedicines(byId('medicine-search-input').value.trim()));
-            byId('btn-list-medicines').addEventListener('click', () => { byId('medicine-search-input').value = ''; loadMedicines(); });
+            byId('btn-list-medicines').addEventListener('click', () => { byId('medicine-search-input').value = ''; cachedMedicines = []; loadMedicines(); });
             byId('medicine-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadMedicines(event.target.value.trim()); });
             byId('medicine-form').addEventListener('submit', registerMedicine);
-            byId('btn-nearby-pharmacies').addEventListener('click', loadNearbyOpenPharmacies);
-            byId('btn-nearby-health').addEventListener('click', loadNearbyHealthEstablishments);
+            byId('btn-nearby-pharmacies').addEventListener('click', () => loadNearby('pharmacy'));
+            byId('btn-nearby-health').addEventListener('click', () => loadNearby('health'));
         }
 
-        window.logout = logout;
-
-        document.addEventListener('DOMContentLoaded', () => {
+        async function boot() {
             hydrateCachedSession();
             setupEvents();
-            onAuthStateChange((user) => {
-                verifySession(user).catch(() => redirectToLogin());
+
+            const moduleResult = await importFirebaseClient();
+            if (!moduleResult.ok || !moduleResult.data) {
+                setSessionStatus('Falha ao carregar credenciais. Recarregue a página.', 'error');
+                setHtml('alert-list', '<p class="loading-text">O módulo de autenticação não foi carregado.</p>');
+                setHtml('medicine-list', '<p class="loading-text">Catálogo indisponível até a autenticação carregar.</p>');
+                setMessage('pharmacy-directory-status', 'Módulo Firebase indisponível. Verifique o console do navegador e o caminho assets/firebaseClient.js.', 'error');
+                return;
+            }
+
+            api = moduleResult.data;
+            setSessionStatus('Validando sua sessão...', 'warn');
+            api.onAuthStateChange((user) => {
+                try {
+                    verifySession(user);
+                } catch (_) {
+                    redirectToLogin();
+                }
             });
-        });
+
+            window.setTimeout(() => {
+                if (!authResolved) {
+                    setSessionStatus('A autenticação está demorando. Mantendo a interface ativa enquanto a sessão sincroniza.', 'warn');
+                    renderAlertList([]);
+                    renderMedicines([]);
+                    setMessage('pharmacy-directory-status', 'Aguardando resposta do Firebase Auth. Recarregue se a mensagem persistir.', 'warn');
+                }
+            }, 5000);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', boot);
+        } else {
+            boot();
+        }
     </script>
-
-
 </body>
 </html>
