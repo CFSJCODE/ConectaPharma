@@ -41,6 +41,25 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+export const PLATFORM_ADMIN_EMAILS = Object.freeze([
+    'claudiofranciscojunior2006@gmail.com',
+]);
+
+export function normalizeEmail(email) {
+    return String(email ?? '').trim().toLowerCase();
+}
+
+export function isAdminEmail(email) {
+    return PLATFORM_ADMIN_EMAILS.includes(normalizeEmail(email));
+}
+
+export function resolveUserRole(email, currentRole = 'USER') {
+    if (String(currentRole || '').toUpperCase() === 'ADMIN' || isAdminEmail(email)) {
+        return 'ADMIN';
+    }
+    return 'USER';
+}
+
 let analyticsInstancePromise = null;
 
 export function getAnalyticsSafe() {
@@ -96,6 +115,7 @@ export function toSessionUser(user) {
         email: user.email,
         photoURL: user.photoURL || null,
         provider: user.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email',
+        role: resolveUserRole(user.email),
     };
 }
 
@@ -107,31 +127,34 @@ export async function upsertUserDocument(user, provider, name = null) {
     const userRef = doc(db, 'users', user.uid);
     const snapshot = await getDoc(userRef);
     const resolvedName = name || user.displayName || user.email || 'Usuário ConectaPharma';
+    const existingRole = snapshot.exists() ? snapshot.data()?.role : 'USER';
+    const resolvedRole = resolveUserRole(user.email, existingRole);
 
     if (!snapshot.exists()) {
         await setDoc(userRef, {
             uid: user.uid,
             name: resolvedName,
-            email: user.email,
+            email: normalizeEmail(user.email),
             photoURL: user.photoURL || null,
             provider,
-            role: 'USER',
+            role: resolvedRole,
             createdAt: serverTimestamp(),
             lastLoginAt: serverTimestamp(),
             active: true,
         });
-        return { created: true };
+        return { created: true, role: resolvedRole };
     }
 
     await updateDoc(userRef, {
         name: resolvedName,
-        email: user.email,
+        email: normalizeEmail(user.email),
         photoURL: user.photoURL || null,
+        role: resolvedRole,
         lastLoginAt: serverTimestamp(),
         active: true,
     });
 
-    return { created: false };
+    return { created: false, role: resolvedRole };
 }
 
 async function writeLog(collectionName, payload) {

@@ -125,9 +125,36 @@ class Settings:
         "CONNECTAPHARMA_OVERPASS_USER_AGENT",
         "ConectaPharma-MVP/1.0 (academic prototype; contact: claudiofranciscojunior2006@gmail.com)",
     )
+    ADMIN_EMAILS: List[str] = [
+        email.strip().lower()
+        for email in os.getenv(
+            "CONNECTAPHARMA_ADMIN_EMAILS",
+            "claudiofranciscojunior2006@gmail.com",
+        ).split(",")
+        if email.strip()
+    ]
 
 
 settings = Settings()
+
+
+def normalize_email_address(email: Optional[str]) -> str:
+    return str(email or "").strip().lower()
+
+
+def is_admin_email(email: Optional[str]) -> bool:
+    return normalize_email_address(email) in settings.ADMIN_EMAILS
+
+
+def resolve_user_role(email: Optional[str], explicit_role: Optional[str] = None) -> str:
+    role = str(explicit_role or "").strip().upper()
+    if role == "ADMIN" or is_admin_email(email):
+        return "ADMIN"
+    return "USER"
+
+
+def is_admin_user(user: Dict[str, Any]) -> bool:
+    return resolve_user_role(user.get("email"), user.get("role")) == "ADMIN"
 
 # =============================================================================
 # 1. DOMÍNIO & SCHEMAS (Pydantic Models)
@@ -160,6 +187,7 @@ class UserLogin(BaseModel):
 class UserResponse(UserBase):
     id: str
     created_at: datetime
+    role: str = "USER"
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
@@ -597,6 +625,8 @@ class FirebaseAuthAdapter:
         issued_at = decoded.get("auth_time") or decoded.get("iat")
         created_at = datetime.fromtimestamp(issued_at, timezone.utc) if issued_at else datetime.now(timezone.utc)
 
+        explicit_role = "ADMIN" if decoded.get("admin") is True else decoded.get("role")
+
         return {
             "id": str(uid),
             "uid": str(uid),
@@ -605,6 +635,7 @@ class FirebaseAuthAdapter:
             "photo_url": decoded.get("picture"),
             "provider": "firebase",
             "created_at": created_at,
+            "role": resolve_user_role(email, explicit_role),
             "firebase_claims": decoded,
         }
 
@@ -625,6 +656,8 @@ def get_legacy_current_user(token: str) -> Dict:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado no banco de dados legado.",
         )
+
+    user["role"] = resolve_user_role(user.get("email"), user.get("role"))
     return user
 
 
@@ -641,16 +674,27 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
                 raise firebase_exc
         raise firebase_exc
 
+
+def require_admin(current_user: Dict = Depends(get_current_user)) -> Dict:
+    if not is_admin_user(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito ao administrador da plataforma.",
+        )
+    return current_user
+
+
 def seed_default_user() -> None:
-    """Cria um usuário de desenvolvimento para testes manuais."""
-    default_email = "admin@conectapharma.com"
-    if any(u["email"] == default_email for u in db.users):
+    """Cria a conta administrativa de desenvolvimento para testes manuais."""
+    default_email = "claudiofranciscojunior2006@gmail.com"
+    if any(normalize_email_address(u.get("email")) == default_email for u in db.users):
         return
 
     db.users.append({
         "id": "1",
         "email": default_email,
-        "name": "Administrador ConectaPharma",
+        "name": "Cláudio Júnior",
+        "role": "ADMIN",
         "password_hash": SecurityHelper.get_password_hash("admin123"),
         "created_at": datetime.now(timezone.utc),
     })
@@ -1791,6 +1835,7 @@ async def register(user_in: UserCreate):
         "id": str(len(db.users) + 1),
         "email": user_in.email,
         "name": user_in.name,
+        "role": resolve_user_role(user_in.email),
         "password_hash": SecurityHelper.get_password_hash(user_in.password),
         "created_at": datetime.now(timezone.utc)
     }
@@ -1806,8 +1851,9 @@ async def login(user_in: UserLogin):
         raise HTTPException(status_code=401, detail="Credenciais incorretas.")
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    user["role"] = resolve_user_role(user.get("email"), user.get("role"))
     access_token = SecurityHelper.create_jwt_token(
-        data={"sub": str(user["id"]), "email": user["email"]}, 
+        data={"sub": str(user["id"]), "email": user["email"], "role": user["role"]},
         expires_delta=access_token_expires
     )
     
@@ -1903,7 +1949,7 @@ async def listar_medicamentos(
     return items[:limit]
 
 @router_health.post("/medicamentos", response_model=MedicamentoCatalogoItem, status_code=status.HTTP_201_CREATED)
-async def cadastrar_medicamento(req: MedicamentoCreate, current_user: dict = Depends(get_current_user)):
+async def cadastrar_medicamento(req: MedicamentoCreate, current_user: dict = Depends(require_admin)):
     """Cadastra medicamento no catálogo operacional do MVP.
 
     Não armazena dados clínicos de pacientes, prescrição, diagnóstico ou CNS/CPF.
@@ -2016,18 +2062,18 @@ async def rastrear_entrega(tracking_id: str, current_user: dict = Depends(get_cu
     if not entrega:
         raise HTTPException(status_code=404, detail="Tracking ID inválido ou não encontrado.")
     
-    # Autorização: Apenas o dono ou admin pode ver.
-    if entrega["paciente_id"] != current_user["id"]:
+    # Autorização: o dono da solicitação ou o administrador da plataforma pode visualizar.
+    if entrega["paciente_id"] != current_user["id"] and not is_admin_user(current_user):
         raise HTTPException(status_code=403, detail="Acesso negado a esta entrega.")
         
     return entrega
 
 @router_integrations.get("/rnds/status", response_model=RndsIntegrationStatus)
-async def rnds_status(current_user: dict = Depends(get_current_user)):
+async def rnds_status(current_user: dict = Depends(require_admin)):
     return RndsIntegrationService.status()
 
 @router_integrations.post("/rnds/dispensacao", response_model=RndsSubmissionResponse)
-async def enviar_dispensacao_rnds(req: RndsDispensacaoRequest, current_user: dict = Depends(get_current_user)):
+async def enviar_dispensacao_rnds(req: RndsDispensacaoRequest, current_user: dict = Depends(require_admin)):
     try:
         return await RndsIntegrationService.submit_dispensacao(req, current_user)
     except RndsConfigurationError as exc:

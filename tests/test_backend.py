@@ -13,7 +13,7 @@ client = TestClient(app)
 def get_auth_headers() -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/login",
-        json={"email": "admin@conectapharma.com", "password": "admin123"},
+        json={"email": "claudiofranciscojunior2006@gmail.com", "password": "admin123"},
     )
     assert response.status_code == 200
     token = response.json()["access_token"]
@@ -30,14 +30,15 @@ def test_healthz_returns_ok():
 def test_login_returns_jwt_and_user():
     response = client.post(
         "/api/v1/auth/login",
-        json={"email": "admin@conectapharma.com", "password": "admin123"},
+        json={"email": "claudiofranciscojunior2006@gmail.com", "password": "admin123"},
     )
 
     body = response.json()
     assert response.status_code == 200
     assert body["token_type"] == "bearer"
     assert body["access_token"]
-    assert body["user"]["email"] == "admin@conectapharma.com"
+    assert body["user"]["email"] == "claudiofranciscojunior2006@gmail.com"
+    assert body["user"]["role"] == "ADMIN"
 
 
 def test_me_requires_valid_token():
@@ -50,7 +51,9 @@ def test_me_returns_current_user_with_token():
     response = client.get("/api/v1/auth/me", headers=get_auth_headers())
 
     assert response.status_code == 200
-    assert response.json()["email"] == "admin@conectapharma.com"
+    body = response.json()
+    assert body["email"] == "claudiofranciscojunior2006@gmail.com"
+    assert body["role"] == "ADMIN"
 
 
 def test_alertas_contract():
@@ -187,3 +190,33 @@ def test_rnds_dispensacao_builds_fhir_bundle_in_dry_run():
     assert body["sent"] is False
     assert body["request_preview"]["resourceType"] == "Bundle"
     assert body["request_preview"]["type"] == "document"
+
+
+def test_usuario_comum_nao_cadastra_medicamento():
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={"email": "usuario.comum@example.com", "name": "Usuário Comum", "password": "senha123"},
+    )
+    assert register_response.status_code in (201, 409)
+
+    login_response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "usuario.comum@example.com", "password": "senha123"},
+    )
+    assert login_response.status_code == 200
+    token = login_response.json()["access_token"]
+
+    response = client.post(
+        "/api/v1/saude/medicamentos",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "nome": "Medicamento Restrito Teste",
+            "categoria": "Teste",
+            "descricao": "Item de teste",
+            "dose_diaria_comprimidos": 1,
+            "stock": 1,
+            "requires_prescription": True,
+        },
+    )
+
+    assert response.status_code == 403

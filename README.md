@@ -404,6 +404,27 @@ conectapharma-33fd7.web.app
 conectapharma-33fd7.firebaseapp.com
 ```
 
+
+### 8.1 Conta administradora
+
+A conta administradora padrão da plataforma é:
+
+```text
+claudiofranciscojunior2006@gmail.com
+```
+
+Essa conta recebe o papel `ADMIN` automaticamente no frontend, no backend e nas regras do Firestore. Ela possui acesso completo às funcionalidades de gestão operacional da plataforma, incluindo cadastro de medicamentos, leitura administrativa de formulários/logs e integrações restritas.
+
+Demais contas autenticadas recebem papel `USER` e devem acessar apenas funcionalidades comuns, como consulta de farmácias, consulta de medicamentos, localização de farmácias próximas, postos de saúde/UPAs e recursos públicos de uso do MVP.
+
+Para alterar ou acrescentar administradores no backend, configure:
+
+```env
+CONNECTAPHARMA_ADMIN_EMAILS=claudiofranciscojunior2006@gmail.com,outro-admin@exemplo.com
+```
+
+As regras do Firestore também reconhecem `claudiofranciscojunior2006@gmail.com` como administrador bootstrap para permitir a criação/atualização do próprio documento `/users/{uid}` com `role = ADMIN`.
+
 ---
 
 ## 9. Cloud Firestore

@@ -148,6 +148,29 @@
             background: #FEF3C7;
         }
 
+        .status-pill.admin {
+            display: none;
+            color: #1E3A8A;
+            background: #DBEAFE;
+            margin-left: 0.5rem;
+        }
+
+        body.is-admin .status-pill.admin {
+            display: inline-flex;
+        }
+
+        .admin-management {
+            display: none;
+        }
+
+        body.is-admin .admin-management {
+            display: grid;
+        }
+
+        body.is-admin #medicine-admin-note {
+            display: none;
+        }
+
         .grid-summary {
             display: grid;
             gap: 1rem;
@@ -297,6 +320,10 @@
             color: #166534;
         }
 
+        .message.warn {
+            color: #92400E;
+        }
+
         .message.error {
             color: var(--color-danger);
         }
@@ -349,6 +376,7 @@
             <h2 class="section-title">Painel do usuário</h2>
             <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. A sessão é autenticada pelo Firebase e validada pelo backend quando disponível.</p>
             <div class="status-pill" id="session-status">Carregando sessão...</div>
+            <div class="status-pill admin" id="admin-status">Administrador da plataforma</div>
             <div class="grid-summary">
                 <div class="summary-card">
                     <h3>Alertas</h3>
@@ -375,7 +403,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Lista e pesquisa de farmácias</h2>
-            <p class="section-subtitle">Consulte farmácias cadastradas na base operacional do MVP.</p>
+            <p class="section-subtitle">Consulte as farmácias cadastradas.</p>
             <div class="actions">
                 <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
                 <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
@@ -389,7 +417,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Catálogo de medicamentos</h2>
-            <p class="section-subtitle">Cadastre e consulte medicamentos operacionais do MVP. Não registre diagnóstico, prescrição, CPF, CNS ou dados clínicos sensíveis.</p>
+            <p class="section-subtitle">Consulte medicamentos cadastrados. O cadastro e a gestão operacional ficam disponíveis apenas para a conta administradora.</p>
             <div class="actions">
                 <input id="medicine-search-input" class="input" type="search" placeholder="Pesquisar medicamento ou categoria" style="max-width: 520px;">
                 <button id="btn-search-medicines" class="btn" type="button">Pesquisar</button>
@@ -399,7 +427,9 @@
                 <p class="loading-text">Carregando catálogo...</p>
             </div>
 
-            <form id="medicine-form" class="form-grid" autocomplete="off">
+            <p id="medicine-admin-note" class="message warn">Esta conta possui acesso de usuário comum. A gestão de medicamentos e demais funções administrativas está restrita à conta claudiofranciscojunior2006@gmail.com.</p>
+
+            <form id="medicine-form" class="form-grid admin-management" autocomplete="off">
                 <input id="medicine-name" class="input" type="text" placeholder="Nome do medicamento, exemplo: Amoxicilina 500mg" required>
                 <input id="medicine-category" class="input" type="text" placeholder="Categoria, exemplo: Antibiótico">
                 <input id="medicine-dose" class="input" type="number" min="0.1" max="20" step="0.1" value="1" placeholder="Dose diária estimada">
@@ -466,6 +496,7 @@
         import {
             getCurrentIdToken,
             onAuthStateChange,
+            resolveUserRole,
             signOutUser,
             toSessionUser,
         } from './assets/firebaseClient.js';
@@ -482,6 +513,7 @@
         ];
 
         let currentToken = null;
+        let currentSessionUser = null;
         let nearbyRequestController = null;
         let healthRequestController = null;
 
@@ -926,6 +958,19 @@ out center tags;`.trim();
             return items.slice(0, limit);
         }
 
+        function applyAccessControl(role) {
+            const normalizedRole = String(role || 'USER').toUpperCase();
+            const isAdmin = normalizedRole === 'ADMIN';
+            document.body.classList.toggle('is-admin', isAdmin);
+
+            const form = byId('medicine-form');
+            if (form) {
+                form.querySelectorAll('input, select, textarea, button').forEach((element) => {
+                    element.disabled = !isAdmin;
+                });
+            }
+        }
+
         async function verifySession(user) {
             if (!user) {
                 redirectToLogin();
@@ -933,15 +978,27 @@ out center tags;`.trim();
             }
 
             const sessionUser = toSessionUser(user);
+            currentSessionUser = {
+                ...sessionUser,
+                role: resolveUserRole(sessionUser.email, sessionUser.role),
+            };
+            applyAccessControl(currentSessionUser.role);
             currentToken = await getCurrentIdToken();
             sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, currentToken);
-            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(sessionUser));
-            setText('user-name', sessionUser.name || sessionUser.email || 'Usuário');
+            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
+            setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
 
             try {
                 const apiUser = await apiJson('/auth/me', { auth: true, signal: AbortSignal.timeout(2800) });
-                setText('user-name', apiUser.name || sessionUser.name || sessionUser.email || 'Usuário');
-                setSessionStatus('Sessão Firebase validada pelo backend');
+                currentSessionUser = {
+                    ...currentSessionUser,
+                    ...apiUser,
+                    role: resolveUserRole(apiUser.email || currentSessionUser.email, apiUser.role || currentSessionUser.role),
+                };
+                sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
+                applyAccessControl(currentSessionUser.role);
+                setText('user-name', apiUser.name || currentSessionUser.name || currentSessionUser.email || 'Usuário');
+                setSessionStatus(currentSessionUser.role === 'ADMIN' ? 'Sessão administrativa validada' : 'Sessão de usuário comum validada');
             } catch (error) {
                 const modeMessage = API_BASE_URL
                     ? 'Sessão Firebase ativa; backend indisponível no momento'
@@ -1089,6 +1146,10 @@ out center tags;`.trim();
 
         async function registerMedicine(event) {
             event.preventDefault();
+            if (String(currentSessionUser?.role || 'USER').toUpperCase() !== 'ADMIN') {
+                setMessage('medicine-form-status', 'Apenas a conta administradora pode cadastrar medicamentos.', 'error');
+                return;
+            }
             const button = byId('btn-register-medicine');
             button.disabled = true;
             setMessage('medicine-form-status', 'Cadastrando...');

@@ -10,10 +10,18 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
-    function isAdmin() {
+    function isBootstrapAdminEmail() {
       return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+        && request.auth.token.email == 'claudiofranciscojunior2006@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrapAdminEmail()
+        || (
+          isSignedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN'
+        );
     }
 
     function hasOnlyAllowedKeys(allowed) {
@@ -23,11 +31,26 @@ service cloud.firestore {
     match /users/{uid} {
       allow create: if isOwner(uid)
         && request.resource.data.uid == uid
-        && request.resource.data.role == 'USER';
+        && (
+          request.resource.data.role == 'USER'
+          || (isBootstrapAdminEmail() && request.resource.data.role == 'ADMIN')
+        );
+
       allow read: if isOwner(uid) || isAdmin();
-      allow update: if isOwner(uid)
+
+      allow update: if (
+        isOwner(uid)
         && request.resource.data.uid == resource.data.uid
-        && request.resource.data.role == resource.data.role;
+        && (
+          request.resource.data.role == resource.data.role
+          || (!resource.data.keys().hasAny(['role']) && request.resource.data.role == 'USER')
+          || (isBootstrapAdminEmail() && request.resource.data.role == 'ADMIN')
+        )
+      ) || (
+        isAdmin()
+        && request.resource.data.uid == resource.data.uid
+      );
+
       allow delete: if false;
     }
 

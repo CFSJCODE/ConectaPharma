@@ -324,3 +324,10 @@ Para teste sem chamada externa:
 ```text
 GET /api/v1/farmacias/proximas?lat=-19.9191&lng=-43.9386&radius_km=10&open_now=true&limit=10&source=mock
 ```
+
+
+## Conta administradora
+
+A conta `claudiofranciscojunior2006@gmail.com` é tratada como administrador bootstrap nas regras do Firestore. Ao autenticar no Firebase, o frontend grava/atualiza o documento do usuário com `role: "ADMIN"`; o backend também resolve essa conta como `ADMIN` por padrão.
+
+Contas diferentes dessa devem permanecer com `role: "USER"` e acessar somente funcionalidades comuns da aplicação.
