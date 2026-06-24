@@ -298,7 +298,7 @@ firebase deploy
 
 ## Farmácias próximas com OpenStreetMap/Overpass
 
-A funcionalidade de farmácias abertas próximas não usa Google Places, Google Maps Platform, Cloud Functions, Cloud SQL ou App Hosting. A arquitetura gratuita implementada é:
+A funcionalidade de farmácias abertas próximas usa exclusivamente OpenStreetMap/Overpass como fonte externa gratuita. A arquitetura implementada é:
 
 ```text
 Frontend → FastAPI → OpenStreetMap/Overpass → FastAPI processa → Frontend renderiza

@@ -1,4 +1,4 @@
-# Farmácias abertas próximas — OpenStreetMap/Overpass
+# Farmácias abertas próximas — OpenStreetMap/Overpass (fonte principal gratuita)
 
 ## Objetivo
 
@@ -13,7 +13,7 @@ Solicita permissão de localização ao navegador
 ↓
 Envia latitude/longitude ao FastAPI
 ↓
-Backend consulta OpenStreetMap/Overpass
+Backend consulta OpenStreetMap/Overpass (fonte principal gratuita)
 ↓
 Backend aplica cache em memória
 ↓
@@ -78,7 +78,7 @@ A integração com Overpass foi ajustada para reduzir latência e proteger o ser
 - O backend limita e ordena os resultados por proximidade com seleção parcial, não ordenação completa desnecessária.
 - O frontend possui cache temporário de sessão e apenas renderiza os dados retornados pelo backend.
 
-Esses ajustes mantêm o uso gratuito e respeitoso do OpenStreetMap/Overpass, sem Google Places, sem Google Maps Platform, sem Cloud Functions e sem Cloud SQL.
+Esses ajustes mantêm o uso gratuito e respeitoso do OpenStreetMap/Overpass (fonte principal gratuita), sem Cloud Functions e sem Cloud SQL.
 
 
 ## Correção de `Failed to fetch` em hospedagem estática
@@ -86,8 +86,8 @@ Esses ajustes mantêm o uso gratuito e respeitoso do OpenStreetMap/Overpass, sem
 Quando o frontend roda em `https://conectapharma-33fd7.web.app`, chamadas para `http://localhost:8000` não funcionam porque o backend local não está disponível para o navegador do usuário. Para corrigir isso, a plataforma agora usa a seguinte ordem:
 
 1. Se `window.CONNECTAPHARMA_API_BASE_URL` estiver configurado ou se o frontend estiver em `localhost`, consulta o backend FastAPI.
-2. Se o backend estiver indisponível, consulta OpenStreetMap/Overpass diretamente como fallback gratuito.
-3. Exibe links de rota para **Google Maps, OpenStreetMap e Waze** sem usar APIs pagas.
+2. Se o backend estiver indisponível, consulta OpenStreetMap/Overpass (fonte principal gratuita) diretamente como fonte principal gratuita.
+3. Exibe link de rota pelo **OpenStreetMap** sem usar APIs pagas.
 
 Para usar um backend público, publique o FastAPI em um provedor compatível e configure antes do carregamento da plataforma:
 

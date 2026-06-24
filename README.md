@@ -11,7 +11,7 @@ O projeto utiliza:
 * **Cloud Firestore** para persistência de usuários, formulários, métricas e dados operacionais do MVP;
 * **Firebase Hosting** para publicação do frontend;
 * **GitHub Actions** para deploy automatizado no Firebase Hosting;
-* **Backend FastAPI** para API complementar, simulações, alertas, farmácias mapeadas, logística, busca via Google Places/OpenStreetMap e base de integração futura com RNDS/DATASUS.
+* **Backend FastAPI** para API complementar, simulações, alertas, farmácias mapeadas, logística, busca via OpenStreetMap/Overpass e base de integração futura com RNDS/DATASUS.
 
 ---
 
@@ -57,7 +57,7 @@ O MVP busca validar a solução por meio de:
 * Tela de login/cadastro;
 * Área autenticada do usuário;
 * Dashboard inicial;
-* Busca de farmácias abertas próximas usando localização autorizada pelo usuário, com Google Places no backend e fallback OpenStreetMap;
+* Busca de farmácias abertas próximas usando localização autorizada pelo usuário e OpenStreetMap/Overpass no backend;
 * Integração com Firebase;
 * Integração opcional com backend FastAPI;
 * Fallback visual quando a API local estiver indisponível.
@@ -86,7 +86,7 @@ O backend fornece uma API complementar para:
 
 * Alertas simulados de consumo;
 * Farmácias mapeadas;
-* Consulta opcional ao Google Maps Platform / Places API para dados mais completos de farmácias;
+* Consulta a OpenStreetMap/Overpass para dados gratuitos de farmácias e estabelecimentos de saúde;
 * Consulta gratuita ao OpenStreetMap/Overpass como fallback;
 * Cálculo de distância por Haversine;
 * Verificação de farmácias abertas no horário atual;
@@ -270,39 +270,31 @@ GOOGLE_APPLICATION_CREDENTIALS=C:\caminho\seguro\service-account.json
 
 Nunca envie esse arquivo JSON para o GitHub.
 
-### 6.3 Google Maps Platform / Places API e OpenStreetMap / Overpass
+### 6.3 OpenStreetMap / Overpass
 
 A funcionalidade de farmácias abertas próximas opera em modo **backend-first**:
 
 ```text
-Frontend → envia latitude/longitude autorizadas → Backend FastAPI → Google Places ou OpenStreetMap → JSON normalizado → Frontend renderiza
+Frontend → envia latitude/longitude autorizadas → Backend FastAPI → OpenStreetMap/Overpass → JSON normalizado → Frontend renderiza
 ```
 
-Quando `CONNECTAPHARMA_GOOGLE_PLACES_ENABLED=true` e `CONNECTAPHARMA_GOOGLE_MAPS_API_KEY` estiver configurada no backend, a API tenta usar **Google Places API (New)** para obter dados mais completos de farmácias, como endereço formatado, telefone, avaliação, quantidade de avaliações, status operacional, URL do Google Maps e horário de funcionamento quando disponível.
-
-Se a chave do Google não estiver configurada, se o billing não estiver habilitado ou se a API falhar, o backend usa **OpenStreetMap/Overpass** como fallback gratuito.
+O backend usa OpenStreetMap/Overpass como fonte externa gratuita para localizar farmácias e estabelecimentos públicos de saúde. O frontend não usa chaves de mapas e apenas renderiza os dados normalizados retornados pelo backend.
 
 Variáveis principais:
 
 ```env
-CONNECTAPHARMA_GOOGLE_PLACES_ENABLED=false
-CONNECTAPHARMA_GOOGLE_MAPS_API_KEY=
-CONNECTAPHARMA_GOOGLE_PLACES_NEARBY_URL=https://places.googleapis.com/v1/places:searchNearby
-CONNECTAPHARMA_GOOGLE_PLACES_TEXT_URL=https://places.googleapis.com/v1/places:searchText
-CONNECTAPHARMA_GOOGLE_PLACES_TIMEOUT_SECONDS=10
-CONNECTAPHARMA_GOOGLE_PLACES_CACHE_TTL_SECONDS=900
-CONNECTAPHARMA_GOOGLE_PLACES_RESPONSE_CACHE_TTL_SECONDS=60
-CONNECTAPHARMA_GOOGLE_PLACES_MAX_RESULT_COUNT=20
-CONNECTAPHARMA_GOOGLE_PLACES_LANGUAGE_CODE=pt-BR
-CONNECTAPHARMA_GOOGLE_PLACES_REGION_CODE=BR
+CONNECTAPHARMA_OVERPASS_ENABLED=true
+CONNECTAPHARMA_OVERPASS_URL=https://overpass-api.de/api/interpreter
+CONNECTAPHARMA_OVERPASS_URLS=https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter
+CONNECTAPHARMA_OVERPASS_TIMEOUT_SECONDS=12
+CONNECTAPHARMA_OVERPASS_CACHE_TTL_SECONDS=900
+CONNECTAPHARMA_OVERPASS_RESPONSE_CACHE_TTL_SECONDS=60
+CONNECTAPHARMA_OVERPASS_USER_AGENT="ConectaPharma-MVP/1.0 (academic prototype; contact: seu-email@exemplo.com)"
 ```
-
-A chave do Google Maps deve ficar somente no backend. Não coloque essa chave em `Frontend/`, HTML, JavaScript público ou GitHub.
 
 Mais detalhes:
 
 ```text
-docs/google-maps-places.md
 docs/openstreetmap-overpass.md
 ```
 
@@ -744,7 +736,7 @@ dir .github\workflows
 * Frontend publicado via Firebase Hosting;
 * Backend preparado para validação de Firebase ID Token;
 * RNDS/DATASUS mantido como integração futura em modo `dry-run`;
-* Busca de farmácias abertas próximas implementada com Google Places opcional e OpenStreetMap/Overpass como fallback no backend;
+* Busca de farmácias abertas próximas implementada com OpenStreetMap/Overpass no backend;
 * Frontend limitado à coleta consentida de localização e renderização dos dados processados pela API.
 
 ---
@@ -786,7 +778,7 @@ CONNECTAPHARMA_OVERPASS_MAX_KEEPALIVE_CONNECTIONS=4
 
 ### Observação operacional
 
-A localização do usuário continua sendo solicitada apenas após clique explícito. Quando o backend está disponível, ele realiza consulta Google Places ou Overpass, cache, cálculo de distância, filtro de abertura e ordenação. Quando o backend não está configurado para a hospedagem estática, o frontend usa OpenStreetMap diretamente como fallback para não exibir `Failed to fetch`.
+A localização do usuário continua sendo solicitada apenas após clique explícito. Quando o backend está disponível, ele realiza consulta OpenStreetMap/Overpass, cache, cálculo de distância, filtro de abertura e ordenação. Quando o backend não está configurado para a hospedagem estática, o frontend usa OpenStreetMap diretamente como fallback para não exibir `Failed to fetch`.
 
 ---
 
@@ -798,7 +790,7 @@ A plataforma autenticada (`Frontend/plataforma.html`) foi ampliada com novos mó
 - **Pesquisa de farmácias**: busca por nome, endereço, bairro ou horário.
 - **Catálogo de medicamentos**: listagem e pesquisa de medicamentos operacionais.
 - **Cadastro de medicamentos**: criação de novos itens no catálogo do MVP via backend autenticado.
-- **Farmácias abertas próximas**: o frontend solicita a localização do usuário; o backend consulta Google Places ou OpenStreetMap/Overpass, calcula distância, filtra abertura e ordena resultados. Em ambiente sem backend público, o frontend aciona fallback OpenStreetMap direto.
+- **Farmácias abertas próximas**: o frontend solicita a localização do usuário; o backend consulta OpenStreetMap/Overpass, calcula distância, filtra abertura e ordena resultados. Em ambiente sem backend público, o frontend aciona fallback OpenStreetMap direto.
 - **Postos de saúde e UPAs próximos**: localização de postos de saúde, UBSs, centros de saúde, UPAs e serviços públicos similares usando dados abertos processados no backend. O filtro exclui farmácias, laboratórios, dentistas e consultórios privados genéricos.
 - **Frontend sem logs de depuração**: foram removidas chamadas `console.*` do frontend; a interface mostra mensagens de estado amigáveis ao usuário.
 
@@ -825,7 +817,7 @@ Quando o frontend roda em `https://conectapharma-33fd7.web.app`, chamadas para `
 
 1. Se `window.CONNECTAPHARMA_API_BASE_URL` estiver configurado ou se o frontend estiver em `localhost`, consulta o backend FastAPI.
 2. Se o backend estiver indisponível, consulta OpenStreetMap/Overpass diretamente como fallback gratuito.
-3. Exibe links de rota para **Google Maps, OpenStreetMap e Waze** sem usar APIs pagas.
+3. Exibe link de rota pelo **OpenStreetMap**, usando exclusivamente OpenStreetMap.
 
 Para usar um backend público, publique o FastAPI em um provedor compatível e configure antes do carregamento da plataforma:
 

@@ -108,18 +108,12 @@ def test_farmacias_proximas_processa_no_backend_com_fallback_mock():
         "opening_hours_raw",
         "address_quality",
         "maps_url",
-        "google_maps_url",
         "openstreetmap_url",
-        "waze_url",
         "source",
-        "place_id",
-        "business_status",
-        "rating",
-        "user_rating_count",
     } <= set(body["items"][0])
 
 
-def test_farmacias_proximas_auto_sem_google_key_nao_quebra():
+def test_farmacias_proximas_overpass_nao_quebra():
     response = client.get(
         "/api/v1/farmacias/proximas",
         params={
@@ -128,7 +122,7 @@ def test_farmacias_proximas_auto_sem_google_key_nao_quebra():
             "radius_km": 5,
             "open_now": False,
             "limit": 5,
-            "source": "auto",
+            "source": "overpass",
         },
     )
 

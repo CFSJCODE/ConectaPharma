@@ -418,7 +418,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Farmácias abertas próximas</h2>
-            <p class="section-subtitle">A localização é solicitada apenas após o clique. Quando o backend estiver configurado com chave do Google Maps Platform, a busca usa Google Places no servidor; se não houver chave ou o serviço falhar, usa OpenStreetMap/Overpass como fallback gratuito.</p>
+            <p class="section-subtitle">A localização é solicitada apenas após o clique. A busca utiliza OpenStreetMap/Overpass como fonte gratuita para localizar farmácias próximas.</p>
             <div class="actions">
                 <button id="btn-nearby-pharmacies" class="btn" type="button">Usar minha localização</button>
                 <select id="nearby-radius" class="select" aria-label="Raio de busca">
@@ -436,7 +436,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Postos de saúde e UPAs próximos</h2>
-            <p class="section-subtitle">Localize UBSs, postos de saúde, centros de saúde e UPAs próximos. O backend pode consultar Google Places quando configurado e mantém OpenStreetMap/Overpass como fallback gratuito.</p>
+            <p class="section-subtitle">Localize UBSs, postos de saúde, centros de saúde e UPAs próximos usando OpenStreetMap/Overpass como fonte gratuita.</p>
             <div class="actions">
                 <button id="btn-nearby-health" class="btn" type="button">Localizar estabelecimentos</button>
                 <select id="health-kind" class="select" aria-label="Tipo de estabelecimento">
@@ -500,9 +500,7 @@
                 avaliacao: 4.8,
                 latitude: -19.9191,
                 longitude: -43.9386,
-                google_maps_url: 'https://www.google.com/maps/search/?api=1&query=-19.9191,-43.9386',
                 openstreetmap_url: 'https://www.openstreetmap.org/?mlat=-19.9191&mlon=-43.9386#map=17/-19.9191/-43.9386',
-                waze_url: 'https://www.waze.com/ul?ll=-19.9191%2C-43.9386&navigate=yes',
             },
             {
                 id: 2,
@@ -513,9 +511,7 @@
                 avaliacao: 4.6,
                 latitude: -19.932,
                 longitude: -43.9378,
-                google_maps_url: 'https://www.google.com/maps/search/?api=1&query=-19.932,-43.9378',
                 openstreetmap_url: 'https://www.openstreetmap.org/?mlat=-19.932&mlon=-43.9378#map=17/-19.932/-43.9378',
-                waze_url: 'https://www.waze.com/ul?ll=-19.932%2C-43.9378&navigate=yes',
             },
         ];
 
@@ -555,14 +551,6 @@
             if (!element) return;
             element.innerText = value;
             element.className = `message ${type}`.trim();
-        }
-
-        function sourceLabel(source) {
-            const value = String(source || '').toLowerCase();
-            if (value.includes('google')) return 'Google Maps / Places API';
-            if (value.includes('openstreetmap')) return 'OpenStreetMap';
-            if (value.includes('local')) return 'base local de demonstração';
-            return source || 'backend';
         }
 
         function authHeaders(token = currentToken) {
@@ -659,12 +647,10 @@
         }
 
         function routeLinks(latitude, longitude, label = 'Destino') {
-            const queryLabel = encodeURIComponent(label || 'Destino');
+            const openstreetmapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
             return {
-                maps_url: `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
-                google_maps_url: `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`,
-                openstreetmap_url: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`,
-                waze_url: `https://www.waze.com/ul?ll=${latitude}%2C${longitude}&navigate=yes&q=${queryLabel}`,
+                maps_url: openstreetmapUrl,
+                openstreetmap_url: openstreetmapUrl,
             };
         }
 
@@ -1015,9 +1001,8 @@ out center tags;`.trim();
             const links = [];
             if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`);
             if (item.telefone || item.phone) links.push(`<a href="tel:${escapeHtml(item.telefone || item.phone)}">Telefone</a>`);
-            if (item.google_maps_url || item.maps_url) links.push(`<a href="${escapeHtml(item.google_maps_url || item.maps_url)}" target="_blank" rel="noopener">Google Maps</a>`);
-            if (item.openstreetmap_url) links.push(`<a href="${escapeHtml(item.openstreetmap_url)}" target="_blank" rel="noopener">OpenStreetMap</a>`);
-            if (item.waze_url) links.push(`<a href="${escapeHtml(item.waze_url)}" target="_blank" rel="noopener">Waze</a>`);
+            const osmUrl = item.openstreetmap_url || item.maps_url;
+            if (osmUrl) links.push(`<a href="${escapeHtml(osmUrl)}" target="_blank" rel="noopener">OpenStreetMap</a>`);
             return links.join(' · ');
         }
 
@@ -1033,7 +1018,7 @@ out center tags;`.trim();
                         <div>
                             <strong>${escapeHtml(item.nome || item.name)}</strong>
                             <p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p>
-                            <p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')} · Fonte ${escapeHtml(item.source || 'backend')}</p>
+                            <p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')}</p>
                         </div>
                         <span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível para consulta'}</span>
                     </div>
@@ -1167,8 +1152,6 @@ out center tags;`.trim();
                                 <p>${escapeHtml(item.address || item.endereco || 'Endereço não informado')}</p>
                                 <p>${distance} km · ${escapeHtml(item.opening_hours_label || item.horario_funcionamento || 'Horário não informado')}</p>
                                 ${item.brand || item.operator ? `<p>${escapeHtml([item.brand, item.operator].filter(Boolean).join(' · '))}</p>` : ''}
-                                ${item.rating ? `<p>Avaliação Google: ${escapeHtml(item.rating)}${item.user_rating_count ? ` · ${escapeHtml(item.user_rating_count)} avaliações` : ''}</p>` : ''}
-                                ${item.business_status ? `<p>Status operacional: ${escapeHtml(item.business_status)}</p>` : ''}
                                 ${item.website || item.email ? `<p>${item.website ? `<a href="${escapeHtml(item.website)}" target="_blank" rel="noopener">Site</a>` : ''}${item.website && item.email ? ' · ' : ''}${item.email ? `<a href="mailto:${escapeHtml(item.email)}">E-mail</a>` : ''}</p>` : ''}
                             </div>
                             <span class="badge ${item.is_open === false ? 'warn' : 'ok'}">${escapeHtml(item.status_label || 'Localizada')}</span>
@@ -1195,13 +1178,12 @@ out center tags;`.trim();
                     radius_km: String(radiusKm),
                     open_now: 'true',
                     limit: '10',
-                    source: 'auto',
                 });
                 try {
                     const data = await apiJson(`/farmacias/proximas?${params.toString()}`, {
                         signal: AbortSignal.any([nearbyRequestController.signal, AbortSignal.timeout(12000)]),
                     });
-                    setMessage('nearby-status', `${data.count} farmácia(s) localizada(s) via ${sourceLabel(data.source)} em até ${data.radius_km} km.`, 'success');
+                    setMessage('nearby-status', `${data.count} farmácia(s) localizada(s) em até ${data.radius_km} km.`, 'success');
                     renderNearbyPharmacies(data.items);
                 } catch (backendError) {
                     if (!isBackendUnavailable(backendError)) throw backendError;
@@ -1265,13 +1247,12 @@ out center tags;`.trim();
                     open_now: String(openNow),
                     limit: '12',
                     kind,
-                    source: 'auto',
                 });
                 try {
                     const data = await apiJson(`/estabelecimentos-saude/proximos?${params.toString()}`, {
                         signal: AbortSignal.any([healthRequestController.signal, AbortSignal.timeout(12000)]),
                     });
-                    setMessage('health-status', `${data.count} posto(s)/UPA(s) localizado(s) via ${sourceLabel(data.source)} em até ${data.radius_km} km.`, 'success');
+                    setMessage('health-status', `${data.count} posto(s)/UPA(s) localizado(s) em até ${data.radius_km} km.`, 'success');
                     renderHealthEstablishments(data.items);
                 } catch (backendError) {
                     if (!isBackendUnavailable(backendError)) throw backendError;
