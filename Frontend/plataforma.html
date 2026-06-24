@@ -588,6 +588,8 @@
         import {
             createMedication,
             getCurrentIdToken,
+            getCurrentUser,
+            isPlatformAdminUser,
             listFarmacias,
             listMedications,
             listMedicineAlerts,
@@ -991,9 +993,8 @@ out center tags;`.trim();
             return items.slice(0, limit);
         }
 
-        function applyAccessControl(role) {
-            const normalizedRole = String(role || 'USER').toUpperCase();
-            const isAdmin = normalizedRole === 'ADMIN';
+        function applyAccessControl(isAdmin) {
+            isAdmin = Boolean(isAdmin);
             document.body.classList.toggle('is-admin', isAdmin);
 
             const form = byId('medicine-form');
@@ -1026,14 +1027,15 @@ out center tags;`.trim();
             const sessionUser = toSessionUser(user);
             currentSessionUser = {
                 ...sessionUser,
-                role: resolveUserRole(sessionUser.email, sessionUser.role),
+                role: resolveUserRole(sessionUser.email),
             };
-            applyAccessControl(currentSessionUser.role);
+            const isAdminSession = isPlatformAdminUser(user);
+            applyAccessControl(isAdminSession);
             currentToken = await getCurrentIdToken();
             sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, currentToken || '');
             sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
             setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
-            setSessionStatus(currentSessionUser.role === 'ADMIN' ? 'Perfil responsável ativo' : 'Perfil de consulta ativo');
+            setSessionStatus(isAdminSession ? 'Perfil administrativo ativo: claudiofranciscojunior2006@gmail.com' : 'Perfil de consulta ativo');
 
             await Promise.allSettled([
                 loadDashboardData(),
@@ -1164,8 +1166,8 @@ out center tags;`.trim();
 
         async function registerMedicine(event) {
             event.preventDefault();
-            if (String(currentSessionUser?.role || 'USER').toUpperCase() !== 'ADMIN') {
-                setMessage('medicine-form-status', 'Apenas perfis administradores podem cadastrar medicamentos.', 'error');
+            if (!isPlatformAdminUser(getCurrentUser())) {
+                setMessage('medicine-form-status', 'Apenas a conta claudiofranciscojunior2006@gmail.com pode cadastrar medicamentos.', 'error');
                 return;
             }
             const button = byId('btn-register-medicine');
@@ -1189,7 +1191,7 @@ out center tags;`.trim();
             } catch (error) {
                 setMessage('medicine-form-status', `Não foi possível concluir o cadastro: ${error.message}`, 'error');
             } finally {
-                button.disabled = String(currentSessionUser?.role || 'USER').toUpperCase() !== 'ADMIN';
+                button.disabled = !isPlatformAdminUser(getCurrentUser());
             }
         }
 

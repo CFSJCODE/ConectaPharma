@@ -125,14 +125,6 @@ class Settings:
         "CONNECTAPHARMA_OVERPASS_USER_AGENT",
         "ConectaPharma-MVP/1.0 (academic prototype; contact: claudiofranciscojunior2006@gmail.com)",
     )
-    ADMIN_EMAILS: List[str] = [
-        email.strip().lower()
-        for email in os.getenv(
-            "CONNECTAPHARMA_ADMIN_EMAILS",
-            "claudiofranciscojunior2006@gmail.com",
-        ).split(",")
-        if email.strip()
-    ]
 
 
 settings = Settings()
@@ -142,15 +134,17 @@ def normalize_email_address(email: Optional[str]) -> str:
     return str(email or "").strip().lower()
 
 
+PLATFORM_ADMIN_EMAIL = "claudiofranciscojunior2006@gmail.com"
+
+
 def is_admin_email(email: Optional[str]) -> bool:
-    return normalize_email_address(email) in settings.ADMIN_EMAILS
+    return normalize_email_address(email) == PLATFORM_ADMIN_EMAIL
 
 
 def resolve_user_role(email: Optional[str], explicit_role: Optional[str] = None) -> str:
-    role = str(explicit_role or "").strip().upper()
-    if role == "ADMIN" or is_admin_email(email):
-        return "ADMIN"
-    return "USER"
+    # A função administrativa não pode ser ativada por campo `role` local,
+    # documento Firestore ou custom claim; somente o e-mail administrativo exato.
+    return "ADMIN" if is_admin_email(email) else "USER"
 
 
 def is_admin_user(user: Dict[str, Any]) -> bool:

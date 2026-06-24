@@ -53,13 +53,13 @@ firebase deploy --only hosting,firestore:rules
 
 ## Administrador bootstrap
 
-A conta abaixo é reconhecida como administradora pelas regras de segurança:
+Somente a conta abaixo é reconhecida como administradora pelas regras de segurança:
 
 ```text
 claudiofranciscojunior2006@gmail.com
 ```
 
-Ao autenticar, o frontend grava/atualiza o documento correspondente em `users/{uid}` com `role: "ADMIN"`. Contas comuns ficam como `role: "USER"`.
+Ao autenticar, o frontend grava/atualiza `users/{uid}` com `role: "ADMIN"` apenas para esse e-mail. Qualquer outra conta permanece com `role: "USER"`, mesmo que exista documento antigo ou claim administrativa.
 
 ## Coleções operacionais
 
@@ -86,4 +86,4 @@ Ao autenticar, o frontend grava/atualiza o documento correspondente em `users/{u
 
 ## Cadastro manual de farmácias
 
-A página `Frontend/cadastrar-farmacias.html` permite que a conta administradora `claudiofranciscojunior2006@gmail.com` cadastre farmácias diretamente na coleção `farmacias` do Firestore. A escrita continua protegida por `Firebase/firestore.rules`, com `create`, `update` e `delete` permitidos somente para administrador.
+A página `Frontend/cadastrar-farmacias.html` permite que a conta administradora `claudiofranciscojunior2006@gmail.com` cadastre farmácias diretamente na coleção `farmacias` do Firestore. A escrita continua protegida por `Firebase/firestore.rules`, com `create`, `update` e `delete` permitidos somente para `claudiofranciscojunior2006@gmail.com`.

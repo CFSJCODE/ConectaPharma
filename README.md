@@ -32,7 +32,7 @@ A versão publicada **não depende de FastAPI, Cloud Functions, Cloud Run, Googl
 - O botão **Cadastrar Farmácias Manualmente** aparece somente na sessão administrativa.
 - O catálogo de medicamentos usa diretamente a coleção `medications` do Firestore.
 - O cadastro de farmácias e medicamentos é feito diretamente no Firestore e fica restrito ao administrador.
-- A conta `claudiofranciscojunior2006@gmail.com` é administradora bootstrap.
+- Somente a conta `claudiofranciscojunior2006@gmail.com` ativa funções administrativas no frontend, backend e Firestore Rules.
 - Usuários comuns acessam somente funcionalidades de uso comum.
 - A busca de farmácias próximas, UBSs, postos de saúde e UPAs usa OpenStreetMap/Overpass diretamente no frontend.
 - Google Maps/Google Places foi removido como fonte de dados.
@@ -62,11 +62,13 @@ A interface foi revisada para apresentar uma jornada mais institucional: o usuá
 
 ## Conta administradora
 
-A conta abaixo possui acesso administrativo:
+Apenas a conta abaixo possui acesso administrativo:
 
 ```text
 claudiofranciscojunior2006@gmail.com
 ```
+
+Campos locais `role: "ADMIN"`, documentos em `users/{uid}` ou claims administrativas não liberam a interface de cadastro nem as escritas protegidas quando o e-mail autenticado é diferente desse endereço.
 
 Ela pode acessar funcionalidades de gestão liberadas no frontend e autorizadas pelas regras do Firestore. Contas comuns recebem papel `USER`.
 
@@ -138,8 +140,8 @@ Firebase/firestore.rules
 Resumo das permissões:
 
 - `users/{uid}`: cada usuário lê seu próprio documento; admin lê usuários.
-- `farmacias`: leitura pública; escrita/edição/exclusão somente admin.
-- `medications`: leitura pública; escrita/edição/exclusão somente admin.
+- `farmacias`: leitura pública; escrita/edição/exclusão somente pela conta `claudiofranciscojunior2006@gmail.com`.
+- `medications`: leitura pública; escrita/edição/exclusão somente pela conta `claudiofranciscojunior2006@gmail.com`.
 - `medicine_alerts`: leitura pelo próprio usuário ou admin; gestão por admin.
 - formulários e logs: criação pública/autenticada conforme o caso; leitura administrativa.
 

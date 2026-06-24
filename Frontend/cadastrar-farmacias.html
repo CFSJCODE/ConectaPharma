@@ -439,6 +439,7 @@
             createFarmacia,
             listFarmacias,
             onAuthStateChange,
+            isPlatformAdminUser,
             resolveUserRole,
             signOutUser,
             toSessionUser,
@@ -600,14 +601,14 @@
             const sessionUser = toSessionUser(user);
             currentSessionUser = {
                 ...sessionUser,
-                role: resolveUserRole(sessionUser.email, sessionUser.role),
+                role: resolveUserRole(sessionUser.email),
             };
-            isAdminSession = String(currentSessionUser.role || 'USER').toUpperCase() === 'ADMIN';
+            isAdminSession = isPlatformAdminUser(user);
             sessionStorage.setItem('conectapharma_user', JSON.stringify(currentSessionUser));
 
             if (!isAdminSession) {
-                setAccessStatus('Acesso restrito: esta página é exclusiva para perfis administradores.', 'warn');
-                setMessage('form-status', 'Entre com um perfil autorizado para cadastrar farmácias.', 'error');
+                setAccessStatus('Acesso restrito: use a conta claudiofranciscojunior2006@gmail.com para cadastrar farmácias.', 'warn');
+                setMessage('form-status', 'Esta função administrativa está bloqueada para a conta autenticada atual.', 'error');
                 setFormEnabled(false);
                 await loadRegisteredPharmacies();
                 return;

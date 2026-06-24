@@ -64,11 +64,20 @@ export function isAdminEmail(email) {
     return PLATFORM_ADMIN_EMAILS.includes(normalizeEmail(email));
 }
 
-export function resolveUserRole(email, currentRole = 'USER') {
-    if (String(currentRole || '').toUpperCase() === 'ADMIN' || isAdminEmail(email)) {
-        return 'ADMIN';
+export function resolveUserRole(email) {
+    return isAdminEmail(email) ? 'ADMIN' : 'USER';
+}
+
+export function isPlatformAdminUser(user) {
+    return Boolean(user?.email) && isAdminEmail(user.email);
+}
+
+export function assertPlatformAdminUser(user = auth.currentUser) {
+    if (!isPlatformAdminUser(user)) {
+        const error = new Error('Operação restrita à conta administrativa claudiofranciscojunior2006@gmail.com.');
+        error.code = 'permission-denied';
+        throw error;
     }
-    return 'USER';
 }
 
 export function normalizeSearchTerm(term) {
@@ -96,7 +105,7 @@ export function getFriendlyAuthError(error) {
         'auth/network-request-failed': 'Falha de rede. Verifique sua conexão e tente novamente.',
         'auth/operation-not-allowed': 'Este método de entrada ainda não está disponível. Tente outra opção.',
         'auth/unauthorized-domain': 'Este endereço da plataforma ainda não está autorizado para entrada.',
-        'permission-denied': 'Operação não autorizada para este perfil. Verifique se você está usando uma conta com permissão administrativa.',
+        'permission-denied': 'Operação não autorizada. Use a conta administrativa claudiofranciscojunior2006@gmail.com.',
     };
 
     return errorMap[error?.code] || error?.message || 'Não foi possível concluir a operação. Tente novamente.';
@@ -120,18 +129,15 @@ export async function upsertUserDocument(user, provider, name = null) {
     }
 
     const userRef = doc(db, 'users', user.uid);
-    let existingRole = 'USER';
-
     try {
-        const snapshot = await getDoc(userRef);
-        if (snapshot.exists()) existingRole = snapshot.data()?.role || 'USER';
+        await getDoc(userRef);
     } catch (_) {
         // A leitura pode falhar se as regras ainda não foram publicadas. A gravação
         // abaixo continua sendo a operação que determina o estado do perfil.
     }
 
     const resolvedName = name || user.displayName || user.email || 'Usuário ConectaPharma';
-    const resolvedRole = resolveUserRole(user.email, existingRole);
+    const resolvedRole = resolveUserRole(user.email);
 
     await setDoc(userRef, {
         uid: user.uid,
@@ -270,6 +276,7 @@ export async function listFarmacias({ q = '', max = 100 } = {}) {
 }
 
 export async function createFarmacia(data) {
+    assertPlatformAdminUser();
     validateRequired(data, ['nome', 'endereco']);
     const userId = getSafeUserId();
     const latitude = Number(data.latitude);
@@ -327,6 +334,7 @@ export async function listMedications({ q = '', max = 100 } = {}) {
 }
 
 export async function createMedication(data) {
+    assertPlatformAdminUser();
     validateRequired(data, ['nome']);
     const userId = getSafeUserId();
     const payload = {
