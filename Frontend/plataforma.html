@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="./assets/firebaseClient.js">
+    <link rel="modulepreload" href="./assets/crudClient.js">
     <title>ConectaPharma</title>
     <style>
         :root {
@@ -21,225 +23,54 @@
             --transition-smooth: all 0.25s ease;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-
-        body {
-            background: var(--color-bg);
-            color: var(--color-text);
-            min-height: 100vh;
-        }
-
-        header {
-            background: var(--color-card);
-            padding: 0.9rem 1rem;
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
-            display: grid;
-            grid-template-columns: minmax(170px, 230px) minmax(0, 1fr);
-            align-items: center;
-            gap: 0.75rem;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            width: 100%;
-            overflow: visible;
-        }
-
-        .header-title {
-            min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-
-        .header-title h1 {
-            font-size: clamp(1.18rem, 1.55vw, 1.65rem);
-            line-height: 1.05;
-            color: var(--color-primary);
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .header-title p {
-            color: var(--color-muted);
-            margin-top: 0.2rem;
-            font-size: clamp(0.68rem, 0.78vw, 0.88rem);
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .header-nav {
-            min-width: 0;
-            width: 100%;
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 0.26rem;
-            align-items: center;
-            justify-content: flex-end;
-            white-space: nowrap;
-            overflow: visible;
-            padding: 0.12rem 0;
-        }
-
-        .header-nav a,
-        .header-nav .btn {
-            flex: 0 1 auto;
-            color: var(--color-primary);
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
-            border-radius: 999px;
-            padding: 0.44rem clamp(0.38rem, 0.52vw, 0.62rem);
-            text-decoration: none;
-            font-size: clamp(0.62rem, 0.68vw, 0.78rem);
-            font-weight: 800;
-            line-height: 1;
-            min-height: 32px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .header-nav a:hover {
-            color: var(--color-sus-blue);
-            border-color: var(--color-sus-blue);
-        }
-
-        .header-nav .btn {
-            flex: 0 0 auto;
-            background: var(--color-sus-blue);
-            color: #fff;
-            border-color: var(--color-sus-blue);
-            min-width: 62px;
-            padding-inline: 0.75rem;
-        }
-
-        .btn {
-            border: none;
-            background: var(--color-sus-blue);
-            color: #fff;
-            padding: 0.85rem 1.25rem;
-            border-radius: 999px;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-            font-weight: 800;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            background: #004a87;
-        }
-
-        .btn:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: #E2E8F0;
-            color: var(--color-primary);
-        }
-
-        .btn-secondary:hover {
-            background: #CBD5E1;
-        }
-
-        .btn-accent {
-            background: var(--color-accent);
-        }
-
-        .btn-accent:hover {
-            background: #059669;
-        }
-
-        .page-body {
-            max-width: 1280px;
-            margin: 2rem auto;
-            padding: 0 2rem 3rem;
-            display: grid;
-            grid-template-columns: 1.4fr 0.9fr;
-            gap: 1.5rem;
-        }
-
-        .card {
-            background: var(--color-card);
-            border-radius: 24px;
-            padding: 1.8rem;
-            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
-            border: 1px solid rgba(15, 23, 42, 0.04);
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background: var(--color-bg); color: var(--color-text); min-height: 100vh; }
+        header { background: var(--color-card); padding: 0.9rem 1rem; box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08); display: grid; grid-template-columns: minmax(170px, 230px) minmax(0, 1fr); align-items: center; gap: 0.75rem; position: sticky; top: 0; z-index: 10; width: 100%; overflow: visible; }
+        .header-title { min-width: 0; white-space: nowrap; overflow: hidden; }
+        .header-title h1 { font-size: clamp(1.18rem, 1.55vw, 1.65rem); line-height: 1.05; color: var(--color-primary); overflow: hidden; text-overflow: ellipsis; }
+        .header-title p { color: var(--color-muted); margin-top: 0.2rem; font-size: clamp(0.68rem, 0.78vw, 0.88rem); overflow: hidden; text-overflow: ellipsis; }
+        .header-nav { min-width: 0; width: 100%; display: flex; flex-wrap: nowrap; gap: 0.26rem; align-items: center; justify-content: flex-end; white-space: nowrap; overflow: visible; padding: 0.12rem 0; }
+        .header-nav a, .header-nav .btn { flex: 0 1 auto; color: var(--color-primary); background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 999px; padding: 0.44rem clamp(0.38rem, 0.52vw, 0.62rem); text-decoration: none; font-size: clamp(0.62rem, 0.68vw, 0.78rem); font-weight: 800; line-height: 1; min-height: 32px; display: inline-flex; align-items: center; justify-content: center; }
+        .header-nav a:hover { color: var(--color-sus-blue); border-color: var(--color-sus-blue); }
+        .header-nav .btn { flex: 0 0 auto; background: var(--color-sus-blue); color: #fff; border-color: var(--color-sus-blue); min-width: 62px; padding-inline: 0.75rem; }
+        .btn { border: none; background: var(--color-sus-blue); color: #fff; padding: 0.85rem 1.25rem; border-radius: 999px; cursor: pointer; transition: var(--transition-smooth); font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
+        .btn:hover { transform: translateY(-1px); background: #004a87; }
+        .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: #E2E8F0; color: var(--color-primary); }
+        .btn-secondary:hover { background: #CBD5E1; }
+        .btn-accent { background: var(--color-accent); }
+        .btn-accent:hover { background: #059669; }
+        .btn-danger { background: var(--color-danger); color: #fff; }
+        .btn-danger:hover { background: #991B1B; }
+        .btn-small { padding: 0.55rem 0.8rem; font-size: 0.82rem; }
+        .page-body { max-width: 1280px; margin: 2rem auto; padding: 0 2rem 3rem; display: grid; grid-template-columns: 1.4fr 0.9fr; gap: 1.5rem; }
+        .card { background: var(--color-card); border-radius: 24px; padding: 1.8rem; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08); border: 1px solid rgba(15, 23, 42, 0.04); }
         .card-wide { grid-column: 1 / -1; }
         .section-title { font-size: 1.4rem; margin-bottom: 0.75rem; color: var(--color-primary); }
         .section-subtitle, .muted { color: var(--color-muted); line-height: 1.55; }
-
-        .status-pill {
-            display: inline-flex;
-            padding: 0.45rem 0.85rem;
-            border-radius: 999px;
-            font-weight: 800;
-            color: #166534;
-            background: #DCFCE7;
-            margin-top: 1rem;
-        }
-
+        .status-pill { display: inline-flex; padding: 0.45rem 0.85rem; border-radius: 999px; font-weight: 800; color: #166534; background: #DCFCE7; margin-top: 1rem; }
         .status-pill.warn { color: var(--color-warn); background: #FEF3C7; }
         .status-pill.error { color: var(--color-danger); background: #FEE2E2; }
         .status-pill.admin { display: none; color: #1E3A8A; background: #DBEAFE; margin-left: 0.5rem; }
         body.is-admin .status-pill.admin { display: inline-flex; }
-
-        .grid-summary {
-            display: grid;
-            gap: 1rem;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            margin-top: 1.5rem;
-        }
-
+        .grid-summary { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 1.5rem; }
         .summary-card { padding: 1.25rem; border-radius: 20px; background: #EEF2FF; }
         .summary-card h3 { margin-bottom: 0.5rem; font-size: 0.88rem; color: var(--color-muted); }
         .summary-card p { font-size: 1.65rem; font-weight: 900; color: var(--color-primary); }
-
-        .support-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.9rem;
-            margin-top: 1rem;
-        }
-
+        .support-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; margin-top: 1rem; }
         .support-card, .item-card { padding: 1rem; border-radius: 18px; background: #F8FAFC; border: 1px solid var(--color-border); }
         .support-card strong, .item-card strong { color: var(--color-primary); display: block; margin-bottom: 0.35rem; }
         .support-card span, .item-card p { color: var(--color-muted); line-height: 1.45; display: block; margin-top: 0.35rem; }
-
         .list-grid { display: grid; gap: 0.9rem; margin-top: 1rem; }
         .item-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
         .badge { padding: 0.42rem 0.78rem; border-radius: 999px; font-size: 0.78rem; font-weight: 800; white-space: nowrap; }
         .badge.ok { background: #DCFCE7; color: #166534; }
         .badge.warn { background: #FEF3C7; color: var(--color-warn); }
         .badge.danger { background: #FEE2E2; color: var(--color-danger); }
-
-        .actions { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; margin-top: 1rem; }
-        .item-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.75rem; }
+        .actions, .item-actions { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; margin-top: 1rem; }
+        .item-actions { gap: 0.5rem; margin-top: 0.75rem; }
         .item-actions a { color: var(--color-sus-blue); text-decoration: none; font-weight: 800; font-size: 0.9rem; }
-
-        .input, .select, textarea {
-            border: 1px solid #CBD5E1;
-            border-radius: 14px;
-            padding: 0.82rem 1rem;
-            background: #FFFFFF;
-            color: var(--color-text);
-            outline: none;
-            width: 100%;
-            font-size: 0.98rem;
-        }
-
+        .input, .select, textarea { border: 1px solid #CBD5E1; border-radius: 14px; padding: 0.82rem 1rem; background: #FFFFFF; color: var(--color-text); outline: none; width: 100%; font-size: 0.98rem; }
         .select { border-radius: 999px; font-weight: 700; width: auto; }
         .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; margin-top: 1rem; }
         .form-grid .span-2 { grid-column: 1 / -1; }
@@ -248,43 +79,15 @@
         .message.warn { color: var(--color-warn); }
         .message.error { color: var(--color-danger); }
         .loading-text { color: var(--color-muted); font-style: italic; }
-
-        [data-admin-only][hidden],
-        body:not(.is-admin) [data-admin-only] {
-            display: none !important;
-            visibility: hidden !important;
-            pointer-events: none !important;
-        }
-
+        .crud-panel { border: 1px dashed rgba(0, 93, 170, 0.22); background: linear-gradient(135deg, #FFFFFF, #F5F9FF); }
+        .crud-form { border-top: 1px solid var(--color-border); padding-top: 1rem; }
+        [data-admin-only][hidden], body:not(.is-admin) [data-admin-only] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
         body.is-admin [data-admin-only] { visibility: visible !important; pointer-events: auto !important; }
         body.is-admin a[data-admin-only], body.is-admin button[data-admin-only] { display: inline-flex !important; }
         body.is-admin div[data-admin-only] { display: flex !important; }
-
-        @media (max-width: 1280px) {
-            header { grid-template-columns: minmax(150px, 205px) minmax(0, 1fr); gap: 0.5rem; padding-inline: 0.75rem; }
-            .header-title p { display: none; }
-            .header-nav { gap: 0.2rem; }
-            .header-nav a, .header-nav .btn { font-size: clamp(0.58rem, 0.62vw, 0.72rem); padding-inline: 0.42rem; }
-            .header-nav .btn { min-width: 58px; padding-inline: 0.62rem; }
-        }
-
-        @media (max-width: 980px) {
-            header { grid-template-columns: 1fr; align-items: start; overflow: visible; }
-            .header-nav { justify-content: flex-start; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; padding-bottom: 0.25rem; }
-            .header-nav a, .header-nav .btn { flex: 0 0 auto; }
-            .page-body { grid-template-columns: 1fr; }
-            .grid-summary, .support-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-
-        @media (max-width: 640px) {
-            header { padding: 0.9rem 1rem; }
-            .header-title { max-width: 100%; }
-            .header-nav { width: 100%; }
-            .page-body { padding: 0 1rem 2rem; }
-            .grid-summary, .support-grid, .form-grid { grid-template-columns: 1fr; }
-            .form-grid .span-2 { grid-column: auto; }
-            .select { width: 100%; }
-        }
+        @media (max-width: 1280px) { header { grid-template-columns: minmax(150px, 205px) minmax(0, 1fr); gap: 0.5rem; padding-inline: 0.75rem; } .header-title p { display: none; } .header-nav { gap: 0.2rem; } .header-nav a, .header-nav .btn { font-size: clamp(0.58rem, 0.62vw, 0.72rem); padding-inline: 0.42rem; } .header-nav .btn { min-width: 58px; padding-inline: 0.62rem; } }
+        @media (max-width: 980px) { header { grid-template-columns: 1fr; align-items: start; overflow: visible; } .header-nav { justify-content: flex-start; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; padding-bottom: 0.25rem; } .header-nav a, .header-nav .btn { flex: 0 0 auto; } .page-body { grid-template-columns: 1fr; } .grid-summary, .support-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 640px) { header { padding: 0.9rem 1rem; } .header-title { max-width: 100%; } .header-nav { width: 100%; } .page-body { padding: 0 1rem 2rem; } .grid-summary, .support-grid, .form-grid { grid-template-columns: 1fr; } .form-grid .span-2 { grid-column: auto; } .select { width: 100%; } }
     </style>
 </head>
 <body>
@@ -308,7 +111,7 @@
     <main class="page-body">
         <section class="card">
             <h2 class="section-title">Minha área</h2>
-            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. Aqui você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos. O cadastro de medicamentos está liberado para contas autenticadas; o cadastro manual de farmácias permanece restrito ao responsável autorizado.</p>
+            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. Aqui você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos.</p>
             <div class="status-pill warn" id="session-status" aria-live="polite">Inicializando credenciais...</div>
             <div class="status-pill admin" id="admin-status" data-admin-only hidden aria-hidden="true">Perfil responsável</div>
             <div class="actions" aria-label="Ações administrativas" data-admin-only hidden aria-hidden="true">
@@ -335,16 +138,11 @@
                 <div class="support-card"><strong>Para a comunidade</strong><span>Apoio a ações solidárias, voluntariado local e cuidado com idosos e pessoas com mobilidade reduzida.</span></div>
                 <div class="support-card"><strong>Para instituições</strong><span>Organização de informações úteis para planejamento, extensão universitária e ações preventivas.</span></div>
             </div>
-            <div class="actions">
-                <a class="btn btn-secondary" href="parceiros.html">Conhecer parceiros</a>
-                <a class="btn btn-secondary" href="jornadas.html">Ver pessoas atendidas</a>
-                <a class="btn btn-secondary" href="impacto-social.html">Ver impacto social</a>
-            </div>
         </section>
 
         <section class="card card-wide">
             <h2 class="section-title">Consulta de farmácias cadastradas</h2>
-            <p class="section-subtitle">Consulte as farmácias cadastradas.</p>
+            <p class="section-subtitle">Consulte farmácias cadastradas. Contas administrativas podem editar e excluir registros diretamente por esta área.</p>
             <div class="actions">
                 <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
                 <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
@@ -352,19 +150,47 @@
                 <a class="btn btn-accent" href="cadastrar-farmacias.html" data-admin-only hidden aria-hidden="true" tabindex="-1">Cadastrar farmácias manualmente</a>
             </div>
             <p id="pharmacy-directory-status" class="message">Aguardando validação da sessão.</p>
+            <form id="pharmacy-edit-form" class="form-grid crud-form" autocomplete="off" hidden>
+                <input id="pharmacy-edit-name" class="input" type="text" placeholder="Nome da farmácia" required>
+                <input id="pharmacy-edit-phone" class="input" type="tel" placeholder="Telefone">
+                <input id="pharmacy-edit-address" class="input span-2" type="text" placeholder="Endereço completo" required>
+                <input id="pharmacy-edit-neighborhood" class="input" type="text" placeholder="Bairro">
+                <input id="pharmacy-edit-city" class="input" type="text" placeholder="Cidade">
+                <input id="pharmacy-edit-state" class="input" type="text" placeholder="UF" maxlength="2">
+                <input id="pharmacy-edit-cep" class="input" type="text" placeholder="CEP">
+                <input id="pharmacy-edit-whatsapp" class="input" type="tel" placeholder="WhatsApp">
+                <input id="pharmacy-edit-email" class="input" type="email" placeholder="E-mail">
+                <input id="pharmacy-edit-website" class="input span-2" type="url" placeholder="Site">
+                <input id="pharmacy-edit-hours" class="input span-2" type="text" placeholder="Horário de funcionamento">
+                <input id="pharmacy-edit-latitude" class="input" type="number" step="0.000001" placeholder="Latitude">
+                <input id="pharmacy-edit-longitude" class="input" type="number" step="0.000001" placeholder="Longitude">
+                <select id="pharmacy-edit-availability" class="select">
+                    <option value="true">Disponível na plataforma</option>
+                    <option value="false">Verificar estoque</option>
+                </select>
+                <select id="pharmacy-edit-active" class="select">
+                    <option value="true">Ativa</option>
+                    <option value="false">Inativa</option>
+                </select>
+                <textarea id="pharmacy-edit-notes" class="span-2" rows="3" placeholder="Observações administrativas"></textarea>
+                <div class="span-2 actions">
+                    <button class="btn btn-accent" id="btn-save-pharmacy-edit" type="submit">Salvar alteração</button>
+                    <button class="btn btn-secondary" id="btn-cancel-pharmacy-edit" type="button">Cancelar</button>
+                </div>
+            </form>
             <div id="pharmacy-directory-list" class="list-grid" aria-live="polite"><p class="loading-text">Os dados serão carregados após a validação do login.</p></div>
         </section>
 
-        <section class="card card-wide">
+        <section class="card card-wide crud-panel">
             <h2 class="section-title">Catálogo de medicamentos</h2>
-            <p class="section-subtitle">Consulte medicamentos cadastrados. Contas autenticadas podem cadastrar medicamentos no catálogo. A gestão manual de farmácias permanece restrita ao responsável autorizado.</p>
+            <p class="section-subtitle">Contas administrativas possuem CRUD completo. Contas comuns podem consultar, editar e excluir medicamentos vinculados à própria conta.</p>
             <div class="actions">
                 <input id="medicine-search-input" class="input" type="search" placeholder="Pesquisar medicamento ou categoria" style="max-width: 520px;">
                 <button id="btn-search-medicines" class="btn" type="button">Pesquisar</button>
                 <button id="btn-list-medicines" class="btn btn-secondary" type="button">Listar catálogo</button>
             </div>
             <div id="medicine-list" class="list-grid" aria-live="polite"><p class="loading-text">Aguardando validação da sessão...</p></div>
-            <p id="medicine-admin-note" class="message success">Cadastro de medicamentos liberado para contas autenticadas. Use informações verificáveis e mantenha a descrição objetiva.</p>
+            <p id="medicine-admin-note" class="message success">Use informações verificáveis e mantenha a descrição objetiva. A edição e exclusão respeitam as permissões da conta autenticada.</p>
             <form id="medicine-form" class="form-grid" autocomplete="off">
                 <input id="medicine-name" class="input" type="text" placeholder="Nome do medicamento, exemplo: Amoxicilina 500mg" required>
                 <input id="medicine-category" class="input" type="text" placeholder="Categoria, exemplo: Antibiótico">
@@ -377,6 +203,7 @@
                 <textarea id="medicine-description" class="span-2" rows="3" placeholder="Observação opcional"></textarea>
                 <div class="span-2 actions">
                     <button id="btn-register-medicine" class="btn btn-accent" type="submit">Cadastrar medicamento</button>
+                    <button id="btn-cancel-medicine-edit" class="btn btn-secondary" type="button" hidden>Cancelar edição</button>
                     <span id="medicine-form-status" class="message"></span>
                 </div>
             </form>
@@ -416,48 +243,272 @@
     </main>
 
     <script type="module">
+        import {
+            createMedication,
+            listFarmacias,
+            listMedications,
+            listMedicineAlerts,
+            onAuthStateChange,
+            signOutUser,
+            toSessionUser,
+            trackMedicineSearch,
+            trackPharmacyClick,
+        } from './assets/firebaseClient.js';
+        import {
+            deleteFarmacia,
+            deleteMedication,
+            updateFarmacia,
+            updateMedication,
+        } from './assets/crudClient.js';
+
         const STORAGE_USER_KEY = 'conectapharma_user';
         const STORAGE_FIREBASE_TOKEN_KEY = 'conectapharma_firebase_id_token';
         const ADMIN_EMAIL = 'claudiofranciscojunior2006@gmail.com';
-        const FIRESTORE_TIMEOUT_MS = 3200;
-        const MODULE_TIMEOUT_MS = 6000;
         const OVERPASS_ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
-        let api = null;
+
         let currentSessionUser = null;
         let cachedAlerts = [];
         let cachedPharmacies = [];
         let cachedMedicines = [];
+        let editingMedicineId = null;
+        let editingPharmacyId = null;
         let authResolved = false;
+
         const byId = (id) => document.getElementById(id);
         const normalizeEmail = (value) => String(value ?? '').trim().toLowerCase();
         const isAdminEmail = (value) => normalizeEmail(value) === ADMIN_EMAIL;
+        const isAdminSession = () => isAdminEmail(currentSessionUser?.email);
+        const asText = (value) => String(value ?? '').trim();
+
         function escapeHtml(value) { return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
         function setText(id, value) { const element = byId(id); if (element) element.innerText = String(value ?? ''); }
         function setHtml(id, value) { const element = byId(id); if (element) element.innerHTML = value; }
         function setMessage(id, value, type = '') { const element = byId(id); if (!element) return; element.innerText = value; element.className = `message ${type}`.trim(); }
         function setSessionStatus(message, mode = 'ok') { const status = byId('session-status'); if (!status) return; status.innerText = message; status.className = `status-pill ${mode}`.trim(); }
         function runBestEffort(operation) { Promise.resolve(operation).catch(() => undefined); }
-        function withTimeout(promise, fallbackValue, timeoutMs = FIRESTORE_TIMEOUT_MS) { let settled = false; const execution = Promise.resolve().then(() => promise); const timeout = new Promise((resolve) => { window.setTimeout(() => { if (!settled) resolve({ ok: false, timedOut: true, data: fallbackValue, error: null }); }, timeoutMs); }); return Promise.race([execution.then((data) => { settled = true; return { ok: true, timedOut: false, data, error: null }; }).catch((error) => { settled = true; return { ok: false, timedOut: false, data: fallbackValue, error }; }), timeout]); }
-        async function importFirebaseClient() { return withTimeout(import('./assets/firebaseClient.js'), null, MODULE_TIMEOUT_MS); }
         function updateSummaryCounts() { setText('alerta-count', cachedAlerts.length); setText('farmacia-count', cachedPharmacies.length); setText('medicamento-count', cachedMedicines.length); }
         function normalizeText(value) { return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
         function textMatchesQuery(searchable, query) { const normalizedQuery = normalizeText(query); if (!normalizedQuery) return true; const haystack = normalizeText(searchable); return normalizedQuery.split(' ').every((term) => haystack.includes(term)); }
         function filterPharmacies(query) { return cachedPharmacies.filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.endereco || item.address || ''} ${item.bairro || ''} ${item.cidade || ''} ${item.telefone || item.phone || ''} ${item.horario_funcionamento || item.opening_hours_label || ''}`, query)).slice(0, 100); }
         function filterMedicines(query) { return cachedMedicines.filter((item) => textMatchesQuery(`${item.nome || item.name || ''} ${item.categoria || item.category || ''} ${item.descricao || item.description || ''}`, query)).slice(0, 100); }
-        function applyAccessControl(isAdmin) { document.body.classList.toggle('is-admin', Boolean(isAdmin)); document.querySelectorAll('[data-admin-only]').forEach((element) => { element.hidden = !isAdmin; element.setAttribute('aria-hidden', isAdmin ? 'false' : 'true'); if (element instanceof HTMLAnchorElement) { if (!element.dataset.originalHref) element.dataset.originalHref = element.getAttribute('href') || ''; if (isAdmin) { element.setAttribute('href', element.dataset.originalHref || 'cadastrar-farmacias.html'); element.removeAttribute('tabindex'); } else { element.removeAttribute('href'); element.setAttribute('tabindex', '-1'); } } }); const medicineForm = byId('medicine-form'); const medicineButton = byId('btn-register-medicine'); if (medicineForm) medicineForm.hidden = false; if (medicineButton) medicineButton.disabled = false; }
-        function readCachedSession() { try { const rawSession = sessionStorage.getItem(STORAGE_USER_KEY); return rawSession ? JSON.parse(rawSession) : null; } catch (_) { return null; } }
-        function hydrateCachedSession() { const cachedSession = readCachedSession(); if (!cachedSession?.email) return; currentSessionUser = cachedSession; setText('user-name', cachedSession.name || cachedSession.email || 'Usuário'); applyAccessControl(isAdminEmail(cachedSession.email)); setSessionStatus('Validando sessão em segundo plano...', 'warn'); }
-        function renderAlertList(alertas) { if (!Array.isArray(alertas) || alertas.length === 0) { setHtml('alert-list', '<p class="loading-text">Nenhum alerta encontrado.</p>'); return; } setHtml('alert-list', alertas.slice(0, 5).map((alerta) => { const status = String(alerta.status || 'NORMAL').toUpperCase(); const badgeClass = status === 'CRITICO' ? 'danger' : status === 'ATENCAO' ? 'warn' : 'ok'; return `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(alerta.nome || alerta.medicineName || 'Alerta')}</strong><p>${escapeHtml(alerta.dias_restantes ?? alerta.daysRemaining ?? '—')} dias restantes</p></div><span class="badge ${badgeClass}">${escapeHtml(status)}</span></div></div>`; }).join('')); }
-        function pharmacyActions(item) { const links = []; const phone = item.telefone || item.phone; const mapUrl = item.openstreetmap_url || item.maps_url; if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`); if (phone) links.push(`<a href="tel:${escapeHtml(phone)}">Telefone</a>`); if (mapUrl) links.push(`<a href="${escapeHtml(mapUrl)}" target="_blank" rel="noopener">Abrir no mapa</a>`); return links.length ? links.join(' · ') : '<span class="muted">Sem canais adicionais informados.</span>'; }
-        function renderPharmacyDirectory(items) { if (!Array.isArray(items) || items.length === 0) { setHtml('pharmacy-directory-list', '<p class="loading-text">Nenhuma farmácia cadastrada encontrada. Use a busca por proximidade para localizar estabelecimentos próximos.</p>'); return; } setHtml('pharmacy-directory-list', items.map((item) => `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(item.nome || item.name || 'Farmácia')}</strong><p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p><p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')}</p></div><span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível'}</span></div><div class="item-actions">${pharmacyActions(item)}</div></div>`).join('')); }
-        function renderMedicines(items) { if (!Array.isArray(items) || items.length === 0) { setHtml('medicine-list', '<p class="loading-text">Nenhum medicamento cadastrado.</p>'); setText('medicamento-count', 0); return; } setText('medicamento-count', items.length); setHtml('medicine-list', items.map((item) => `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(item.nome || item.name || 'Medicamento')}</strong><p>${escapeHtml(item.categoria || item.category || 'Categoria não informada')} · Estoque informado: ${escapeHtml(item.stock ?? 0)}</p><p>${escapeHtml(item.descricao || item.description || 'Sem descrição operacional.')}</p></div><span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Prescrição' : 'Livre'}</span></div></div>`).join('')); }
-        async function loadInitialData() { if (!api) return; setHtml('alert-list', '<p class="loading-text">Atualizando alertas...</p>'); setHtml('medicine-list', '<p class="loading-text">Carregando catálogo...</p>'); setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...'); const role = currentSessionUser?.role || (isAdminEmail(currentSessionUser?.email) ? 'ADMIN' : 'USER'); const [alertsResult, pharmaciesResult, medicinesResult] = await Promise.all([withTimeout(api.listMedicineAlerts({ role, max: 10 }), [], FIRESTORE_TIMEOUT_MS), withTimeout(api.listFarmacias({ max: 100 }), [], FIRESTORE_TIMEOUT_MS), withTimeout(api.listMedications({ max: 100 }), [], FIRESTORE_TIMEOUT_MS)]); cachedAlerts = Array.isArray(alertsResult.data) ? alertsResult.data : []; cachedPharmacies = Array.isArray(pharmaciesResult.data) ? pharmaciesResult.data : []; cachedMedicines = Array.isArray(medicinesResult.data) ? medicinesResult.data : []; updateSummaryCounts(); renderAlertList(cachedAlerts); renderPharmacyDirectory(cachedPharmacies); renderMedicines(cachedMedicines); if (pharmaciesResult.timedOut) setMessage('pharmacy-directory-status', 'O banco demorou a responder. A interface foi liberada e a consulta pode ser repetida.', 'warn'); else if (pharmaciesResult.ok) setMessage('pharmacy-directory-status', `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).`, 'success'); else setMessage('pharmacy-directory-status', 'Não foi possível carregar farmácias agora. Verifique as regras do Firestore ou tente novamente.', 'warn'); }
-        async function loadPharmacies(query = '') { const normalizedQuery = String(query || '').trim(); if (!api) return; setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...'); if (cachedPharmacies.length > 0) { const items = filterPharmacies(normalizedQuery); renderPharmacyDirectory(items); setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s) na sessão atual.`, 'success'); runBestEffort(api.trackPharmacyClick('directory:list', 'VIEW')); return; } const result = await withTimeout(api.listFarmacias({ q: normalizedQuery, max: 100 }), [], FIRESTORE_TIMEOUT_MS); cachedPharmacies = Array.isArray(result.data) ? result.data : []; const items = filterPharmacies(normalizedQuery); updateSummaryCounts(); renderPharmacyDirectory(items); setMessage('pharmacy-directory-status', result.ok ? `${items.length} farmácia(s) cadastrada(s) encontrada(s).` : 'Consulta indisponível no momento.', result.ok ? 'success' : 'warn'); runBestEffort(api.trackPharmacyClick('directory:list', 'VIEW')); }
-        async function loadMedicines(query = '') { const normalizedQuery = String(query || '').trim(); if (!api) return; if (cachedMedicines.length > 0) { const items = filterMedicines(normalizedQuery); renderMedicines(items); runBestEffort(api.trackMedicineSearch(normalizedQuery, items.length)); return; } const result = await withTimeout(api.listMedications({ q: normalizedQuery, max: 100 }), [], FIRESTORE_TIMEOUT_MS); cachedMedicines = Array.isArray(result.data) ? result.data : []; const items = filterMedicines(normalizedQuery); updateSummaryCounts(); renderMedicines(items); runBestEffort(api.trackMedicineSearch(normalizedQuery, items.length)); }
-        async function registerMedicine(event) { event.preventDefault(); if (!api) return; const button = byId('btn-register-medicine'); button.disabled = true; setMessage('medicine-form-status', 'Registrando medicamento...'); try { const payload = { nome: byId('medicine-name').value.trim(), categoria: byId('medicine-category').value.trim() || null, descricao: byId('medicine-description').value.trim() || null, dose_diaria_comprimidos: Number(byId('medicine-dose').value || 1), stock: Number(byId('medicine-stock').value || 0), requires_prescription: byId('medicine-prescription').value === 'true' }; await api.createMedication(payload); byId('medicine-form').reset(); byId('medicine-dose').value = '1'; byId('medicine-stock').value = '0'; setMessage('medicine-form-status', 'Medicamento cadastrado com sucesso.', 'success'); cachedMedicines = []; await loadMedicines(); } catch (error) { setMessage('medicine-form-status', `Não foi possível concluir o cadastro: ${error?.message || 'erro desconhecido'}`, 'error'); } finally { button.disabled = false; } }
-        async function logout() { if (api) await api.signOutUser(); sessionStorage.removeItem(STORAGE_USER_KEY); sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY); window.location.href = 'login.html'; }
+        function canManageMedicine(item) { return isAdminSession() || Boolean(item?.createdBy && item.createdBy === currentSessionUser?.uid); }
+
+        function applyAccessControl(isAdmin) {
+            document.body.classList.toggle('is-admin', Boolean(isAdmin));
+            document.querySelectorAll('[data-admin-only]').forEach((element) => {
+                element.hidden = !isAdmin;
+                element.setAttribute('aria-hidden', isAdmin ? 'false' : 'true');
+                if (element instanceof HTMLAnchorElement) {
+                    if (!element.dataset.originalHref) element.dataset.originalHref = element.getAttribute('href') || '';
+                    if (isAdmin) { element.setAttribute('href', element.dataset.originalHref || 'cadastrar-farmacias.html'); element.removeAttribute('tabindex'); }
+                    else { element.removeAttribute('href'); element.setAttribute('tabindex', '-1'); }
+                }
+            });
+        }
+
+        function renderAlertList(alertas) {
+            if (!Array.isArray(alertas) || alertas.length === 0) { setHtml('alert-list', '<p class="loading-text">Nenhum alerta encontrado.</p>'); return; }
+            setHtml('alert-list', alertas.slice(0, 5).map((alerta) => {
+                const status = String(alerta.status || 'NORMAL').toUpperCase();
+                const badgeClass = status === 'CRITICO' ? 'danger' : status === 'ATENCAO' ? 'warn' : 'ok';
+                return `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(alerta.nome || alerta.medicineName || 'Alerta')}</strong><p>${escapeHtml(alerta.dias_restantes ?? alerta.daysRemaining ?? '—')} dias restantes</p></div><span class="badge ${badgeClass}">${escapeHtml(status)}</span></div></div>`;
+            }).join(''));
+        }
+
+        function pharmacyActions(item) {
+            const links = [];
+            const phone = item.telefone || item.phone;
+            const mapUrl = item.openstreetmap_url || item.maps_url;
+            if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`);
+            if (phone) links.push(`<a href="tel:${escapeHtml(phone)}">Telefone</a>`);
+            if (mapUrl) links.push(`<a href="${escapeHtml(mapUrl)}" target="_blank" rel="noopener">Abrir no mapa</a>`);
+            return links.length ? links.join(' · ') : '<span class="muted">Sem canais adicionais informados.</span>';
+        }
+
+        function renderPharmacyDirectory(items) {
+            if (!Array.isArray(items) || items.length === 0) { setHtml('pharmacy-directory-list', '<p class="loading-text">Nenhuma farmácia cadastrada encontrada. Use a busca por proximidade para localizar estabelecimentos próximos.</p>'); return; }
+            setHtml('pharmacy-directory-list', items.map((item) => `
+                <div class="item-card">
+                    <div class="item-head"><div><strong>${escapeHtml(item.nome || item.name || 'Farmácia')}</strong><p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p><p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')}</p></div><span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível'}</span></div>
+                    <div class="item-actions">${pharmacyActions(item)}${isAdminSession() ? ` <button class="btn btn-secondary btn-small" data-action="edit-pharmacy" data-id="${escapeHtml(item.id)}">Editar</button><button class="btn btn-danger btn-small" data-action="delete-pharmacy" data-id="${escapeHtml(item.id)}">Excluir</button>` : ''}</div>
+                </div>
+            `).join(''));
+        }
+
+        function renderMedicines(items) {
+            if (!Array.isArray(items) || items.length === 0) { setHtml('medicine-list', '<p class="loading-text">Nenhum medicamento cadastrado.</p>'); setText('medicamento-count', 0); return; }
+            setText('medicamento-count', items.length);
+            setHtml('medicine-list', items.map((item) => {
+                const canManage = canManageMedicine(item);
+                return `
+                    <div class="item-card">
+                        <div class="item-head"><div><strong>${escapeHtml(item.nome || item.name || 'Medicamento')}</strong><p>${escapeHtml(item.categoria || item.category || 'Categoria não informada')} · Estoque informado: ${escapeHtml(item.stock ?? 0)}</p><p>${escapeHtml(item.descricao || item.description || 'Sem descrição operacional.')}</p></div><span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Prescrição' : 'Livre'}</span></div>
+                        <div class="item-actions"><button class="btn btn-secondary btn-small" data-action="edit-medicine" data-id="${escapeHtml(item.id)}" ${canManage ? '' : 'disabled'}>Editar</button><button class="btn btn-danger btn-small" data-action="delete-medicine" data-id="${escapeHtml(item.id)}" ${canManage ? '' : 'disabled'}>Excluir</button>${canManage ? '' : '<span class="muted">Edição restrita ao autor ou administrador.</span>'}</div>
+                    </div>
+                `;
+            }).join(''));
+        }
+
+        async function loadInitialData() {
+            setHtml('alert-list', '<p class="loading-text">Atualizando alertas...</p>');
+            setHtml('medicine-list', '<p class="loading-text">Carregando catálogo...</p>');
+            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
+            const role = currentSessionUser?.role || (isAdminSession() ? 'ADMIN' : 'USER');
+            const [alertsResult, pharmaciesResult, medicinesResult] = await Promise.allSettled([
+                listMedicineAlerts({ role, max: 10 }),
+                listFarmacias({ max: 100 }),
+                listMedications({ max: 100 }),
+            ]);
+            cachedAlerts = alertsResult.status === 'fulfilled' && Array.isArray(alertsResult.value) ? alertsResult.value : [];
+            cachedPharmacies = pharmaciesResult.status === 'fulfilled' && Array.isArray(pharmaciesResult.value) ? pharmaciesResult.value : [];
+            cachedMedicines = medicinesResult.status === 'fulfilled' && Array.isArray(medicinesResult.value) ? medicinesResult.value : [];
+            updateSummaryCounts();
+            renderAlertList(cachedAlerts);
+            renderPharmacyDirectory(cachedPharmacies);
+            renderMedicines(cachedMedicines);
+            setMessage('pharmacy-directory-status', pharmaciesResult.status === 'fulfilled' ? `${cachedPharmacies.length} farmácia(s) cadastrada(s) encontrada(s).` : 'Não foi possível carregar farmácias agora.', pharmaciesResult.status === 'fulfilled' ? 'success' : 'warn');
+        }
+
+        async function loadPharmacies(query = '') {
+            const normalizedQuery = String(query || '').trim();
+            setMessage('pharmacy-directory-status', 'Consultando farmácias cadastradas...');
+            if (!cachedPharmacies.length) cachedPharmacies = await listFarmacias({ q: normalizedQuery, max: 100 });
+            const items = filterPharmacies(normalizedQuery);
+            renderPharmacyDirectory(items);
+            updateSummaryCounts();
+            setMessage('pharmacy-directory-status', `${items.length} farmácia(s) encontrada(s).`, 'success');
+            runBestEffort(trackPharmacyClick('directory:list', 'VIEW'));
+        }
+
+        async function loadMedicines(query = '') {
+            const normalizedQuery = String(query || '').trim();
+            if (!cachedMedicines.length) cachedMedicines = await listMedications({ q: normalizedQuery, max: 100 });
+            const items = filterMedicines(normalizedQuery);
+            renderMedicines(items);
+            updateSummaryCounts();
+            runBestEffort(trackMedicineSearch(normalizedQuery, items.length));
+        }
+
+        function resetMedicineForm() {
+            editingMedicineId = null;
+            byId('medicine-form').reset();
+            byId('medicine-dose').value = '1';
+            byId('medicine-stock').value = '0';
+            byId('btn-register-medicine').innerText = 'Cadastrar medicamento';
+            byId('btn-cancel-medicine-edit').hidden = true;
+        }
+
+        async function saveMedicine(event) {
+            event.preventDefault();
+            const button = byId('btn-register-medicine');
+            button.disabled = true;
+            setMessage('medicine-form-status', editingMedicineId ? 'Salvando alteração...' : 'Registrando medicamento...');
+            const payload = { nome: byId('medicine-name').value.trim(), categoria: byId('medicine-category').value.trim() || null, descricao: byId('medicine-description').value.trim() || null, dose_diaria_comprimidos: Number(byId('medicine-dose').value || 1), stock: Number(byId('medicine-stock').value || 0), requires_prescription: byId('medicine-prescription').value === 'true' };
+            try {
+                if (editingMedicineId) await updateMedication(editingMedicineId, payload);
+                else await createMedication(payload);
+                resetMedicineForm();
+                setMessage('medicine-form-status', editingMedicineId ? 'Medicamento atualizado com sucesso.' : 'Medicamento cadastrado com sucesso.', 'success');
+                cachedMedicines = [];
+                await loadMedicines();
+            } catch (error) {
+                setMessage('medicine-form-status', `Não foi possível concluir a operação: ${error?.message || 'erro desconhecido'}`, 'error');
+            } finally { button.disabled = false; }
+        }
+
+        function startMedicineEdit(id) {
+            const item = cachedMedicines.find((record) => record.id === id);
+            if (!item || !canManageMedicine(item)) return;
+            editingMedicineId = id;
+            byId('medicine-name').value = item.nome || item.name || '';
+            byId('medicine-category').value = item.categoria || item.category || '';
+            byId('medicine-dose').value = item.dose_diaria_comprimidos ?? 1;
+            byId('medicine-stock').value = item.stock ?? 0;
+            byId('medicine-prescription').value = item.requires_prescription ? 'true' : 'false';
+            byId('medicine-description').value = item.descricao || item.description || '';
+            byId('btn-register-medicine').innerText = 'Salvar alteração';
+            byId('btn-cancel-medicine-edit').hidden = false;
+            byId('medicine-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        async function removeMedicine(id) {
+            const item = cachedMedicines.find((record) => record.id === id);
+            if (!item || !canManageMedicine(item)) return;
+            if (!window.confirm(`Excluir o medicamento "${item.nome || item.name || 'selecionado'}"?`)) return;
+            await deleteMedication(id);
+            cachedMedicines = [];
+            await loadMedicines();
+        }
+
+        function resetPharmacyEditForm() {
+            editingPharmacyId = null;
+            byId('pharmacy-edit-form').reset();
+            byId('pharmacy-edit-form').hidden = true;
+        }
+
+        function startPharmacyEdit(id) {
+            if (!isAdminSession()) return;
+            const item = cachedPharmacies.find((record) => record.id === id);
+            if (!item) return;
+            editingPharmacyId = id;
+            byId('pharmacy-edit-name').value = item.nome || item.name || '';
+            byId('pharmacy-edit-phone').value = item.telefone || item.phone || '';
+            byId('pharmacy-edit-address').value = item.endereco || item.address || '';
+            byId('pharmacy-edit-neighborhood').value = item.bairro || '';
+            byId('pharmacy-edit-city').value = item.cidade || 'Belo Horizonte';
+            byId('pharmacy-edit-state').value = item.estado || 'MG';
+            byId('pharmacy-edit-cep').value = item.cep || '';
+            byId('pharmacy-edit-whatsapp').value = item.whatsapp || '';
+            byId('pharmacy-edit-email').value = item.email || '';
+            byId('pharmacy-edit-website').value = item.website || '';
+            byId('pharmacy-edit-hours').value = item.horario_funcionamento || item.opening_hours_label || '';
+            byId('pharmacy-edit-latitude').value = item.latitude ?? '';
+            byId('pharmacy-edit-longitude').value = item.longitude ?? '';
+            byId('pharmacy-edit-availability').value = item.disponibilidade_farmaco === false ? 'false' : 'true';
+            byId('pharmacy-edit-active').value = item.ativo === false ? 'false' : 'true';
+            byId('pharmacy-edit-notes').value = item.observacoes || '';
+            byId('pharmacy-edit-form').hidden = false;
+            byId('pharmacy-edit-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        async function savePharmacyEdit(event) {
+            event.preventDefault();
+            if (!editingPharmacyId || !isAdminSession()) return;
+            setMessage('pharmacy-directory-status', 'Salvando alteração da farmácia...');
+            try {
+                await updateFarmacia(editingPharmacyId, { nome: asText(byId('pharmacy-edit-name').value), endereco: asText(byId('pharmacy-edit-address').value), bairro: asText(byId('pharmacy-edit-neighborhood').value), cidade: asText(byId('pharmacy-edit-city').value), estado: asText(byId('pharmacy-edit-state').value), cep: asText(byId('pharmacy-edit-cep').value), telefone: asText(byId('pharmacy-edit-phone').value), whatsapp: asText(byId('pharmacy-edit-whatsapp').value), email: asText(byId('pharmacy-edit-email').value), website: asText(byId('pharmacy-edit-website').value), horario_funcionamento: asText(byId('pharmacy-edit-hours').value), latitude: asText(byId('pharmacy-edit-latitude').value), longitude: asText(byId('pharmacy-edit-longitude').value), disponibilidade_farmaco: byId('pharmacy-edit-availability').value === 'true', ativo: byId('pharmacy-edit-active').value === 'true', observacoes: asText(byId('pharmacy-edit-notes').value) });
+                resetPharmacyEditForm();
+                cachedPharmacies = [];
+                await loadPharmacies();
+                setMessage('pharmacy-directory-status', 'Farmácia atualizada com sucesso.', 'success');
+            } catch (error) { setMessage('pharmacy-directory-status', error?.message || 'Não foi possível atualizar a farmácia.', 'error'); }
+        }
+
+        async function removePharmacy(id) {
+            if (!isAdminSession()) return;
+            const item = cachedPharmacies.find((record) => record.id === id);
+            if (!item || !window.confirm(`Excluir a farmácia "${item.nome || item.name || 'selecionada'}"?`)) return;
+            await deleteFarmacia(id);
+            cachedPharmacies = [];
+            await loadPharmacies();
+        }
+
+        async function logout() { await signOutUser(); sessionStorage.removeItem(STORAGE_USER_KEY); sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY); window.location.href = 'login.html'; }
         function redirectToLogin() { sessionStorage.removeItem(STORAGE_USER_KEY); sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY); window.location.href = 'login.html'; }
-        function verifySession(user) { authResolved = true; if (!user) { setSessionStatus('Sessão não encontrada. Redirecionando...', 'warn'); window.setTimeout(redirectToLogin, 600); return; } const sessionUser = api.toSessionUser(user); currentSessionUser = { ...sessionUser, role: isAdminEmail(sessionUser.email) ? 'ADMIN' : 'USER' }; const isAdmin = isAdminEmail(currentSessionUser.email); applyAccessControl(isAdmin); sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser)); runBestEffort(user.getIdToken(false).then((token) => { if (token) sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token); })); setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário'); setSessionStatus(isAdmin ? 'Perfil administrativo ativo.' : 'Acesso validado. Cadastro de medicamentos liberado.', ''); runBestEffort(loadInitialData()); }
+
+        function verifySession(user) {
+            authResolved = true;
+            if (!user) { setSessionStatus('Sessão não encontrada. Redirecionando...', 'warn'); window.setTimeout(redirectToLogin, 600); return; }
+            const sessionUser = toSessionUser(user);
+            currentSessionUser = { ...sessionUser, role: isAdminEmail(sessionUser.email) ? 'ADMIN' : 'USER' };
+            applyAccessControl(isAdminEmail(currentSessionUser.email));
+            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
+            runBestEffort(user.getIdToken(false).then((token) => { if (token) sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token); }));
+            setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
+            setSessionStatus(isAdminSession() ? 'Perfil administrativo ativo. CRUD completo habilitado.' : 'Acesso validado. RUD operacional habilitado conforme permissões.', '');
+            runBestEffort(loadInitialData());
+        }
+
         function getUserLocation() { return new Promise((resolve, reject) => { if (!navigator.geolocation) { reject(new Error('Geolocalização não é suportada neste navegador.')); return; } navigator.geolocation.getCurrentPosition((position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }), () => reject(new Error('Permissão de localização negada ou indisponível.')), { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }); }); }
         function routeLinks(latitude, longitude) { const url = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`; return { maps_url: url, openstreetmap_url: url }; }
         function addressFromTags(tags) { const street = tags['addr:street'] || tags['contact:street'] || tags['addr:place']; const number = tags['addr:housenumber'] || tags['contact:housenumber']; const suburb = tags['addr:suburb'] || tags['addr:neighbourhood'] || tags['addr:district']; const city = tags['addr:city'] || tags['addr:town'] || tags['addr:municipality']; return [street && number ? `${street}, ${number}` : street, suburb, city].filter(Boolean).join(' - ') || 'Endereço não informado'; }
@@ -467,8 +518,40 @@
         async function overpassRequest(queryText) { let lastError = null; for (const endpoint of OVERPASS_ENDPOINTS) { const controller = new AbortController(); const timer = window.setTimeout(() => controller.abort(), 14000); try { const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body: new URLSearchParams({ data: queryText }), signal: controller.signal }); window.clearTimeout(timer); if (!response.ok) throw new Error(`O serviço de localização respondeu HTTP ${response.status}`); return response.json(); } catch (error) { window.clearTimeout(timer); lastError = error; } } throw lastError || new Error('O serviço de localização está indisponível no momento.'); }
         function osmRecord(element, origin, kind = 'pharmacy') { const tags = element.tags || {}; const center = element.center || {}; const latitude = Number(element.lat ?? center.lat); const longitude = Number(element.lon ?? center.lon); if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null; const distance = haversineKm(origin.lat, origin.lng, latitude, longitude); return { id: `osm-${element.type}-${element.id}`, name: tags.name || (kind === 'health' ? 'Estabelecimento de saúde localizado' : 'Farmácia localizada'), address: addressFromTags(tags), phone: tags.phone || tags['contact:phone'] || null, website: tags.website || tags['contact:website'] || null, latitude, longitude, distance_km: Math.round(distance * 100) / 100, opening_hours_label: tags.opening_hours || 'Horário não informado', status_label: 'Localizado', kind: kind === 'health' ? 'Serviço público de saúde' : 'Farmácia', ...routeLinks(latitude, longitude) }; }
         async function loadNearby(kind) { const isHealth = kind === 'health'; const button = byId(isHealth ? 'btn-nearby-health' : 'btn-nearby-pharmacies'); const statusId = isHealth ? 'health-status' : 'nearby-status'; const listId = isHealth ? 'health-list' : 'nearby-pharmacy-list'; const radiusId = isHealth ? 'health-radius' : 'nearby-radius'; button.disabled = true; setMessage(statusId, 'Obtendo sua localização autorizada...'); setHtml(listId, '<p class="loading-text">Consultando estabelecimentos próximos...</p>'); try { const location = await getUserLocation(); const radiusKm = Number(byId(radiusId).value || (isHealth ? 5 : 10)); const payload = await overpassRequest(buildOverpassQuery(location.lat, location.lng, radiusKm, kind)); const seen = new Set(); const items = (payload.elements || []).map((element) => osmRecord(element, location, kind)).filter(Boolean).filter((item) => { if (seen.has(item.id)) return false; seen.add(item.id); return true; }).sort((a, b) => a.distance_km - b.distance_km).slice(0, isHealth ? 12 : 10); setMessage(statusId, `${items.length} estabelecimento(s) localizado(s) com base na sua localização.`, 'success'); setHtml(listId, items.length ? items.map((item) => `<div class="item-card"><div class="item-head"><div><strong>${escapeHtml(item.name)}</strong><p>${escapeHtml(item.kind)} · ${String(item.distance_km.toFixed(2)).replace('.', ',')} km</p><p>${escapeHtml(item.address)}</p><p>${escapeHtml(item.opening_hours_label)}</p></div><span class="badge ok">Localizado</span></div><div class="item-actions">${pharmacyActions(item)}</div></div>`).join('') : '<p class="loading-text">Nenhum estabelecimento encontrado no raio configurado.</p>'); } catch (error) { setMessage(statusId, error?.message || 'Não foi possível consultar estabelecimentos próximos.', 'error'); setHtml(listId, '<p class="loading-text">Verifique a permissão de localização ou tente ampliar o raio de busca.</p>'); } finally { button.disabled = false; } }
-        function setupEvents() { byId('btn-logout').addEventListener('click', logout); byId('btn-search-pharmacies').addEventListener('click', () => loadPharmacies(byId('pharmacy-search-input').value.trim())); byId('btn-list-pharmacies').addEventListener('click', () => { byId('pharmacy-search-input').value = ''; cachedPharmacies = []; loadPharmacies(); }); byId('pharmacy-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPharmacies(event.target.value.trim()); }); byId('btn-search-medicines').addEventListener('click', () => loadMedicines(byId('medicine-search-input').value.trim())); byId('btn-list-medicines').addEventListener('click', () => { byId('medicine-search-input').value = ''; cachedMedicines = []; loadMedicines(); }); byId('medicine-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadMedicines(event.target.value.trim()); }); byId('medicine-form').addEventListener('submit', registerMedicine); byId('btn-nearby-pharmacies').addEventListener('click', () => loadNearby('pharmacy')); byId('btn-nearby-health').addEventListener('click', () => loadNearby('health')); }
-        async function boot() { hydrateCachedSession(); setupEvents(); const moduleResult = await importFirebaseClient(); if (!moduleResult.ok || !moduleResult.data) { setSessionStatus('Falha ao carregar credenciais. Recarregue a página.', 'error'); setHtml('alert-list', '<p class="loading-text">O módulo de autenticação não foi carregado.</p>'); setHtml('medicine-list', '<p class="loading-text">Catálogo indisponível até a autenticação carregar.</p>'); setMessage('pharmacy-directory-status', 'Módulo Firebase indisponível. Verifique o console do navegador e o caminho assets/firebaseClient.js.', 'error'); return; } api = moduleResult.data; setSessionStatus('Validando sua sessão...', 'warn'); api.onAuthStateChange((user) => { try { verifySession(user); } catch (_) { redirectToLogin(); } }); window.setTimeout(() => { if (!authResolved) { setSessionStatus('A autenticação está demorando. Mantendo a interface ativa enquanto a sessão sincroniza.', 'warn'); renderAlertList([]); renderMedicines([]); setMessage('pharmacy-directory-status', 'Aguardando resposta do Firebase Auth. Recarregue se a mensagem persistir.', 'warn'); } }, 5000); }
+
+        function setupEvents() {
+            byId('btn-logout').addEventListener('click', logout);
+            byId('btn-search-pharmacies').addEventListener('click', () => loadPharmacies(byId('pharmacy-search-input').value.trim()));
+            byId('btn-list-pharmacies').addEventListener('click', () => { byId('pharmacy-search-input').value = ''; cachedPharmacies = []; loadPharmacies(); });
+            byId('pharmacy-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPharmacies(event.target.value.trim()); });
+            byId('pharmacy-edit-form').addEventListener('submit', savePharmacyEdit);
+            byId('btn-cancel-pharmacy-edit').addEventListener('click', resetPharmacyEditForm);
+            byId('btn-search-medicines').addEventListener('click', () => loadMedicines(byId('medicine-search-input').value.trim()));
+            byId('btn-list-medicines').addEventListener('click', () => { byId('medicine-search-input').value = ''; cachedMedicines = []; loadMedicines(); });
+            byId('medicine-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadMedicines(event.target.value.trim()); });
+            byId('medicine-form').addEventListener('submit', saveMedicine);
+            byId('btn-cancel-medicine-edit').addEventListener('click', resetMedicineForm);
+            byId('btn-nearby-pharmacies').addEventListener('click', () => loadNearby('pharmacy'));
+            byId('btn-nearby-health').addEventListener('click', () => loadNearby('health'));
+            document.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-action]');
+                if (!button) return;
+                const action = button.dataset.action;
+                const id = button.dataset.id;
+                if (action === 'edit-medicine') startMedicineEdit(id);
+                if (action === 'delete-medicine') removeMedicine(id).catch((error) => setMessage('medicine-form-status', error?.message || 'Não foi possível excluir.', 'error'));
+                if (action === 'edit-pharmacy') startPharmacyEdit(id);
+                if (action === 'delete-pharmacy') removePharmacy(id).catch((error) => setMessage('pharmacy-directory-status', error?.message || 'Não foi possível excluir.', 'error'));
+            });
+        }
+
+        function boot() {
+            setupEvents();
+            setSessionStatus('Validando sua sessão...', 'warn');
+            onAuthStateChange((user) => { try { verifySession(user); } catch (_) { redirectToLogin(); } });
+            window.setTimeout(() => { if (!authResolved) { setSessionStatus('A autenticação está demorando. Mantendo a interface ativa enquanto a sessão sincroniza.', 'warn'); renderAlertList([]); renderMedicines([]); setMessage('pharmacy-directory-status', 'Aguardando resposta do Firebase Auth. Recarregue se a mensagem persistir.', 'warn'); } }, 5000);
+        }
+
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
     </script>
 </body>
