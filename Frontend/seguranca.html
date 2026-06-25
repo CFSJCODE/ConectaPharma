@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Segurança do ConectaPharma: controle de acesso, privacidade, localização opcional e separação por perfis.">
+    <meta name="description" content="Segurança do ConectaPharma: controle de acesso, privacidade, localização opcional, LGPD e separação por perfis.">
     <title>ConectaPharma | Segurança e Confiança</title>
     <link rel="stylesheet" href="./assets/public.css">
 </head>
@@ -87,6 +87,50 @@
                         <span class="tag amber">Instituições parceiras</span>
                         <h3>Apoio, validação e planejamento.</h3>
                         <p>Podem contribuir com informações, ações comunitárias e melhoria contínua da solução.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section alt" aria-labelledby="lgpd-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Conformidade com a LGPD</span>
+                    <h2 class="section-title" id="lgpd-title">Privacidade por finalidade, necessidade e transparência.</h2>
+                    <p class="section-description">
+                        O ConectaPharma aplica práticas de minimização, controle de acesso e informação clara ao usuário para apoiar a conformidade com a Lei Geral de Proteção de Dados Pessoais no contexto do MVP.
+                    </p>
+                </div>
+                <div class="card-grid">
+                    <article class="card reveal">
+                        <span class="tag">Finalidade</span>
+                        <h3>Uso restrito ao funcionamento da plataforma.</h3>
+                        <p>Dados de conta, sessão, formulários, farmácias e medicamentos são tratados para autenticação, consulta, cadastro autorizado, comunicação operacional e melhoria do serviço.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag green">Necessidade</span>
+                        <h3>Coleta reduzida ao mínimo operacional.</h3>
+                        <p>A consulta não solicita CPF, CNS, documento clínico, diagnóstico ou prescrição. Informações sensíveis não devem ser inseridas nos campos livres da plataforma.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag amber">Transparência</span>
+                        <h3>Usuário informado antes de interagir.</h3>
+                        <p>A localização é opcional e usada somente após autorização do navegador. Os formulários informam a finalidade do envio e devem receber apenas dados necessários.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag">Segurança</span>
+                        <h3>Perfis e regras reduzem exposição indevida.</h3>
+                        <p>O Firebase Authentication valida identidade, o Cloud Firestore aplica regras de acesso e o cadastro manual de farmácias permanece restrito ao perfil responsável.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag green">Métricas</span>
+                        <h3>Telemetria proporcional ao MVP.</h3>
+                        <p>Métricas de uso devem priorizar eventos agregados, contagens e indicadores de navegação, evitando armazenar termos de busca de medicamentos associados ao usuário.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag amber">Direitos do titular</span>
+                        <h3>Canal de solicitação e revisão.</h3>
+                        <p>Solicitações de acesso, correção, atualização, bloqueio ou eliminação de dados podem ser direcionadas ao responsável pela plataforma durante a fase de validação do MVP.</p>
                     </article>
                 </div>
             </div>
