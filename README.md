@@ -2,7 +2,7 @@
 
 **Saúde, tecnologia e solidariedade conectando vidas.**
 
-O ConectaPharma é um MVP web acadêmico para facilitar a consulta de farmácias cadastradas, medicamentos e pontos públicos de atendimento em saúde. Esta versão foi ajustada para operar no modelo **gratuito e estático**, sem backend Python obrigatório em produção.
+O ConectaPharma é uma plataforma web de apoio ao acesso a medicamentos, criada para facilitar a consulta de farmácias cadastradas, medicamentos e pontos públicos de atendimento em saúde. A experiência pública foi ajustada para conversar diretamente com pacientes, cuidadores e familiares, evitando termos técnicos na interface principal.
 
 ## Arquitetura atual
 
@@ -44,7 +44,7 @@ A versão publicada **não depende de FastAPI, Cloud Functions, Cloud Run, Googl
 A página `Frontend/index.html` foi redesenhada com uma diretriz visual corporativa e empresarial. A nova página inicial apresenta:
 
 - posicionamento institucional do ConectaPharma;
-- proposta de valor do MVP;
+- proposta de valor da plataforma;
 - missão, visão e valores;
 - modelo de operação da plataforma;
 - públicos atendidos;
@@ -181,7 +181,7 @@ cd "D:\Acadêmico\Faculdade - PUC\3º Semestre - 01 2026\Introdução A Inovaç�
 
 git status
 git add .
-git commit -m "Migra MVP para Firebase Firestore e OpenStreetMap sem backend obrigatorio"
+git commit -m "refactor(copy): aproxima textos da plataforma do publico final"
 git push origin main
 ```
 

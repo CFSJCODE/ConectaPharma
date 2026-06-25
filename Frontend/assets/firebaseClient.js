@@ -94,8 +94,8 @@ export function getFriendlyAuthError(error) {
         'auth/cancelled-popup-request': 'Outra janela de login já estava em andamento. Tente novamente.',
         'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de autenticação.',
         'auth/network-request-failed': 'Falha de rede. Verifique sua conexão e tente novamente.',
-        'auth/operation-not-allowed': 'Este método de login ainda não está habilitado no Firebase Authentication.',
-        'auth/unauthorized-domain': 'Este domínio ainda não está autorizado no Firebase Authentication.',
+        'auth/operation-not-allowed': 'Este método de entrada ainda não está disponível. Tente outra opção.',
+        'auth/unauthorized-domain': 'Este endereço da plataforma ainda não está autorizado para entrada.',
         'permission-denied': 'Operação não autorizada para este perfil. Verifique se você está usando uma conta com permissão administrativa.',
     };
 

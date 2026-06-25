@@ -6,7 +6,7 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="modulepreload" href="./assets/firebaseClient.js">
-    <title>Plataforma ConectaPharma</title>
+    <title>ConectaPharma</title>
     <style>
         :root {
             --color-primary: #0A2254;
@@ -370,20 +370,20 @@
 <body>
     <header>
         <div class="header-title">
-            <h1>Plataforma ConectaPharma</h1>
-            <p>Ambiente de consulta e gestão por perfil</p>
+            <h1>ConectaPharma</h1>
+            <p>Consulte farmácias, medicamentos e serviços de saúde</p>
         </div>
         <button class="btn" onclick="logout()" type="button">Sair</button>
     </header>
 
     <main class="page-body">
         <section class="card">
-            <h2 class="section-title">Painel de acesso</h2>
-            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. A partir deste painel, você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos. Funções de gestão são exibidas apenas para perfis autorizados.</p>
-            <div class="status-pill" id="session-status">Validando acesso...</div>
-            <div class="status-pill admin" id="admin-status">Perfil administrador</div>
+            <h2 class="section-title">Minha área</h2>
+            <p class="section-subtitle">Seja bem-vindo(a), <strong id="user-name">...</strong>. Aqui você pode consultar farmácias cadastradas, medicamentos e serviços de saúde próximos. Alguns recursos de cadastro aparecem somente para responsáveis autorizados.</p>
+            <div class="status-pill" id="session-status">Verificando seu acesso...</div>
+            <div class="status-pill admin" id="admin-status">Perfil responsável</div>
             <div class="actions admin-actions" aria-label="Ações administrativas">
-                <a class="btn btn-accent" href="cadastrar-farmacias.html">Cadastrar Farmácias Manualmente</a>
+                <a class="btn btn-accent" href="cadastrar-farmacias.html">Cadastrar farmácias</a>
             </div>
             <div class="grid-summary">
                 <div class="summary-card">
@@ -403,7 +403,7 @@
 
         <section class="card">
             <h2 class="section-title">Alertas e acompanhamento</h2>
-            <p class="section-subtitle">Acompanhe registros e alertas relacionados aos medicamentos cadastrados na plataforma.</p>
+            <p class="section-subtitle">Acompanhe alertas e informações que ajudam na organização do cuidado.</p>
             <div id="alert-list" class="list-grid">
                 <p class="loading-text">Carregando alertas...</p>
             </div>
@@ -416,7 +416,7 @@
                 <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
                 <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
                 <button id="btn-list-pharmacies" class="btn btn-secondary" type="button">Listar todas</button>
-                <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html">Cadastrar Farmácias Manualmente</a>
+                <a class="btn btn-accent admin-actions" href="cadastrar-farmacias.html">Cadastrar farmácias</a>
             </div>
             <p id="pharmacy-directory-status" class="message">Pronto para consulta.</p>
             <div id="pharmacy-directory-list" class="list-grid">
@@ -426,7 +426,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Catálogo de medicamentos</h2>
-            <p class="section-subtitle">Consulte medicamentos cadastrados. A inclusão e manutenção de informações ficam disponíveis apenas para perfis administradores.</p>
+            <p class="section-subtitle">Consulte medicamentos cadastrados. A inclusão e a atualização de informações ficam disponíveis apenas para responsáveis autorizados.</p>
             <div class="actions">
                 <input id="medicine-search-input" class="input" type="search" placeholder="Pesquisar medicamento ou categoria" style="max-width: 520px;">
                 <button id="btn-search-medicines" class="btn" type="button">Pesquisar</button>
@@ -436,18 +436,18 @@
                 <p class="loading-text">Carregando catálogo...</p>
             </div>
 
-            <p id="medicine-admin-note" class="message warn">Esta conta possui acesso de consulta. As funções administrativas são exibidas somente para perfis autorizados.</p>
+            <p id="medicine-admin-note" class="message warn">Esta conta possui acesso de consulta. Recursos de cadastro aparecem apenas para responsáveis autorizados.</p>
 
             <form id="medicine-form" class="form-grid admin-management" autocomplete="off">
                 <input id="medicine-name" class="input" type="text" placeholder="Nome do medicamento, exemplo: Amoxicilina 500mg" required>
                 <input id="medicine-category" class="input" type="text" placeholder="Categoria, exemplo: Antibiótico">
                 <input id="medicine-dose" class="input" type="number" min="0.1" max="20" step="0.1" value="1" placeholder="Dose diária estimada">
-                <input id="medicine-stock" class="input" type="number" min="0" max="100000" step="1" value="0" placeholder="Estoque operacional">
+                <input id="medicine-stock" class="input" type="number" min="0" max="100000" step="1" value="0" placeholder="Estoque informado">
                 <select id="medicine-prescription" class="select">
                     <option value="true" selected>Requer prescrição</option>
                     <option value="false">Não requer prescrição</option>
                 </select>
-                <textarea id="medicine-description" class="span-2" rows="3" placeholder="Observação institucional opcional"></textarea>
+                <textarea id="medicine-description" class="span-2" rows="3" placeholder="Observação opcional"></textarea>
                 <div class="span-2 actions">
                     <button id="btn-register-medicine" class="btn btn-accent" type="submit">Cadastrar medicamento</button>
                     <span id="medicine-form-status" class="message"></span>
@@ -457,7 +457,7 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Farmácias abertas próximas</h2>
-            <p class="section-subtitle">A localização é solicitada apenas após sua autorização. A plataforma utiliza dados públicos de localização para indicar farmácias próximas.</p>
+            <p class="section-subtitle">A localização é solicitada somente com sua autorização. Com ela, a plataforma ajuda a encontrar farmácias próximas.</p>
             <div class="actions">
                 <button id="btn-nearby-pharmacies" class="btn" type="button">Usar minha localização</button>
                 <select id="nearby-radius" class="select" aria-label="Raio de busca">
@@ -467,15 +467,15 @@
                     <option value="20">Raio de 20 km</option>
                 </select>
             </div>
-            <p id="nearby-status" class="message">Nenhuma busca por proximidade realizada.</p>
+            <p id="nearby-status" class="message">Nenhuma busca por proximidade foi feita ainda.</p>
             <div id="nearby-pharmacy-list" class="list-grid">
-                <p class="loading-text">Clique no botão para consultar farmácias próximas abertas no momento, quando essa informação estiver disponível.</p>
+                <p class="loading-text">Clique no botão para consultar farmácias próximas. Quando houver informação de horário, a plataforma indica se estão abertas.</p>
             </div>
         </section>
 
         <section class="card card-wide">
             <h2 class="section-title">Postos de saúde e UPAs próximos</h2>
-            <p class="section-subtitle">Localize UBSs, postos de saúde, centros de saúde e UPAs próximos a partir da sua localização autorizada.</p>
+            <p class="section-subtitle">Com sua autorização, localize UBSs, postos de saúde, centros de saúde e UPAs próximos.</p>
             <div class="actions">
                 <button id="btn-nearby-health" class="btn" type="button">Localizar estabelecimentos</button>
                 <select id="health-kind" class="select" aria-label="Tipo de estabelecimento">
@@ -657,7 +657,7 @@
             if (city) parts.push(city);
             if (state) parts.push(state);
             if (postcode) parts.push(`CEP ${postcode}`);
-            return parts.join(' - ') || 'Endereço não informado no OpenStreetMap';
+            return parts.join(' - ') || 'Endereço não informado';
         }
 
         function addressQualityFromTags(tags) {
@@ -735,13 +735,13 @@ out center tags;`.trim();
                         body: new URLSearchParams({ data: queryText }),
                         signal: AbortSignal.timeout(14000),
                     });
-                    if (!response.ok) throw new Error(`OpenStreetMap respondeu HTTP ${response.status}`);
+                    if (!response.ok) throw new Error(`O serviço de localização respondeu HTTP ${response.status}`);
                     return response.json();
                 } catch (error) {
                     lastError = error;
                 }
             }
-            throw lastError || new Error('OpenStreetMap indisponível no momento.');
+            throw lastError || new Error('O serviço de localização está indisponível no momento.');
         }
 
         function parseOpenStatus(openingHours) {
@@ -790,7 +790,7 @@ out center tags;`.trim();
             const latitude = Number(element.lat ?? center.lat);
             const longitude = Number(element.lon ?? center.lon);
             if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-            const name = tags.name || tags.brand || 'Farmácia no OpenStreetMap';
+            const name = tags.name || tags.brand || 'Farmácia localizada';
             const links = routeLinks(latitude, longitude);
             const isOpen = parseOpenStatus(tags.opening_hours);
             const distanceKm = origin ? haversineKm(origin.lat, origin.lng, latitude, longitude) : null;
@@ -813,9 +813,9 @@ out center tags;`.trim();
                 distance_km: distanceKm !== null ? Math.round(distanceKm * 100) / 100 : null,
                 is_open: isOpen,
                 status_label: isOpen === true ? 'Aberta agora' : isOpen === false ? 'Fechada agora' : 'Horário não informado',
-                opening_hours_label: tags.opening_hours === '24/7' ? 'Aberto 24 horas' : (tags.opening_hours || 'Horário não informado pelo OpenStreetMap'),
+                opening_hours_label: tags.opening_hours === '24/7' ? 'Aberto 24 horas' : (tags.opening_hours || 'Horário não informado'),
                 opening_hours_raw: tags.opening_hours || null,
-                horario_funcionamento: tags.opening_hours === '24/7' ? 'Aberto 24 horas' : (tags.opening_hours || 'Horário não informado pelo OpenStreetMap'),
+                horario_funcionamento: tags.opening_hours === '24/7' ? 'Aberto 24 horas' : (tags.opening_hours || 'Horário não informado'),
                 address_quality: addressQualityFromTags(tags),
                 disponibilidade_farmaco: true,
                 avaliacao: 'OSM',
@@ -950,7 +950,7 @@ out center tags;`.trim();
             sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, currentToken || '');
             sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
             setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
-            setSessionStatus(currentSessionUser.role === 'ADMIN' ? 'Perfil administrador ativo' : 'Perfil de consulta ativo');
+            setSessionStatus(currentSessionUser.role === 'ADMIN' ? 'Perfil responsável ativo' : 'Perfil de consulta ativo');
 
             await Promise.allSettled([
                 loadDashboardData(),
@@ -1008,7 +1008,7 @@ out center tags;`.trim();
             if (item.whatsapp) links.push(`<a href="https://wa.me/${escapeHtml(item.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>`);
             if (item.telefone || item.phone) links.push(`<a href="tel:${escapeHtml(item.telefone || item.phone)}">Telefone</a>`);
             const osmUrl = item.openstreetmap_url || item.maps_url;
-            if (osmUrl) links.push(`<a href="${escapeHtml(osmUrl)}" target="_blank" rel="noopener">OpenStreetMap</a>`);
+            if (osmUrl) links.push(`<a href="${escapeHtml(osmUrl)}" target="_blank" rel="noopener">Abrir no mapa</a>`);
             return links.join(' · ');
         }
 
@@ -1059,7 +1059,7 @@ out center tags;`.trim();
                     <div class="item-head">
                         <div>
                             <strong>${escapeHtml(item.nome || item.name)}</strong>
-                            <p>${escapeHtml(item.categoria || item.category || 'Categoria não informada')} · Estoque operacional: ${escapeHtml(item.stock ?? 0)}</p>
+                            <p>${escapeHtml(item.categoria || item.category || 'Categoria não informada')} · Estoque informado: ${escapeHtml(item.stock ?? 0)}</p>
                             <p>${escapeHtml(item.descricao || item.description || 'Sem descrição operacional.')}</p>
                         </div>
                         <span class="badge ${item.requires_prescription ? 'warn' : 'ok'}">${item.requires_prescription ? 'Prescrição' : 'Livre'}</span>
@@ -1153,7 +1153,7 @@ out center tags;`.trim();
         async function loadNearbyOpenPharmacies() {
             const button = byId('btn-nearby-pharmacies');
             button.disabled = true;
-            setMessage('nearby-status', 'Obtendo localização autorizada pelo navegador...');
+            setMessage('nearby-status', 'Obtendo sua localização autorizada...');
             byId('nearby-pharmacy-list').innerHTML = '<p class="loading-text">Pronto para consulta...</p>';
             try {
                 const location = await getUserLocation();
@@ -1161,7 +1161,7 @@ out center tags;`.trim();
                 if (nearbyRequestController) nearbyRequestController.abort();
                 nearbyRequestController = new AbortController();
                 const items = await findOpenStreetMapPharmacies({ lat: location.lat, lng: location.lng, radiusKm, limit: 10, openNow: true });
-                setMessage('nearby-status', `${items.length} farmácia(s) localizada(s) diretamente no OpenStreetMap.`, 'success');
+                setMessage('nearby-status', `${items.length} farmácia(s) localizada(s) com base na sua localização.`, 'success');
                 renderNearbyPharmacies(items);
             } catch (error) {
                 if (error?.name !== 'AbortError') {
@@ -1203,7 +1203,7 @@ out center tags;`.trim();
         async function loadNearbyHealthEstablishments() {
             const button = byId('btn-nearby-health');
             button.disabled = true;
-            setMessage('health-status', 'Obtendo localização autorizada pelo navegador...');
+            setMessage('health-status', 'Obtendo sua localização autorizada...');
             byId('health-list').innerHTML = '<p class="loading-text">Pronto para consulta...</p>';
             try {
                 const location = await getUserLocation();
@@ -1213,7 +1213,7 @@ out center tags;`.trim();
                 if (healthRequestController) healthRequestController.abort();
                 healthRequestController = new AbortController();
                 const items = await findOpenStreetMapHealth({ lat: location.lat, lng: location.lng, radiusKm, limit: 12, openNow, kind });
-                setMessage('health-status', `${items.length} posto(s)/UPA(s) localizado(s) diretamente no OpenStreetMap.`, 'success');
+                setMessage('health-status', `${items.length} posto(s)/UPA(s) localizado(s) com base na sua localização.`, 'success');
                 renderHealthEstablishments(items);
             } catch (error) {
                 if (error?.name !== 'AbortError') {

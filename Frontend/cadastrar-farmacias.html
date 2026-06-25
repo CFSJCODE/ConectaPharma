@@ -285,7 +285,7 @@
     <header>
         <div class="header-title">
             <h1>Cadastrar Farmácias</h1>
-            <p>Gestão administrativa de farmácias cadastradas no ConectaPharma</p>
+            <p>Área para responsáveis autorizados manterem as farmácias cadastradas</p>
         </div>
         <div class="header-actions">
             <a class="btn btn-secondary" href="plataforma.html">Voltar à plataforma</a>
@@ -295,7 +295,7 @@
 
     <main class="page-body">
         <section class="card">
-            <h2 class="section-title">Cadastro institucional de farmácias</h2>
+            <h2 class="section-title">Cadastro de farmácias</h2>
             <p class="section-subtitle">Preencha os dados de identificação, contato, localização e horário de atendimento. As informações cadastradas serão disponibilizadas na consulta da plataforma após validação administrativa.</p>
             <div class="status-pill warn" id="access-status">Validando permissão administrativa...</div>
 
@@ -395,7 +395,7 @@
         </section>
 
         <aside class="card">
-            <h2 class="section-title">Registros recentes de farmácias</h2>
+            <h2 class="section-title">Farmácias cadastradas recentemente</h2>
             <p class="section-subtitle">Lista de registros disponíveis para conferência pelo perfil administrador.</p>
             <div id="pharmacy-list" class="list-grid">
                 <p class="message">Carregando...</p>
@@ -514,7 +514,7 @@
         async function savePharmacy(event) {
             event.preventDefault();
             if (!isAdminSession) {
-                setMessage('form-status', 'Apenas perfis administradores podem cadastrar farmácias.', 'error');
+                setMessage('form-status', 'Apenas responsáveis autorizados podem cadastrar farmácias.', 'error');
                 return;
             }
 
@@ -576,7 +576,7 @@
 
             if (!isAdminSession) {
                 setAccessStatus('Acesso restrito: esta página é exclusiva para perfis administradores.', 'warn');
-                setMessage('form-status', 'Entre com um perfil administrador para cadastrar farmácias.', 'error');
+                setMessage('form-status', 'Entre com um perfil autorizado para cadastrar farmácias.', 'error');
                 setFormEnabled(false);
                 await loadRegisteredPharmacies();
                 return;
