@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ConectaPharma: painel visual para integração com farmácias, APIs oficiais, webhooks e plataformas de e-commerce.">
+    <title>ConectaPharma | Integrações com Farmácias</title>
+    <link rel="stylesheet" href="./assets/public.css">
+    <style>
+        .integration-hero {
+            background: radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 34%), linear-gradient(135deg, #0A2254, #005DAA);
+            color: #fff;
+            padding: clamp(4rem, 8vw, 7rem) 1.5rem;
+        }
+
+        .integration-hero .section-container {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .integration-hero h1 {
+            color: #fff;
+            font-size: clamp(2.2rem, 5vw, 4.6rem);
+            line-height: 1.02;
+            letter-spacing: -0.06em;
+            margin: 1rem 0;
+        }
+
+        .integration-hero p {
+            color: rgba(255, 255, 255, 0.84);
+            max-width: 760px;
+            font-size: 1.08rem;
+            line-height: 1.7;
+        }
+
+        .architecture-panel, .integration-console {
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 30px 80px rgba(15, 23, 42, 0.26);
+            backdrop-filter: blur(18px);
+            border-radius: 28px;
+            padding: 1.35rem;
+        }
+
+        .flow-stack {
+            display: grid;
+            gap: 0.7rem;
+        }
+
+        .flow-node {
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--slate-900);
+            border-radius: 18px;
+            padding: 1rem;
+            border: 1px solid rgba(226, 232, 240, 0.64);
+        }
+
+        .flow-node strong {
+            display: block;
+            color: var(--blue-900);
+            margin-bottom: 0.25rem;
+        }
+
+        .flow-node span {
+            color: var(--slate-600);
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
+        .flow-arrow {
+            color: rgba(255, 255, 255, 0.86);
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .status-grid, .integration-grid, .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .integration-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-height: 100%;
+        }
+
+        .integration-card .card-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            border-radius: 999px;
+            padding: 0.38rem 0.72rem;
+            font-size: 0.75rem;
+            font-weight: 900;
+            letter-spacing: 0.02em;
+            background: #E0F2FE;
+            color: #075985;
+            white-space: nowrap;
+        }
+
+        .pill.ok { background: #DCFCE7; color: #166534; }
+        .pill.warn { background: #FEF3C7; color: #92400E; }
+        .pill.neutral { background: #E2E8F0; color: #334155; }
+        .pill.danger { background: #FEE2E2; color: #991B1B; }
+
+        .endpoint-box {
+            background: #0F172A;
+            color: #E2E8F0;
+            border-radius: 18px;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.55;
+        }
+
+        .console-status {
+            min-height: 1.4rem;
+            color: var(--slate-600);
+            font-weight: 800;
+            margin-top: 0.8rem;
+        }
+
+        .console-status.success { color: #166534; }
+        .console-status.warn { color: #92400E; }
+        .console-status.error { color: #991B1B; }
+
+        .record-list {
+            display: grid;
+            gap: 0.85rem;
+        }
+
+        .record-card {
+            border: 1px solid rgba(15, 23, 42, 0.10);
+            background: #F8FAFC;
+            border-radius: 18px;
+            padding: 1rem;
+        }
+
+        .record-card strong {
+            color: var(--blue-900);
+            display: block;
+        }
+
+        .record-card span {
+            color: var(--slate-600);
+            display: block;
+            margin-top: 0.25rem;
+            line-height: 1.45;
+        }
+
+        .admin-only[hidden], body:not(.is-admin) .admin-only {
+            display: none !important;
+        }
+
+        @media (max-width: 980px) {
+            .integration-hero .section-container,
+            .status-grid,
+            .integration-grid,
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <nav class="nav-container" aria-label="Navegação principal">
+            <a href="index.html" class="brand" aria-label="Página inicial do ConectaPharma">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span>
+                    <span class="brand-title">ConectaPharma</span>
+                    <span class="brand-subtitle">Integrações oficiais e encaminhamento</span>
+                </span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Início</a></li>
+                <li><a href="como-funciona.html">Como funciona</a></li>
+                <li><a href="sobre.html">Sobre</a></li>
+                <li><a href="seguranca.html">Segurança</a></li>
+                <li><a href="parceiros.html">Parceiros</a></li>
+                <li><a href="integracoes.html" aria-current="page">Integrações</a></li>
+                <li><a href="impacto-social.html">Impacto social</a></li>
+                <li class="nav-login-mobile"><a href="login.html">Entrar</a></li>
+            </ul>
+            <a class="btn btn-primary nav-cta" href="login.html">Entrar</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="integration-hero" aria-labelledby="integracoes-title">
+            <div class="section-container">
+                <div>
+                    <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Camada técnica sem descaracterizar a plataforma</span>
+                    <h1 id="integracoes-title">Integração visual com farmácias, APIs oficiais e webhooks.</h1>
+                    <p>
+                        Esta área mostra como o ConectaPharma evolui para receber dados de grandes redes, farmácias parceiras, ERPs e plataformas de e-commerce sem transformar a experiência do usuário em marketplace ou checkout próprio.
+                    </p>
+                </div>
+
+                <aside class="architecture-panel" aria-label="Arquitetura de integração">
+                    <div class="flow-stack">
+                        <div class="flow-node"><strong>Farmácia / ERP / e-commerce</strong><span>VTEX, Nuvemshop, API privada, CSV/JSON ou webhook assinado.</span></div>
+                        <div class="flow-arrow">↓</div>
+                        <div class="flow-node"><strong>Integration Gateway</strong><span>Validação HMAC, normalização, idempotência, logs e atualização de estoque.</span></div>
+                        <div class="flow-arrow">↓</div>
+                        <div class="flow-node"><strong>Firestore normalizado</strong><span>pharmacies, medications, pharmacy_inventory, integration_logs e webhook_events.</span></div>
+                        <div class="flow-arrow">↓</div>
+                        <div class="flow-node"><strong>Interface atual</strong><span>Busca, mapa, alertas e botões para canais oficiais.</span></div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <section class="section" aria-labelledby="access-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Regras de acesso implementadas</span>
+                    <h2 class="section-title" id="access-title">A integração respeita os perfis de usuário, farmácia parceira e administrador.</h2>
+                    <p class="section-description">
+                        O frontend apenas apresenta ou oculta recursos. A proteção real está nas regras do Firestore e deve ser complementada por Cloud Functions ou backend próprio para webhooks e APIs oficiais.
+                    </p>
+                </div>
+
+                <div class="status-grid">
+                    <article class="card reveal">
+                        <span class="tag">Usuário comum</span>
+                        <h3>Consulta e alertas</h3>
+                        <p>Busca medicamentos, visualiza farmácias aprovadas, consulta disponibilidade pública, cria alertas pessoais e acessa links oficiais.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag green">Farmácia parceira</span>
+                        <h3>Próprios dados</h3>
+                        <p>Edita somente seus dados, atualiza apenas seu estoque, envia CSV/JSON e visualiza logs da própria integração.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag amber">Administrador</span>
+                        <h3>Governança</h3>
+                        <p>Aprova farmácias, revisa documentos, modera dados, bloqueia cadastros suspeitos e visualiza logs técnicos.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section alt" aria-labelledby="networks-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Redes e plataformas</span>
+                    <h2 class="section-title" id="networks-title">Matriz visual de integração por farmácia ou ecossistema.</h2>
+                    <p class="section-description">
+                        A tela abaixo diferencia integração real por API/webhook, integração por plataforma de e-commerce e redirecionamento oficial quando não há API pública autorizada.
+                    </p>
+                </div>
+
+                <div class="integration-grid" id="integration-network-grid" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <section class="section" aria-labelledby="gateway-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Console operacional</span>
+                    <h2 class="section-title" id="gateway-title">Gateway de webhooks e disponibilidade normalizada.</h2>
+                    <p class="section-description">
+                        O endpoint visual abaixo representa a camada que receberá eventos das farmácias parceiras. No MVP, o botão de simulação é restrito à conta administrativa configurada no projeto.
+                    </p>
+                </div>
+
+                <div class="card integration-console reveal">
+                    <span class="pill" id="session-pill">Sessão não validada</span>
+                    <h3 style="margin-top: 1rem; color: var(--blue-900);">Endpoint de estoque</h3>
+                    <div class="endpoint-box">POST /api/v1/integrations/webhooks/{partnerId}/stock<br>Headers: x-conectapharma-signature, x-conectapharma-event-id<br>Body: stock.updated normalizado</div>
+                    <div class="hero-actions admin-only" hidden>
+                        <button type="button" class="btn btn-primary" id="btn-simulate-webhook">Simular evento de webhook</button>
+                        <button type="button" class="btn btn-secondary" id="btn-refresh-records">Atualizar registros</button>
+                    </div>
+                    <p class="console-status" id="console-status">Entre com a conta administrativa para simular eventos de integração.</p>
+                </div>
+
+                <div class="metric-grid" style="margin-top: 1rem;">
+                    <article class="card reveal">
+                        <span class="tag">Inventário</span>
+                        <h3>Disponibilidade pública</h3>
+                        <div class="record-list" id="inventory-records"><p>Carregando registros...</p></div>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag green">Logs</span>
+                        <h3>Eventos técnicos</h3>
+                        <div class="record-list" id="integration-log-records"><p>Carregando logs...</p></div>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag amber">Compliance</span>
+                        <h3>Limite operacional</h3>
+                        <p>O ConectaPharma mantém busca, disponibilidade informativa e encaminhamento. Venda, dispensação, receita e pagamento permanecem sob responsabilidade da farmácia oficial.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div><strong>ConectaPharma</strong> — Integração responsável com farmácias e canais oficiais.</div>
+            <div class="footer-links"><a href="index.html">Início</a> · <a href="seguranca.html">Segurança</a> · <a href="parceiros.html">Parceiros</a> · <a href="login.html">Entrar</a></div>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { auth, db, isAdminEmail } from './assets/firebaseClient.js';
+        import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
+        import {
+            addDoc,
+            collection,
+            getDocs,
+            limit,
+            orderBy,
+            query,
+            serverTimestamp,
+        } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js';
+
+        const NETWORKS = Object.freeze([
+            { name: 'Drogaria Araujo', mode: 'API privada / webhook autorizado', provider: 'custom_private', status: 'Preparado', tone: 'warn', description: 'Conector preparado para API privada, feed autorizado ou redirecionamento oficial quando a parceria ainda não existir.' },
+            { name: 'Droga Raia', mode: 'Marketplace / API oficial', provider: 'rd_marketplace', status: 'Arquitetado', tone: 'ok', description: 'Estrutura pronta para receber dados normalizados de marketplace, plataforma e-commerce ou integração B2B.' },
+            { name: 'Drogasil', mode: 'Marketplace / API oficial', provider: 'rd_marketplace', status: 'Arquitetado', tone: 'ok', description: 'Mesma camada de integração para disponibilidade, catálogo e encaminhamento oficial.' },
+            { name: 'Drogarias Pacheco', mode: 'API privada / integradora', provider: 'dpsp_private', status: 'Preparado', tone: 'warn', description: 'Fluxo compatível com API privada, CSV/JSON autorizado, ERP parceiro ou redirecionamento ao canal oficial.' },
+            { name: 'Drogaria São Paulo', mode: 'API privada / integradora', provider: 'dpsp_private', status: 'Preparado', tone: 'warn', description: 'Modelo equivalente para redes do mesmo grupo, mantendo governança e segregação de dados.' },
+            { name: 'Farmácias locais', mode: 'CSV/JSON + painel parceiro', provider: 'csv_manual', status: 'Operável', tone: 'ok', description: 'Entrada mais viável para o MVP: upload controlado, atualização manual e logs por farmácia.' },
+        ]);
+
+        const ADMIN_EMAIL = 'claudiofranciscojunior2006@gmail.com';
+        const byId = (id) => document.getElementById(id);
+        const escapeHtml = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+
+        function setStatus(message, type = '') {
+            const element = byId('console-status');
+            element.textContent = message;
+            element.className = `console-status ${type}`.trim();
+        }
+
+        function renderNetworks() {
+            byId('integration-network-grid').innerHTML = NETWORKS.map((item) => `
+                <article class="card integration-card reveal">
+                    <div class="card-top">
+                        <div>
+                            <span class="tag">${escapeHtml(item.provider)}</span>
+                            <h3>${escapeHtml(item.name)}</h3>
+                        </div>
+                        <span class="pill ${escapeHtml(item.tone)}">${escapeHtml(item.status)}</span>
+                    </div>
+                    <p><strong>Modo:</strong> ${escapeHtml(item.mode)}</p>
+                    <p>${escapeHtml(item.description)}</p>
+                    <p><strong>Ação pública:</strong> disponibilidade informativa + link oficial.</p>
+                </article>
+            `).join('');
+        }
+
+        function renderRecordList(targetId, items, emptyMessage) {
+            const target = byId(targetId);
+            if (!Array.isArray(items) || items.length === 0) {
+                target.innerHTML = `<p>${escapeHtml(emptyMessage)}</p>`;
+                return;
+            }
+
+            target.innerHTML = items.map((item) => `
+                <div class="record-card">
+                    <strong>${escapeHtml(item.commercialName || item.eventType || item.message || 'Registro')}</strong>
+                    <span>Farmácia: ${escapeHtml(item.pharmacyId || 'não vinculada')}</span>
+                    <span>Origem: ${escapeHtml(item.source || item.integrationProvider || item.partnerId || 'não informada')}</span>
+                    <span>Status: ${escapeHtml(item.availabilityStatus || item.level || item.status || 'registrado')}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadRecords() {
+            try {
+                const [inventorySnapshot, logsSnapshot] = await Promise.allSettled([
+                    getDocs(query(collection(db, 'pharmacy_inventory'), limit(6))),
+                    getDocs(query(collection(db, 'integration_logs'), orderBy('createdAt', 'desc'), limit(6))),
+                ]);
+
+                const inventory = inventorySnapshot.status === 'fulfilled'
+                    ? inventorySnapshot.value.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() }))
+                    : [];
+                const logs = logsSnapshot.status === 'fulfilled'
+                    ? logsSnapshot.value.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() }))
+                    : [];
+
+                renderRecordList('inventory-records', inventory, 'Nenhum inventário integrado encontrado.');
+                renderRecordList('integration-log-records', logs, 'Nenhum log técnico encontrado.');
+            } catch (error) {
+                renderRecordList('inventory-records', [], 'Não foi possível carregar inventário.');
+                renderRecordList('integration-log-records', [], 'Não foi possível carregar logs.');
+            }
+        }
+
+        async function simulateWebhookEvent() {
+            const user = auth.currentUser;
+            if (!user || !isAdminEmail(user.email)) {
+                setStatus(`Operação restrita à conta administrativa ${ADMIN_EMAIL}.`, 'error');
+                return;
+            }
+
+            const eventId = `evt_${Date.now()}`;
+            const stockPayload = {
+                pharmacyId: 'demo_droga_raia_bh',
+                medicineId: 'demo_losartana_50mg',
+                externalSku: '789000000001',
+                ean: '789000000001',
+                commercialName: 'Losartana Potássica 50mg',
+                activeIngredient: 'Losartana Potássica',
+                concentration: '50mg',
+                pharmaceuticalForm: 'Comprimido',
+                availabilityStatus: 'available',
+                quantityInternal: 12,
+                quantityPublic: 'available',
+                price: 19.9,
+                officialProductUrl: 'https://www.drogaraia.com.br/',
+                source: 'webhook',
+                integrationProvider: 'rd_marketplace_demo',
+                lastSyncAt: new Date().toISOString(),
+                updatedAt: serverTimestamp(),
+            };
+
+            setStatus('Registrando evento normalizado no Firestore...', 'warn');
+            await Promise.all([
+                addDoc(collection(db, 'pharmacy_inventory'), stockPayload),
+                addDoc(collection(db, 'integration_logs'), {
+                    partnerId: 'rd_marketplace_demo',
+                    pharmacyId: stockPayload.pharmacyId,
+                    eventType: 'stock.updated',
+                    level: 'info',
+                    message: 'Evento de webhook simulado pelo painel administrativo.',
+                    source: 'admin_simulation',
+                    createdAt: serverTimestamp(),
+                }),
+                addDoc(collection(db, 'webhook_events'), {
+                    eventId,
+                    partnerId: 'rd_marketplace_demo',
+                    pharmacyId: stockPayload.pharmacyId,
+                    eventType: 'stock.updated',
+                    status: 'processed',
+                    payloadHash: `demo_${eventId}`,
+                    receivedAt: serverTimestamp(),
+                }),
+            ]);
+
+            setStatus('Evento de webhook simulado e inventário atualizado com sucesso.', 'success');
+            await loadRecords();
+        }
+
+        function applySession(user) {
+            const isAdmin = Boolean(user?.email) && isAdminEmail(user.email);
+            document.body.classList.toggle('is-admin', isAdmin);
+            document.querySelectorAll('.admin-only').forEach((element) => { element.hidden = !isAdmin; });
+            byId('session-pill').textContent = isAdmin ? 'Administrador ativo' : user ? 'Conta comum autenticada' : 'Sessão pública';
+            byId('session-pill').className = `pill ${isAdmin ? 'ok' : user ? 'warn' : 'neutral'}`;
+            if (isAdmin) setStatus('Conta administrativa validada. Simulação de webhook liberada.', 'success');
+        }
+
+        function boot() {
+            renderNetworks();
+            loadRecords();
+            onAuthStateChanged(auth, applySession);
+            byId('btn-simulate-webhook')?.addEventListener('click', () => simulateWebhookEvent().catch((error) => setStatus(error?.message || 'Falha ao simular webhook.', 'error')));
+            byId('btn-refresh-records')?.addEventListener('click', () => loadRecords().catch(() => undefined));
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+    </script>
+</body>
+</html>
