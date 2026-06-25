@@ -116,7 +116,7 @@ export function toSessionUser(user) {
         uid: user.uid,
         name: user.displayName || user.email || 'Usuário ConectaPharma',
         email: user.email,
-        photoURL: user.photoURL || null,
+        photoURL: null,
         provider: user.providerData?.[0]?.providerId === 'google.com' ? 'google' : 'email',
         role: resolveUserRole(user.email),
     };
@@ -134,7 +134,7 @@ export async function upsertUserDocument(user, provider, name = null) {
         uid: user.uid,
         name: resolvedName,
         email: normalizeEmail(user.email),
-        photoURL: user.photoURL || null,
+        photoURL: null,
         provider,
         role: resolvedRole,
         active: true,
@@ -150,11 +150,21 @@ function runBestEffort(operation) {
     Promise.resolve(operation).catch(() => undefined);
 }
 
-async function writeLogBestEffort(collectionName, payload) {
+async function writeLogBestEffort(collectionName, payload, options = {}) {
+    const { includeUserContext = false } = options;
+
     try {
+        const sanitizedPayload = { ...payload };
+
+        if (includeUserContext) {
+            const userId = sanitizedPayload.userId ?? getSafeUserId();
+            if (userId) sanitizedPayload.userId = userId;
+        } else {
+            delete sanitizedPayload.userId;
+        }
+
         await addDoc(collection(db, collectionName), {
-            ...payload,
-            userId: payload.userId ?? getSafeUserId(),
+            ...sanitizedPayload,
             createdAt: serverTimestamp(),
         });
     } catch (_) {
@@ -167,11 +177,19 @@ export async function trackPageView(pageName) {
 }
 
 export async function trackLogin(method, userId = null) {
-    await writeLogBestEffort('auth_logs', { method, eventType: 'LOGIN', userId: userId || getSafeUserId() });
+    await writeLogBestEffort(
+        'auth_logs',
+        { method, eventType: 'LOGIN', userId: userId || getSafeUserId() },
+        { includeUserContext: true }
+    );
 }
 
 export async function trackSignUp(method, userId = null) {
-    await writeLogBestEffort('auth_logs', { method, eventType: 'SIGN_UP', userId: userId || getSafeUserId() });
+    await writeLogBestEffort(
+        'auth_logs',
+        { method, eventType: 'SIGN_UP', userId: userId || getSafeUserId() },
+        { includeUserContext: true }
+    );
 }
 
 export async function trackFormSubmit(formType) {
@@ -179,10 +197,13 @@ export async function trackFormSubmit(formType) {
 }
 
 export async function trackMedicineSearch(term, resultCount = 0) {
+    const normalizedTerm = normalizeSearchTerm(term);
+
     await writeLogBestEffort('search_logs', {
-        term: String(term || '').trim(),
-        normalizedTerm: normalizeSearchTerm(term),
-        resultCount,
+        eventType: 'MEDICINE_SEARCH',
+        hasTerm: Boolean(normalizedTerm),
+        termLength: normalizedTerm.length,
+        resultCount: Number(resultCount) || 0,
     });
 }
 

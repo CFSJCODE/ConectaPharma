@@ -24,6 +24,12 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly(allowed);
     }
 
+    function hasValidOptionalUserId() {
+      return !request.resource.data.keys().hasAny(['userId'])
+        || request.resource.data.userId == null
+        || (isSignedIn() && request.resource.data.userId == request.auth.uid);
+    }
+
     match /users/{uid} {
       allow create: if isOwner(uid)
         && request.resource.data.uid == uid
@@ -116,20 +122,23 @@ service cloud.firestore {
     }
 
     match /search_logs/{documentId} {
-      allow create: if hasOnlyAllowedKeys(['term', 'normalizedTerm', 'resultCount', 'userId', 'createdAt']);
+      allow create: if hasOnlyAllowedKeys(['eventType', 'hasTerm', 'termLength', 'resultCount', 'createdAt'])
+        && request.resource.data.eventType == 'MEDICINE_SEARCH';
       allow read: if isPlatformAdmin();
       allow update, delete: if false;
     }
 
     match /click_logs/{documentId} {
       allow create: if hasOnlyAllowedKeys(['pharmacyId', 'actionType', 'userId', 'createdAt'])
+        && hasValidOptionalUserId()
         && request.resource.data.actionType in ['VIEW', 'WHATSAPP_CLICK', 'PHONE_CLICK', 'ADDRESS_CLICK'];
       allow read: if isPlatformAdmin();
       allow update, delete: if false;
     }
 
     match /form_submit_logs/{documentId} {
-      allow create: if hasOnlyAllowedKeys(['formType', 'userId', 'createdAt']);
+      allow create: if hasOnlyAllowedKeys(['formType', 'userId', 'createdAt'])
+        && hasValidOptionalUserId();
       allow read: if isPlatformAdmin();
       allow update, delete: if false;
     }
