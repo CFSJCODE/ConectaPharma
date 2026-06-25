@@ -1,0 +1,215 @@
+.health-locator-shell {
+    padding: 5rem 0;
+    background: var(--white);
+}
+
+.health-locator-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.health-control-panel {
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(135deg, #FFFFFF, #F5F9FF);
+    box-shadow: var(--shadow-card);
+    padding: 1.35rem;
+}
+
+.health-control-panel .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.health-select {
+    min-height: 46px;
+    border: 1px solid var(--slate-200);
+    border-radius: 999px;
+    background: var(--white);
+    color: var(--slate-800);
+    padding: 0 1rem;
+    font: inherit;
+    font-weight: 750;
+}
+
+.health-status {
+    margin-top: 1rem;
+    font-weight: 800;
+    color: var(--slate-600);
+}
+
+.health-status[data-status="success"] { color: var(--accent-700); }
+.health-status[data-status="warn"] { color: var(--amber-700); }
+.health-status[data-status="error"] { color: #B91C1C; }
+.health-status[data-status="loading"] { color: var(--primary-700); }
+
+.health-map {
+    min-height: 590px;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    border: 1px solid var(--slate-200);
+    box-shadow: var(--shadow-card);
+    background: var(--slate-100);
+}
+
+.health-results-panel {
+    min-height: 590px;
+    max-height: 590px;
+    overflow-y: auto;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-xl);
+    background: var(--slate-50);
+    padding: 1rem;
+}
+
+.health-results-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.health-results-head h2 {
+    color: var(--primary-950);
+    font-size: 1.35rem;
+    line-height: 1.2;
+}
+
+.health-results-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--primary-100);
+    color: var(--primary-700);
+    font-weight: 900;
+}
+
+.health-units-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.health-unit-card {
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    padding: 1.1rem;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.health-unit-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.health-unit-type {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    border-radius: 999px;
+    background: var(--accent-100);
+    color: var(--accent-700);
+    padding: 0.34rem 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.health-unit-card h3 {
+    color: var(--primary-950);
+    font-size: 1.05rem;
+    line-height: 1.25;
+}
+
+.health-unit-card p {
+    color: var(--slate-600);
+    margin-top: 0.55rem;
+}
+
+.health-unit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 1rem;
+}
+
+.health-unit-actions a:not(.btn) {
+    color: var(--primary-700);
+    font-weight: 850;
+    text-decoration: none;
+}
+
+.health-unit-actions a:not(.btn):hover,
+.health-unit-actions a:not(.btn):focus {
+    text-decoration: underline;
+}
+
+.health-unit-card small {
+    display: block;
+    margin-top: 0.9rem;
+    color: var(--slate-500);
+    line-height: 1.45;
+}
+
+.empty-state {
+    padding: 1.25rem;
+    border: 1px dashed var(--slate-300);
+    border-radius: var(--radius-lg);
+    color: var(--slate-600);
+    background: var(--white);
+}
+
+.health-guidance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .health-locator-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .health-map,
+    .health-results-panel {
+        min-height: 430px;
+        max-height: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .health-locator-shell {
+        padding: 4rem 0;
+    }
+
+    .health-control-panel .actions,
+    .health-select,
+    .health-control-panel .btn {
+        width: 100%;
+    }
+
+    .health-results-head,
+    .health-unit-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .health-guidance-grid {
+        grid-template-columns: 1fr;
+    }
+}

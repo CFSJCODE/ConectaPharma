@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Localize UBSs, postos de saúde, centros de saúde e UPAs próximos com apoio de geolocalização e dados públicos no ConectaPharma.">
+    <title>Unidades de Saúde Próximas | ConectaPharma</title>
+    <link rel="stylesheet" href="./assets/public.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ0K9Rk+qOJE3s0B8hU4Q5P9sDCG4yQ=" crossorigin="">
+    <link rel="stylesheet" href="./assets/health-units.css">
+</head>
+<body>
+    <header class="site-header">
+        <nav class="nav-container" aria-label="Navegação principal">
+            <a href="index.html" class="brand" aria-label="Página inicial do ConectaPharma">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span>
+                    <span class="brand-title">ConectaPharma</span>
+                    <span class="brand-subtitle">Apoio ao acesso a medicamentos</span>
+                </span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Início</a></li>
+                <li><a href="como-funciona.html">Como funciona</a></li>
+                <li><a href="unidades-saude.html" aria-current="page">Unidades de saúde</a></li>
+                <li><a href="sobre.html">Sobre</a></li>
+                <li><a href="seguranca.html">Segurança</a></li>
+                <li><a href="parceiros.html">Parceiros</a></li>
+                <li><a href="integracoes.html">Integrações</a></li>
+                <li><a href="jornadas.html">Pessoas atendidas</a></li>
+                <li><a href="impacto-social.html">Impacto social</a></li>
+                <li class="nav-login-mobile"><a href="login.html">Entrar</a></li>
+            </ul>
+            <a class="btn btn-primary nav-cta" href="login.html">Entrar</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="page-hero" aria-labelledby="health-hero-title">
+            <div class="page-hero-inner">
+                <nav class="breadcrumb" aria-label="Caminho da página">
+                    <a href="index.html">Início</a>
+                    <span aria-hidden="true">/</span>
+                    <span>Unidades de saúde</span>
+                </nav>
+                <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Rede pública e apoio ao cuidado</span>
+                <h1 class="page-title" id="health-hero-title">Localize UBSs, postos, centros de saúde e UPAs próximos.</h1>
+                <p class="page-lead">
+                    Use sua localização apenas quando desejar para encontrar unidades públicas e ambulatoriais próximas. O recurso apoia pacientes, familiares e cuidadores na decisão antes do deslocamento.
+                </p>
+                <div class="page-actions">
+                    <a class="btn btn-primary" href="#localizador-saude">Localizar unidades próximas</a>
+                    <a class="btn btn-secondary" href="plataforma.html">Acessar plataforma</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="health-locator-shell" id="localizador-saude" aria-labelledby="health-locator-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Localizador geográfico</span>
+                    <h2 class="section-title" id="health-locator-title">Busque unidades de atendimento próximas com dados geográficos abertos.</h2>
+                    <p class="section-description">
+                        A busca consulta bases abertas do OpenStreetMap via Overpass API, calcula a distância aproximada até sua posição e organiza os resultados por proximidade e tipo de estabelecimento.
+                    </p>
+                </div>
+
+                <div class="health-control-panel reveal" aria-label="Controles de busca de unidades de saúde">
+                    <div class="actions">
+                        <button type="button" class="btn btn-primary" id="btnFindHealthUnits">Usar minha localização</button>
+                        <select id="healthUnitRadius" class="health-select" aria-label="Raio de busca">
+                            <option value="3000">Raio de 3 km</option>
+                            <option value="5000" selected>Raio de 5 km</option>
+                            <option value="10000">Raio de 10 km</option>
+                            <option value="20000">Raio de 20 km</option>
+                        </select>
+                        <select id="healthUnitFilter" class="health-select" aria-label="Filtro por tipo de unidade"></select>
+                    </div>
+                    <p id="healthUnitsStatus" class="health-status" aria-live="polite">Nenhuma busca realizada. A localização será solicitada somente após o clique no botão.</p>
+                </div>
+
+                <div class="health-locator-grid" style="margin-top: 1.5rem;">
+                    <div id="healthMap" class="health-map reveal" aria-label="Mapa com unidades de saúde próximas"></div>
+
+                    <aside class="health-results-panel reveal" aria-labelledby="health-results-title">
+                        <div class="health-results-head">
+                            <div>
+                                <h2 id="health-results-title">Resultados próximos</h2>
+                                <p class="section-description" style="margin-top: 0.35rem; font-size: 0.95rem;">Unidades ordenadas pela distância aproximada.</p>
+                            </div>
+                            <span class="health-results-count" id="healthUnitsResultCount">—</span>
+                        </div>
+                        <div id="healthUnitsList" class="health-units-list" aria-live="polite">
+                            <div class="empty-state">Clique em “Usar minha localização” para iniciar a busca.</div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </section>
+
+        <section class="section alt" aria-labelledby="health-guidance-title">
+            <div class="section-container">
+                <div class="section-header center reveal">
+                    <span class="section-kicker">Uso responsável</span>
+                    <h2 class="section-title" id="health-guidance-title">Como interpretar os resultados na plataforma.</h2>
+                    <p class="section-description">
+                        O ConectaPharma apresenta dados públicos para orientação inicial. Antes de se deslocar, confirme horário, disponibilidade de serviço e documentação necessária pelos canais oficiais da unidade ou do município.
+                    </p>
+                </div>
+
+                <div class="health-guidance-grid">
+                    <article class="card reveal">
+                        <span class="tag green">Privacidade</span>
+                        <h3>Localização sob consentimento</h3>
+                        <p>A posição do usuário é usada apenas no navegador para calcular proximidade e consultar estabelecimentos no raio selecionado.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag">Classificação</span>
+                        <h3>UBS, posto, centro e UPA</h3>
+                        <p>A interface classifica os resultados por nome e tags públicas, facilitando a identificação do tipo de unidade encontrada.</p>
+                    </article>
+                    <article class="card reveal">
+                        <span class="tag amber">Validação</span>
+                        <h3>Dados sujeitos a atualização</h3>
+                        <p>Informações de bases abertas podem estar incompletas. A rota e os dados exibidos devem ser usados como apoio, não como confirmação oficial.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section" aria-labelledby="health-cta-title">
+            <div class="cta-box">
+                <div>
+                    <h2 id="health-cta-title">Conecte a busca por medicamentos à rede de atendimento próxima.</h2>
+                    <p>Use a plataforma para consultar farmácias, medicamentos cadastrados, alertas e serviços de saúde próximos em um único fluxo de apoio ao cuidado.</p>
+                </div>
+                <a class="btn btn-secondary" href="login.html">Entrar na plataforma</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div><strong>ConectaPharma</strong> — Apoio ao acesso a medicamentos.</div>
+            <div class="footer-links"><a href="como-funciona.html">Como funciona</a> · <a href="unidades-saude.html">Unidades de saúde</a> · <a href="sobre.html">Sobre</a> · <a href="seguranca.html">Segurança</a> · <a href="parceiros.html">Parceiros</a> · <a href="integracoes.html">Integrações</a> · <a href="jornadas.html">Pessoas atendidas</a> · <a href="impacto-social.html">Impacto social</a></div>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script type="module" src="./assets/public.js"></script>
+    <script type="module" src="./assets/health-units-page.js"></script>
+</body>
+</html>

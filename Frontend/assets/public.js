@@ -1,3 +1,49 @@
+const HEALTH_UNITS_PATH = 'unidades-saude.html';
+const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+function ensureHealthUnitsNavigation() {
+    document.querySelectorAll('.nav-links').forEach((navLinks) => {
+        const hasHealthUnitsLink = navLinks.querySelector(`a[href="${HEALTH_UNITS_PATH}"]`);
+
+        if (!hasHealthUnitsLink) {
+            const item = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = HEALTH_UNITS_PATH;
+            link.textContent = 'Unidades de saúde';
+
+            if (currentPage === HEALTH_UNITS_PATH) {
+                link.setAttribute('aria-current', 'page');
+            }
+
+            item.appendChild(link);
+
+            const mobileLogin = navLinks.querySelector('.nav-login-mobile');
+            const afterHowItWorks = Array.from(navLinks.querySelectorAll('a')).find((anchor) => anchor.getAttribute('href') === 'como-funciona.html')?.parentElement;
+
+            if (afterHowItWorks?.nextSibling) {
+                navLinks.insertBefore(item, afterHowItWorks.nextSibling);
+            } else if (mobileLogin) {
+                navLinks.insertBefore(item, mobileLogin);
+            } else {
+                navLinks.appendChild(item);
+            }
+        }
+    });
+
+    document.querySelectorAll('.footer-links').forEach((footerLinks) => {
+        if (footerLinks.querySelector(`a[href="${HEALTH_UNITS_PATH}"]`)) {
+            return;
+        }
+
+        const link = document.createElement('a');
+        link.href = HEALTH_UNITS_PATH;
+        link.textContent = 'Unidades de saúde';
+        footerLinks.append(' · ', link);
+    });
+}
+
+ensureHealthUnitsNavigation();
+
 const revealElements = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
