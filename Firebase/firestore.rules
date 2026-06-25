@@ -42,6 +42,26 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid;
     }
 
+    function hasValidInventoryPayload() {
+      return hasOnlyAllowedKeys(['pharmacyId', 'medicineId', 'externalSku', 'ean', 'commercialName', 'activeIngredient', 'concentration', 'pharmaceuticalForm', 'availabilityStatus', 'quantityInternal', 'quantityPublic', 'price', 'officialProductUrl', 'source', 'integrationProvider', 'lastSyncAt', 'updatedAt'])
+        && request.resource.data.pharmacyId is string
+        && request.resource.data.availabilityStatus in ['available', 'low_stock', 'unavailable', 'unknown']
+        && request.resource.data.quantityPublic in ['available', 'low_stock', 'unavailable', 'unknown'];
+    }
+
+    function hasValidIntegrationLogPayload() {
+      return hasOnlyAllowedKeys(['partnerId', 'pharmacyId', 'eventType', 'level', 'message', 'source', 'createdAt'])
+        && request.resource.data.pharmacyId is string
+        && request.resource.data.level in ['debug', 'info', 'warn', 'error'];
+    }
+
+    function hasValidWebhookEventPayload() {
+      return hasOnlyAllowedKeys(['eventId', 'partnerId', 'pharmacyId', 'eventType', 'status', 'payloadHash', 'receivedAt'])
+        && request.resource.data.eventId is string
+        && request.resource.data.pharmacyId is string
+        && request.resource.data.status in ['received', 'processed', 'duplicate_ignored', 'failed'];
+    }
+
     match /users/{uid} {
       allow create: if isOwner(uid)
         && request.resource.data.uid == uid
@@ -84,6 +104,25 @@ service cloud.firestore {
     match /inventory/{documentId} {
       allow read: if true;
       allow create, update, delete: if isPlatformAdmin();
+    }
+
+    match /pharmacy_inventory/{documentId} {
+      allow read: if true;
+      allow create: if isPlatformAdmin() && hasValidInventoryPayload();
+      allow update: if isPlatformAdmin() && hasValidInventoryPayload();
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /integration_logs/{documentId} {
+      allow create: if isPlatformAdmin() && hasValidIntegrationLogPayload();
+      allow read: if isPlatformAdmin();
+      allow update, delete: if false;
+    }
+
+    match /webhook_events/{documentId} {
+      allow create: if isPlatformAdmin() && hasValidWebhookEventPayload();
+      allow read: if isPlatformAdmin();
+      allow update, delete: if false;
     }
 
 
