@@ -42,35 +42,6 @@ body {
 }
 a { color: inherit; }
 
-.skip-link {
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-    pointer-events: none;
-    background: var(--primary-900);
-    color: var(--white);
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    z-index: 9999;
-}
-.skip-link:focus,
-.skip-link:focus-visible {
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
-    clip-path: none;
-    pointer-events: auto;
-    outline: 3px solid var(--accent-500);
-    outline-offset: 3px;
-}
-
 .site-header {
     position: sticky;
     top: 0;
