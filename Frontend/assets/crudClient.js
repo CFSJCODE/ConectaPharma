@@ -1,3 +1,4 @@
+import './healthLookupPatch.js';
 import {
     deleteDoc,
     doc,
