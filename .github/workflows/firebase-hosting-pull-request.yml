@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  checks: write
+  pull-requests: write
 
 concurrency:
   group: firebase-hosting-preview-${{ github.event.pull_request.number || github.ref }}
@@ -32,18 +34,16 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
-      - name: Authenticate with Google Cloud
-        uses: google-github-actions/auth@v3
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CONECTAPHARMA_33FD7 }}
-
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools@latest
-
       - name: Validate Firebase project files
         run: |
           test -f firebase.json
           test -f Frontend/index.html
 
-      - name: Deploy Hosting preview channel
-        run: firebase hosting:channel:deploy "$CHANNEL_ID" --project "$FIREBASE_PROJECT_ID" --expires 7d
+      - name: Deploy Firebase Hosting preview channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CONECTAPHARMA_33FD7 }}
+          projectId: ${{ env.FIREBASE_PROJECT_ID }}
+          channelId: ${{ env.CHANNEL_ID }}
+          expires: 7d
