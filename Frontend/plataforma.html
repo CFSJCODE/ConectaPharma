@@ -80,7 +80,6 @@
         .message.error { color: var(--color-danger); }
         .loading-text { color: var(--color-muted); font-style: italic; }
         .crud-panel { border: 1px dashed rgba(0, 93, 170, 0.22); background: linear-gradient(135deg, #FFFFFF, #F5F9FF); }
-        .crud-form { border-top: 1px solid var(--color-border); padding-top: 1rem; }
         [data-admin-only][hidden], body:not(.is-admin) [data-admin-only] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
         body.is-admin [data-admin-only] { visibility: visible !important; pointer-events: auto !important; }
         body.is-admin a[data-admin-only], body.is-admin button[data-admin-only] { display: inline-flex !important; }
@@ -142,48 +141,20 @@
 
         <section class="card card-wide">
             <h2 class="section-title">Consulta de farmácias cadastradas</h2>
-            <p class="section-subtitle">Consulte farmácias cadastradas. Contas administrativas podem editar e excluir registros diretamente por esta área.</p>
+            <p class="section-subtitle">Consulte farmácias cadastradas, contatos, horários e localização. Esta área é apenas para consulta; o cadastro manual de farmácias deve ser realizado na página própria de cadastro administrativo.</p>
             <div class="actions">
                 <input id="pharmacy-search-input" class="input" type="search" placeholder="Pesquisar por nome, bairro, endereço ou horário" style="max-width: 520px;">
                 <button id="btn-search-pharmacies" class="btn" type="button">Pesquisar</button>
                 <button id="btn-list-pharmacies" class="btn btn-secondary" type="button">Listar todas</button>
-                <a class="btn btn-accent" href="cadastrar-farmacias.html" data-admin-only hidden aria-hidden="true" tabindex="-1">Cadastrar farmácias manualmente</a>
+                <a class="btn btn-accent" href="cadastrar-farmacias.html" data-admin-only hidden aria-hidden="true" tabindex="-1">Cadastrar farmácia</a>
             </div>
             <p id="pharmacy-directory-status" class="message">Aguardando validação da sessão.</p>
-            <form id="pharmacy-edit-form" class="form-grid crud-form" autocomplete="off" hidden>
-                <input id="pharmacy-edit-name" class="input" type="text" placeholder="Nome da farmácia" required>
-                <input id="pharmacy-edit-phone" class="input" type="tel" placeholder="Telefone">
-                <input id="pharmacy-edit-address" class="input span-2" type="text" placeholder="Endereço completo" required>
-                <input id="pharmacy-edit-neighborhood" class="input" type="text" placeholder="Bairro">
-                <input id="pharmacy-edit-city" class="input" type="text" placeholder="Cidade">
-                <input id="pharmacy-edit-state" class="input" type="text" placeholder="UF" maxlength="2">
-                <input id="pharmacy-edit-cep" class="input" type="text" placeholder="CEP">
-                <input id="pharmacy-edit-whatsapp" class="input" type="tel" placeholder="WhatsApp">
-                <input id="pharmacy-edit-email" class="input" type="email" placeholder="E-mail">
-                <input id="pharmacy-edit-website" class="input span-2" type="url" placeholder="Site">
-                <input id="pharmacy-edit-hours" class="input span-2" type="text" placeholder="Horário de funcionamento">
-                <input id="pharmacy-edit-latitude" class="input" type="number" step="0.000001" placeholder="Latitude">
-                <input id="pharmacy-edit-longitude" class="input" type="number" step="0.000001" placeholder="Longitude">
-                <select id="pharmacy-edit-availability" class="select">
-                    <option value="true">Disponível na plataforma</option>
-                    <option value="false">Verificar estoque</option>
-                </select>
-                <select id="pharmacy-edit-active" class="select">
-                    <option value="true">Ativa</option>
-                    <option value="false">Inativa</option>
-                </select>
-                <textarea id="pharmacy-edit-notes" class="span-2" rows="3" placeholder="Observações administrativas"></textarea>
-                <div class="span-2 actions">
-                    <button class="btn btn-accent" id="btn-save-pharmacy-edit" type="submit">Salvar alteração</button>
-                    <button class="btn btn-secondary" id="btn-cancel-pharmacy-edit" type="button">Cancelar</button>
-                </div>
-            </form>
             <div id="pharmacy-directory-list" class="list-grid" aria-live="polite"><p class="loading-text">Os dados serão carregados após a validação do login.</p></div>
         </section>
 
         <section class="card card-wide crud-panel">
             <h2 class="section-title">Catálogo de medicamentos</h2>
-            <p class="section-subtitle">Contas administrativas possuem CRUD completo. Contas comuns podem consultar, editar e excluir medicamentos vinculados à própria conta.</p>
+            <p class="section-subtitle">Contas administrativas possuem CRUD completo para medicamentos. Contas comuns podem consultar, editar e excluir medicamentos vinculados à própria conta.</p>
             <div class="actions">
                 <input id="medicine-search-input" class="input" type="search" placeholder="Pesquisar medicamento ou categoria" style="max-width: 520px;">
                 <button id="btn-search-medicines" class="btn" type="button">Pesquisar</button>
@@ -255,9 +226,7 @@
             trackPharmacyClick,
         } from './assets/firebaseClient.js';
         import {
-            deleteFarmacia,
             deleteMedication,
-            updateFarmacia,
             updateMedication,
         } from './assets/crudClient.js';
 
@@ -271,14 +240,12 @@
         let cachedPharmacies = [];
         let cachedMedicines = [];
         let editingMedicineId = null;
-        let editingPharmacyId = null;
         let authResolved = false;
 
         const byId = (id) => document.getElementById(id);
         const normalizeEmail = (value) => String(value ?? '').trim().toLowerCase();
         const isAdminEmail = (value) => normalizeEmail(value) === ADMIN_EMAIL;
         const isAdminSession = () => isAdminEmail(currentSessionUser?.email);
-        const asText = (value) => String(value ?? '').trim();
 
         function escapeHtml(value) { return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;'); }
         function setText(id, value) { const element = byId(id); if (element) element.innerText = String(value ?? ''); }
@@ -330,7 +297,7 @@
             setHtml('pharmacy-directory-list', items.map((item) => `
                 <div class="item-card">
                     <div class="item-head"><div><strong>${escapeHtml(item.nome || item.name || 'Farmácia')}</strong><p>${escapeHtml(item.endereco || item.address || 'Endereço não informado')}</p><p>${escapeHtml(item.horario_funcionamento || item.opening_hours_label || 'Horário não informado')}</p></div><span class="badge ${item.disponibilidade_farmaco === false ? 'warn' : 'ok'}">${item.disponibilidade_farmaco === false ? 'Verificar estoque' : 'Disponível'}</span></div>
-                    <div class="item-actions">${pharmacyActions(item)}${isAdminSession() ? ` <button class="btn btn-secondary btn-small" data-action="edit-pharmacy" data-id="${escapeHtml(item.id)}">Editar</button><button class="btn btn-danger btn-small" data-action="delete-pharmacy" data-id="${escapeHtml(item.id)}">Excluir</button>` : ''}</div>
+                    <div class="item-actions">${pharmacyActions(item)}</div>
                 </div>
             `).join(''));
         }
@@ -400,15 +367,16 @@
 
         async function saveMedicine(event) {
             event.preventDefault();
+            const isEditing = Boolean(editingMedicineId);
             const button = byId('btn-register-medicine');
             button.disabled = true;
-            setMessage('medicine-form-status', editingMedicineId ? 'Salvando alteração...' : 'Registrando medicamento...');
+            setMessage('medicine-form-status', isEditing ? 'Salvando alteração...' : 'Registrando medicamento...');
             const payload = { nome: byId('medicine-name').value.trim(), categoria: byId('medicine-category').value.trim() || null, descricao: byId('medicine-description').value.trim() || null, dose_diaria_comprimidos: Number(byId('medicine-dose').value || 1), stock: Number(byId('medicine-stock').value || 0), requires_prescription: byId('medicine-prescription').value === 'true' };
             try {
-                if (editingMedicineId) await updateMedication(editingMedicineId, payload);
+                if (isEditing) await updateMedication(editingMedicineId, payload);
                 else await createMedication(payload);
                 resetMedicineForm();
-                setMessage('medicine-form-status', editingMedicineId ? 'Medicamento atualizado com sucesso.' : 'Medicamento cadastrado com sucesso.', 'success');
+                setMessage('medicine-form-status', isEditing ? 'Medicamento atualizado com sucesso.' : 'Medicamento cadastrado com sucesso.', 'success');
                 cachedMedicines = [];
                 await loadMedicines();
             } catch (error) {
@@ -440,59 +408,6 @@
             await loadMedicines();
         }
 
-        function resetPharmacyEditForm() {
-            editingPharmacyId = null;
-            byId('pharmacy-edit-form').reset();
-            byId('pharmacy-edit-form').hidden = true;
-        }
-
-        function startPharmacyEdit(id) {
-            if (!isAdminSession()) return;
-            const item = cachedPharmacies.find((record) => record.id === id);
-            if (!item) return;
-            editingPharmacyId = id;
-            byId('pharmacy-edit-name').value = item.nome || item.name || '';
-            byId('pharmacy-edit-phone').value = item.telefone || item.phone || '';
-            byId('pharmacy-edit-address').value = item.endereco || item.address || '';
-            byId('pharmacy-edit-neighborhood').value = item.bairro || '';
-            byId('pharmacy-edit-city').value = item.cidade || 'Belo Horizonte';
-            byId('pharmacy-edit-state').value = item.estado || 'MG';
-            byId('pharmacy-edit-cep').value = item.cep || '';
-            byId('pharmacy-edit-whatsapp').value = item.whatsapp || '';
-            byId('pharmacy-edit-email').value = item.email || '';
-            byId('pharmacy-edit-website').value = item.website || '';
-            byId('pharmacy-edit-hours').value = item.horario_funcionamento || item.opening_hours_label || '';
-            byId('pharmacy-edit-latitude').value = item.latitude ?? '';
-            byId('pharmacy-edit-longitude').value = item.longitude ?? '';
-            byId('pharmacy-edit-availability').value = item.disponibilidade_farmaco === false ? 'false' : 'true';
-            byId('pharmacy-edit-active').value = item.ativo === false ? 'false' : 'true';
-            byId('pharmacy-edit-notes').value = item.observacoes || '';
-            byId('pharmacy-edit-form').hidden = false;
-            byId('pharmacy-edit-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-
-        async function savePharmacyEdit(event) {
-            event.preventDefault();
-            if (!editingPharmacyId || !isAdminSession()) return;
-            setMessage('pharmacy-directory-status', 'Salvando alteração da farmácia...');
-            try {
-                await updateFarmacia(editingPharmacyId, { nome: asText(byId('pharmacy-edit-name').value), endereco: asText(byId('pharmacy-edit-address').value), bairro: asText(byId('pharmacy-edit-neighborhood').value), cidade: asText(byId('pharmacy-edit-city').value), estado: asText(byId('pharmacy-edit-state').value), cep: asText(byId('pharmacy-edit-cep').value), telefone: asText(byId('pharmacy-edit-phone').value), whatsapp: asText(byId('pharmacy-edit-whatsapp').value), email: asText(byId('pharmacy-edit-email').value), website: asText(byId('pharmacy-edit-website').value), horario_funcionamento: asText(byId('pharmacy-edit-hours').value), latitude: asText(byId('pharmacy-edit-latitude').value), longitude: asText(byId('pharmacy-edit-longitude').value), disponibilidade_farmaco: byId('pharmacy-edit-availability').value === 'true', ativo: byId('pharmacy-edit-active').value === 'true', observacoes: asText(byId('pharmacy-edit-notes').value) });
-                resetPharmacyEditForm();
-                cachedPharmacies = [];
-                await loadPharmacies();
-                setMessage('pharmacy-directory-status', 'Farmácia atualizada com sucesso.', 'success');
-            } catch (error) { setMessage('pharmacy-directory-status', error?.message || 'Não foi possível atualizar a farmácia.', 'error'); }
-        }
-
-        async function removePharmacy(id) {
-            if (!isAdminSession()) return;
-            const item = cachedPharmacies.find((record) => record.id === id);
-            if (!item || !window.confirm(`Excluir a farmácia "${item.nome || item.name || 'selecionada'}"?`)) return;
-            await deleteFarmacia(id);
-            cachedPharmacies = [];
-            await loadPharmacies();
-        }
-
         async function logout() { await signOutUser(); sessionStorage.removeItem(STORAGE_USER_KEY); sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY); window.location.href = 'login.html'; }
         function redirectToLogin() { sessionStorage.removeItem(STORAGE_USER_KEY); sessionStorage.removeItem(STORAGE_FIREBASE_TOKEN_KEY); window.location.href = 'login.html'; }
 
@@ -505,7 +420,7 @@
             sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(currentSessionUser));
             runBestEffort(user.getIdToken(false).then((token) => { if (token) sessionStorage.setItem(STORAGE_FIREBASE_TOKEN_KEY, token); }));
             setText('user-name', currentSessionUser.name || currentSessionUser.email || 'Usuário');
-            setSessionStatus(isAdminSession() ? 'Perfil administrativo ativo. CRUD completo habilitado.' : 'Acesso validado. RUD operacional habilitado conforme permissões.', '');
+            setSessionStatus(isAdminSession() ? 'Perfil administrativo ativo. Cadastro de farmácias disponível na página própria.' : 'Acesso validado. Consulta de farmácias e gestão permitida de medicamentos próprios.', '');
             runBestEffort(loadInitialData());
         }
 
@@ -524,8 +439,6 @@
             byId('btn-search-pharmacies').addEventListener('click', () => loadPharmacies(byId('pharmacy-search-input').value.trim()));
             byId('btn-list-pharmacies').addEventListener('click', () => { byId('pharmacy-search-input').value = ''; cachedPharmacies = []; loadPharmacies(); });
             byId('pharmacy-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadPharmacies(event.target.value.trim()); });
-            byId('pharmacy-edit-form').addEventListener('submit', savePharmacyEdit);
-            byId('btn-cancel-pharmacy-edit').addEventListener('click', resetPharmacyEditForm);
             byId('btn-search-medicines').addEventListener('click', () => loadMedicines(byId('medicine-search-input').value.trim()));
             byId('btn-list-medicines').addEventListener('click', () => { byId('medicine-search-input').value = ''; cachedMedicines = []; loadMedicines(); });
             byId('medicine-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') loadMedicines(event.target.value.trim()); });
@@ -540,8 +453,6 @@
                 const id = button.dataset.id;
                 if (action === 'edit-medicine') startMedicineEdit(id);
                 if (action === 'delete-medicine') removeMedicine(id).catch((error) => setMessage('medicine-form-status', error?.message || 'Não foi possível excluir.', 'error'));
-                if (action === 'edit-pharmacy') startPharmacyEdit(id);
-                if (action === 'delete-pharmacy') removePharmacy(id).catch((error) => setMessage('pharmacy-directory-status', error?.message || 'Não foi possível excluir.', 'error'));
             });
         }
 
