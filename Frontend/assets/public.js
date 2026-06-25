@@ -1,22 +1,3 @@
-const skipLink = document.querySelector('.skip-link[href="#conteudo"]');
-const contentTarget = document.getElementById('conteudo');
-
-if (window.location.hash === '#conteudo') {
-    window.history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
-}
-
-if (skipLink) {
-    skipLink.setAttribute('aria-hidden', 'true');
-    skipLink.setAttribute('tabindex', '-1');
-    skipLink.addEventListener('click', (event) => {
-        event.preventDefault();
-        if (contentTarget) {
-            contentTarget.scrollIntoView({ block: 'start' });
-        }
-        window.history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
-    });
-}
-
 const revealElements = document.querySelectorAll('.reveal');
 if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
