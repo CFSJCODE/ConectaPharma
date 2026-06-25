@@ -30,6 +30,18 @@ service cloud.firestore {
         || (isSignedIn() && request.resource.data.userId == request.auth.uid);
     }
 
+    function isMedicationOwner() {
+      return isSignedIn()
+        && resource.data.createdBy == request.auth.uid;
+    }
+
+    function hasValidMedicationUpdatePayload() {
+      return hasOnlyAllowedKeys(['nome', 'categoria', 'descricao', 'dose_diaria_comprimidos', 'stock', 'requires_prescription', 'active', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'])
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+
     match /users/{uid} {
       allow create: if isOwner(uid)
         && request.resource.data.uid == uid
@@ -59,7 +71,9 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.active == true;
-      allow update, delete: if isPlatformAdmin();
+      allow update: if isPlatformAdmin()
+        || (isMedicationOwner() && hasValidMedicationUpdatePayload());
+      allow delete: if isPlatformAdmin() || isMedicationOwner();
     }
 
     match /institutions/{documentId} {
