@@ -96,7 +96,7 @@ export function getFriendlyAuthError(error) {
         'auth/network-request-failed': 'Falha de rede. Verifique sua conexão e tente novamente.',
         'auth/operation-not-allowed': 'Este método de login ainda não está habilitado no Firebase Authentication.',
         'auth/unauthorized-domain': 'Este domínio ainda não está autorizado no Firebase Authentication.',
-        'permission-denied': 'Operação bloqueada pelas regras do Firestore. Publique as regras atualizadas de segurança.',
+        'permission-denied': 'Operação não autorizada para este perfil. Verifique se você está usando uma conta com permissão administrativa.',
     };
 
     return errorMap[error?.code] || error?.message || 'Não foi possível concluir a operação. Tente novamente.';
@@ -116,7 +116,7 @@ export function toSessionUser(user) {
 
 export async function upsertUserDocument(user, provider, name = null) {
     if (!user?.uid) {
-        throw new Error('Usuário Firebase inválido para persistência no Firestore.');
+        throw new Error('Não foi possível validar os dados da conta para criação do perfil.');
     }
 
     const userRef = doc(db, 'users', user.uid);

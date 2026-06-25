@@ -53,6 +53,11 @@ A página `Frontend/index.html` foi redesenhada com uma diretriz visual corporat
 
 O indicador de farmácias cadastradas na página inicial consulta a coleção `farmacias` do Firestore quando disponível.
 
+
+## Adequação textual corporativa
+
+A interface foi revisada para apresentar uma jornada mais institucional: o usuário inicia pela página inicial (`index.html`), entende a proposta do ConectaPharma e segue para a área autenticada de consulta. Os textos públicos e internos priorizam linguagem empresarial, clareza de serviço, governança por perfil e orientação ao usuário, evitando termos técnicos expostos desnecessariamente na experiência final.
+
 ## Conta administradora
 
 A conta abaixo possui acesso administrativo:

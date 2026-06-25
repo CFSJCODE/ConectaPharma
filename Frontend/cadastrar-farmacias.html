@@ -285,7 +285,7 @@
     <header>
         <div class="header-title">
             <h1>Cadastrar Farmácias</h1>
-            <p>Cadastro manual de farmácias na base operacional do ConectaPharma</p>
+            <p>Gestão administrativa de farmácias cadastradas no ConectaPharma</p>
         </div>
         <div class="header-actions">
             <a class="btn btn-secondary" href="plataforma.html">Voltar à plataforma</a>
@@ -295,8 +295,8 @@
 
     <main class="page-body">
         <section class="card">
-            <h2 class="section-title">Formulário administrativo</h2>
-            <p class="section-subtitle">Preencha os dados da farmácia. Os campos de nome e endereço são obrigatórios. O registro será salvo diretamente na coleção <strong>farmacias</strong> do Cloud Firestore.</p>
+            <h2 class="section-title">Cadastro institucional de farmácias</h2>
+            <p class="section-subtitle">Preencha os dados de identificação, contato, localização e horário de atendimento. As informações cadastradas serão disponibilizadas na consulta da plataforma após validação administrativa.</p>
             <div class="status-pill warn" id="access-status">Validando permissão administrativa...</div>
 
             <form id="pharmacy-form" class="form-grid" autocomplete="off">
@@ -366,9 +366,9 @@
                 </label>
 
                 <label>
-                    <span>Status de consulta</span>
+                    <span>Disponibilidade para consulta</span>
                     <select id="pharmacy-availability" class="select">
-                        <option value="true" selected>Disponível para consulta</option>
+                        <option value="true" selected>Disponível na plataforma</option>
                         <option value="false">Verificar estoque</option>
                     </select>
                 </label>
@@ -390,13 +390,13 @@
                     <button id="btn-save-pharmacy" class="btn btn-accent" type="submit">Salvar farmácia no sistema</button>
                     <button id="btn-clear-form" class="btn btn-secondary" type="button">Limpar formulário</button>
                 </div>
-                <p id="form-status" class="message span-2">Aguardando validação da conta administradora.</p>
+                <p id="form-status" class="message span-2">Aguardando validação do perfil administrador.</p>
             </form>
         </section>
 
         <aside class="card">
-            <h2 class="section-title">Últimas farmácias cadastradas</h2>
-            <p class="section-subtitle">Lista lida diretamente do Firestore após o login administrativo.</p>
+            <h2 class="section-title">Registros recentes de farmácias</h2>
+            <p class="section-subtitle">Lista de registros disponíveis para conferência pelo perfil administrador.</p>
             <div id="pharmacy-list" class="list-grid">
                 <p class="message">Carregando...</p>
             </div>
@@ -507,20 +507,20 @@
                 const items = await listFarmacias({ max: 100 });
                 renderPharmacies(items);
             } catch (error) {
-                byId('pharmacy-list').innerHTML = `<p class="message error">Falha ao carregar farmácias: ${escapeHtml(error.message)}</p>`;
+                byId('pharmacy-list').innerHTML = `<p class="message error">Não foi possível carregar as farmácias: ${escapeHtml(error.message)}</p>`;
             }
         }
 
         async function savePharmacy(event) {
             event.preventDefault();
             if (!isAdminSession) {
-                setMessage('form-status', 'Apenas a conta administradora pode cadastrar farmácias.', 'error');
+                setMessage('form-status', 'Apenas perfis administradores podem cadastrar farmácias.', 'error');
                 return;
             }
 
             const button = byId('btn-save-pharmacy');
             button.disabled = true;
-            setMessage('form-status', 'Salvando farmácia no Cloud Firestore...');
+            setMessage('form-status', 'Salvando farmácia na plataforma...');
             try {
                 const payload = buildPayloadFromForm();
                 const result = await createFarmacia(payload);
@@ -532,7 +532,7 @@
                 setMessage('form-status', `Farmácia cadastrada com sucesso. ID do documento: ${result.id}`, 'success');
                 await loadRegisteredPharmacies();
             } catch (error) {
-                setMessage('form-status', `Falha no cadastro: ${error.message}`, 'error');
+                setMessage('form-status', `Não foi possível concluir o cadastro: ${error.message}`, 'error');
             } finally {
                 button.disabled = !isAdminSession;
             }
@@ -575,8 +575,8 @@
             sessionStorage.setItem('conectapharma_user', JSON.stringify(currentSessionUser));
 
             if (!isAdminSession) {
-                setAccessStatus('Acesso bloqueado: esta página é exclusiva da conta administradora.', 'warn');
-                setMessage('form-status', 'Entre com claudiofranciscojunior2006@gmail.com para cadastrar farmácias.', 'error');
+                setAccessStatus('Acesso restrito: esta página é exclusiva para perfis administradores.', 'warn');
+                setMessage('form-status', 'Entre com um perfil administrador para cadastrar farmácias.', 'error');
                 setFormEnabled(false);
                 await loadRegisteredPharmacies();
                 return;
@@ -597,7 +597,7 @@
             onAuthStateChange((user) => {
                 verifyAdmin(user).catch((error) => {
                     setAccessStatus('Não foi possível validar a sessão administrativa.', 'warn');
-                    setMessage('form-status', error.message || 'Falha ao validar sessão.', 'error');
+                    setMessage('form-status', error.message || 'Não foi possível validar a sessão.', 'error');
                     setFormEnabled(false);
                 });
             });

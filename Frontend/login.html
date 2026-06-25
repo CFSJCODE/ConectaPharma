@@ -1,5 +1,4 @@
 <!-- DADOS PARA TESTE LEGADO LOCAL -->
-<!-- Administrador: claudiofranciscojunior2006@gmail.com -->
 <!-- Senha local legado: admin123 -->
 
 <!DOCTYPE html>
@@ -10,7 +9,7 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="modulepreload" href="./assets/firebaseClient.js">
-    <title>Login - ConectaPharma</title>
+    <title>Acesso à Plataforma - ConectaPharma</title>
     <style>
         /* Variáveis de Cores herdadas do ConectaPharma Design System */
         :root {
@@ -238,7 +237,7 @@
     <div class="auth-container">
         <div class="auth-header">
             <h1>ConectaPharma</h1>
-            <p>Acesse o ecossistema digital de saúde</p>
+            <p>Acesse sua área no ConectaPharma</p>
         </div>
 
         <!-- Mensagens de Alerta (Invisíveis por padrão) -->
@@ -256,12 +255,12 @@
                 <label for="login-password">Senha</label>
                 <input type="password" id="login-password" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn-submit">Entrar na Plataforma</button>
+            <button type="submit" class="btn-submit">Entrar na plataforma</button>
             <div class="auth-divider">ou</div>
             <button type="button" id="btn-google-login" class="btn-google" onclick="handleGoogleAuth()">Entrar com Google</button>
             
             <div class="auth-toggle">
-                Não tem uma conta? <a onclick="switchView('view-register')">Cadastre-se aqui</a>
+                Ainda não possui acesso? <a onclick="switchView('view-register')">Criar cadastro</a>
             </div>
         </form>
 
@@ -281,12 +280,12 @@
                 <label for="reg-password">Criar Senha</label>
                 <input type="password" id="reg-password" placeholder="Crie uma senha forte" required>
             </div>
-            <button type="submit" class="btn-submit">Finalizar Cadastro</button>
+            <button type="submit" class="btn-submit">Criar conta</button>
             <div class="auth-divider">ou</div>
             <button type="button" id="btn-google-register" class="btn-google" onclick="handleGoogleAuth()">Cadastrar com Google</button>
             
             <div class="auth-toggle">
-                Já possui conta? <a onclick="switchView('view-login')">Faça o Login</a>
+                Já possui cadastro? <a onclick="switchView('view-login')">Entrar na plataforma</a>
             </div>
         </form>
     </div>
